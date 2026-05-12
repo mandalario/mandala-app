@@ -1,22 +1,36 @@
-import React, { useEffect, useRef } from 'react';
-import { StyleSheet, View, Linking, Platform } from 'react-native';
+import React, { useEffect, useRef, useState } from 'react';
+import { StyleSheet, View, BackHandler, ActivityIndicator, Text, TouchableOpacity } from 'react-native';
 import { WebView, WebViewNavigation } from 'react-native-webview';
 import { StatusBar } from 'expo-status-bar';
 import { SafeAreaProvider, SafeAreaView } from 'react-native-safe-area-context';
 import * as WebBrowser from 'expo-web-browser';
-import * as LinkingExpo from 'expo-linking';
+import * as Linking from 'expo-linking';
 
 export default function App() {
   const THEME_COLOR = '#051d2d';
+  const [loading, setLoading] = useState(true);
+  const [canGoBack, setCanGoBack] = useState(false);
   const webViewRef = useRef<WebView>(null);
   const baseUrl = 'https://mandalario.vercel.app/';
+
+  // Lidar com o botão de voltar no Android
+  useEffect(() => {
+    const onBackPress = () => {
+      if (webViewRef.current && canGoBack) {
+        webViewRef.current.goBack();
+        return true;
+      }
+      return false;
+    };
+
+    BackHandler.addEventListener('hardwareBackPress', onBackPress);
+    return () => BackHandler.removeEventListener('hardwareBackPress', onBackPress);
+  }, [canGoBack]);
 
   useEffect(() => {
     const handleDeepLink = (event: { url: string }) => {
       const { url } = event;
-      if (url.startsWith('mandala-app://')) {
-        // Se houver parâmetros de volta do Google Auth, podemos passá-los para o WebView
-        // Por exemplo: mandala-app://auth?token=xyz
+      if (url && url.startsWith('mandala-app://')) {
         const path = url.replace('mandala-app://', '');
         webViewRef.current?.injectJavaScript(`window.location.href = "${baseUrl}${path}";`);
       }
@@ -34,7 +48,7 @@ export default function App() {
     };
   }, []);
 
-  const handleShouldStartLoadWithRequest = (request: any) => {
+  const handleShouldStartLoadWithRequest = (request: WebViewNavigation) => {
     const { url } = request;
 
     // Interceptar rotas do Google Auth
@@ -58,22 +72,42 @@ export default function App() {
           <WebView 
             ref={webViewRef}
             source={{ uri: baseUrl }}
-            style={styles.webview}
+            style={[styles.webview, { backgroundColor: THEME_COLOR }]}
             javaScriptEnabled={true}
             domStorageEnabled={true}
             startInLoadingState={true}
+            onLoadStart={() => setLoading(true)}
+            onLoadEnd={() => setLoading(false)}
+            onNavigationStateChange={(navState: WebViewNavigation) => {
+              setCanGoBack(navState.canGoBack);
+            }}
             scalesPageToFit={true}
             allowsInlineMediaPlayback={true}
             mediaPlaybackRequiresUserAction={false}
             sharedCookiesEnabled={true}
-            persistSessionCookies={true}
             cacheEnabled={true}
             allowsFullscreenVideo={false}
             mixedContentMode="always"
             thirdPartyCookiesEnabled={true}
             onShouldStartLoadWithRequest={handleShouldStartLoadWithRequest}
             userAgent="Mozilla/5.0 (iPhone; CPU iPhone OS 17_0 like Mac OS X) AppleWebKit/605.1.15 (KHTML, like Gecko) Version/17.0 Mobile/15E148 Safari/604.1"
-            backgroundColor={THEME_COLOR}
+            renderLoading={() => (
+              <View style={styles.loadingContainer}>
+                <ActivityIndicator size="large" color="#ffffff" />
+              </View>
+            )}
+            renderError={() => (
+              <View style={styles.errorContainer}>
+                <Text style={styles.errorTitle}>Sem conexão</Text>
+                <Text style={styles.errorText}>Verifique sua internet e tente novamente.</Text>
+                <TouchableOpacity 
+                  style={styles.retryButton} 
+                  onPress={() => webViewRef.current?.reload()}
+                >
+                  <Text style={styles.retryButtonText}>Tentar Novamente</Text>
+                </TouchableOpacity>
+              </View>
+            )}
           />
         </View>
       </SafeAreaView>
@@ -91,5 +125,49 @@ const styles = StyleSheet.create({
   },
   webview: {
     flex: 1,
+  },
+  loadingContainer: {
+    position: 'absolute',
+    top: 0,
+    left: 0,
+    right: 0,
+    bottom: 0,
+    justifyContent: 'center',
+    alignItems: 'center',
+    backgroundColor: '#051d2d',
+  },
+  errorContainer: {
+    position: 'absolute',
+    top: 0,
+    left: 0,
+    right: 0,
+    bottom: 0,
+    justifyContent: 'center',
+    alignItems: 'center',
+    backgroundColor: '#051d2d',
+    padding: 20,
+  },
+  errorTitle: {
+    color: '#ffffff',
+    fontSize: 20,
+    fontWeight: 'bold',
+    marginBottom: 10,
+  },
+  errorText: {
+    color: '#a0aec0',
+    fontSize: 16,
+    textAlign: 'center',
+    marginBottom: 20,
+  },
+  retryButton: {
+    backgroundColor: '#ffffff',
+    paddingHorizontal: 20,
+    paddingVertical: 10,
+    borderRadius: 8,
+  },
+  retryButtonText: {
+    color: '#051d2d',
+    fontSize: 16,
+    fontWeight: 'bold',
   },
 });
