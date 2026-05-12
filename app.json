@@ -1,8 +1,9 @@
 {
   "expo": {
-    "name": "mandala-app",
-    "slug": "mandala-app",
+    "name": "Mandala Rio",
+    "slug": "mandala-rio",
     "version": "1.0.0",
+    "scheme": "mandala-app",
     "orientation": "portrait",
     "icon": "./assets/icon.png",
     "userInterfaceStyle": "light",
@@ -13,9 +14,11 @@
       "backgroundColor": "#ffffff"
     },
     "ios": {
-      "supportsTablet": true
+      "supportsTablet": false,
+      "bundleIdentifier": "com.mandalario.app"
     },
     "android": {
+      "package": "com.mandalario.app",
       "adaptiveIcon": {
         "foregroundImage": "./assets/adaptive-icon.png",
         "backgroundColor": "#ffffff"
@@ -25,6 +28,9 @@
     },
     "web": {
       "favicon": "./assets/favicon.png"
-    }
+    },
+    "plugins": [
+      "expo-web-browser"
+    ]
   }
 }
