@@ -7,12 +7,14 @@ export function CreditsBadge({ credits }: { credits: number }) {
   return (
     <Link
       to="/packages"
-      className="h-10 px-3 rounded-full glass flex items-center gap-1.5 hover:bg-secondary/40 transition-colors"
+      className="h-10 px-4 rounded-full glass flex items-center gap-2 hover:bg-primary/10 hover:ring-2 hover:ring-primary/30 transition-all active:scale-95 shadow-lg group"
       title={t("credits.yourCredits")}
     >
-      <Coins className="w-4 h-4 text-primary" />
+      <div className="w-6 h-6 rounded-full bg-primary/20 flex items-center justify-center group-hover:bg-primary/30 transition-colors">
+        <Coins className="w-3.5 h-3.5 text-primary" />
+      </div>
       <span className="text-[11px] uppercase tracking-wider text-muted-foreground hidden sm:inline">{t("credits.yourCredits")}</span>
-      <span className="text-sm font-bold">{credits}</span>
+      <span className="text-sm font-bold text-primary">{credits}</span>
     </Link>
   );
 }
