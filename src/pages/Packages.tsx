@@ -26,10 +26,6 @@ export default function Packages() {
   const [selected, setSelected] = useState<Pkg | null>(null);
   const [loading, setLoading] = useState(true);
 
-  // Redirect to home if billing is disabled
-  useEffect(() => {
-    if (billingEnabled === false) navigate("/", { replace: true });
-  }, [billingEnabled, navigate]);
 
   const load = async () => {
     const [{ data: p }, { data: pay }] = await Promise.all([
