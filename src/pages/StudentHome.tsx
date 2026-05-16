@@ -68,7 +68,7 @@ export default function StudentHome() {
       <OceanBackground />
 
       {/* Top brand bar */}
-      <div className="px-5 pt-6 flex items-center justify-between gap-3">
+      <div className="px-5 pt-6 flex items-center justify-between gap-3 relative z-30">
         <div className="flex items-center gap-3 min-w-0">
           <div className="w-12 h-12 rounded-2xl bg-white flex items-center justify-center p-1 shadow-soft shrink-0">
             <img src={logoMandala} alt="Mandala Rio Surf School" className="w-full h-full object-contain" />
