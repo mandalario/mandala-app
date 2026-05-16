@@ -25,7 +25,7 @@ const Index = () => {
     }
   }, [user, profile, isAdmin, loading, navigate]);
 
-  if (loading || !user || !profile) {
+  if (loading || !user) {
     return (
       <div className="relative min-h-screen flex items-center justify-center">
         <OceanBackground />
@@ -37,6 +37,15 @@ const Index = () => {
   if (isAdmin) {
     navigate("/admin", { replace: true });
     return null;
+  }
+
+  if (!profile) {
+    return (
+      <div className="relative min-h-screen flex items-center justify-center">
+        <OceanBackground />
+        <Loader2 className="w-8 h-8 animate-spin text-primary" />
+      </div>
+    );
   }
 
   // Approved student
