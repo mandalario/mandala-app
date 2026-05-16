@@ -9,7 +9,6 @@ export function CreditsBadge({ credits }: { credits: number }) {
   return (
     <div
       onClick={() => {
-        alert("Botão clicado! Navegando...");
         navigate("/packages");
       }}
       className="h-10 px-4 rounded-full glass flex items-center gap-2 hover:bg-primary/10 hover:ring-2 hover:ring-primary/30 transition-all active:scale-95 shadow-lg group cursor-pointer relative z-50"
