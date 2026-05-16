@@ -108,9 +108,18 @@
     "uploadError": "Upload error: ",
     "submitSuccess": "Receipt submitted! Awaiting approval.",
     "catalog": {
-      "Aula Avulsa": { "name": "Single Class", "description": "1 class to try it out" },
-      "Pacote 4 Aulas": { "name": "4-Class Pack", "description": "Ideal for beginners" },
-      "Pacote 10 Aulas": { "name": "10-Class Pack", "description": "Best value" }
+      "Aula Avulsa": {
+        "name": "Single Class",
+        "description": "1 class to try it out"
+      },
+      "Pacote 4 Aulas": {
+        "name": "4-Class Pack",
+        "description": "Ideal for beginners"
+      },
+      "Pacote 10 Aulas": {
+        "name": "10-Class Pack",
+        "description": "Best value"
+      }
     }
   },
   "dashboard": {
@@ -162,8 +171,16 @@
       "medical": "Medical conditions",
       "notes": "Notes / experience"
     },
-    "levels": { "beginner": "Beginner", "intermediate": "Intermediate", "advanced": "Advanced" },
-    "stances": { "regular": "Regular", "goofy": "Goofy", "unknown": "Don't know" }
+    "levels": {
+      "beginner": "Beginner",
+      "intermediate": "Intermediate",
+      "advanced": "Advanced"
+    },
+    "stances": {
+      "regular": "Regular",
+      "goofy": "Goofy",
+      "unknown": "Don't know"
+    }
   },
   "notifications": {
     "title": "Notifications",

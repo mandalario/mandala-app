@@ -85,7 +85,7 @@
   },
   "packages": {
     "eyebrow": "Recarregar",
-    "title": "Créditos",
+    "title": "Comprar Créditos",
     "creditsLabel": "crédito(s)",
     "perClass": "/aula",
     "history": "Histórico",
@@ -108,9 +108,18 @@
     "uploadError": "Erro no upload: ",
     "submitSuccess": "Comprovante enviado! Aguarde aprovação.",
     "catalog": {
-      "Aula Avulsa": { "name": "Aula Avulsa", "description": "1 aula para experimentar" },
-      "Pacote 4 Aulas": { "name": "Pacote 4 Aulas", "description": "Ideal para iniciantes" },
-      "Pacote 10 Aulas": { "name": "Pacote 10 Aulas", "description": "Melhor custo-benefício" }
+      "Aula Avulsa": {
+        "name": "Aula Avulsa",
+        "description": "1 aula para experimentar"
+      },
+      "Pacote 4 Aulas": {
+        "name": "Pacote 4 Aulas",
+        "description": "Ideal para iniciantes"
+      },
+      "Pacote 10 Aulas": {
+        "name": "Pacote 10 Aulas",
+        "description": "Melhor custo-benefício"
+      }
     }
   },
   "dashboard": {
@@ -162,8 +171,16 @@
       "medical": "Condições médicas",
       "notes": "Notas / experiência"
     },
-    "levels": { "beginner": "Iniciante", "intermediate": "Intermediário", "advanced": "Avançado" },
-    "stances": { "regular": "Regular", "goofy": "Goofy", "unknown": "Não sei" }
+    "levels": {
+      "beginner": "Iniciante",
+      "intermediate": "Intermediário",
+      "advanced": "Avançado"
+    },
+    "stances": {
+      "regular": "Regular",
+      "goofy": "Goofy",
+      "unknown": "Não sei"
+    }
   },
   "notifications": {
     "title": "Notificações",
@@ -186,5 +203,12 @@
       "bookingCancelledTitle": "Aula cancelada",
       "bookingCancelledBody": "Sua aula em {{date}} foi cancelada por condições do mar. Seu crédito foi devolvido."
     }
+  },
+  "nav": {
+    "home": "Início",
+    "schedule": "Agenda",
+    "buy": "Comprar",
+    "chat": "Chat",
+    "profile": "Perfil"
   }
 }

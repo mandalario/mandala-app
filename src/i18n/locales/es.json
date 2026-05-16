@@ -108,9 +108,18 @@
     "uploadError": "Error al subir: ",
     "submitSuccess": "¡Comprobante enviado! Espera aprobación.",
     "catalog": {
-      "Aula Avulsa": { "name": "Clase Suelta", "description": "1 clase para probar" },
-      "Pacote 4 Aulas": { "name": "Paquete 4 Clases", "description": "Ideal para principiantes" },
-      "Pacote 10 Aulas": { "name": "Paquete 10 Clases", "description": "Mejor relación calidad-precio" }
+      "Aula Avulsa": {
+        "name": "Clase Suelta",
+        "description": "1 clase para probar"
+      },
+      "Pacote 4 Aulas": {
+        "name": "Paquete 4 Clases",
+        "description": "Ideal para principiantes"
+      },
+      "Pacote 10 Aulas": {
+        "name": "Paquete 10 Clases",
+        "description": "Mejor relación calidad-precio"
+      }
     }
   },
   "dashboard": {
@@ -162,8 +171,16 @@
       "medical": "Condiciones médicas",
       "notes": "Notas / experiencia"
     },
-    "levels": { "beginner": "Principiante", "intermediate": "Intermedio", "advanced": "Avanzado" },
-    "stances": { "regular": "Regular", "goofy": "Goofy", "unknown": "No sé" }
+    "levels": {
+      "beginner": "Principiante",
+      "intermediate": "Intermedio",
+      "advanced": "Avanzado"
+    },
+    "stances": {
+      "regular": "Regular",
+      "goofy": "Goofy",
+      "unknown": "No sé"
+    }
   },
   "notifications": {
     "title": "Notificaciones",

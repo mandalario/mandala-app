@@ -36,46 +36,46 @@ const queryClient = new QueryClient();
 const App = () => (
   <QueryClientProvider client={queryClient}>
     <LanguageProvider>
-    <TooltipProvider>
-      <Toaster />
-      <Sonner />
-      <BrowserRouter>
-        <AuthProvider>
-          <Routes>
-            <Route path="/" element={<Index />} />
-            <Route path="/auth" element={<Auth />} />
-            <Route path="/onboarding" element={<Onboarding />} />
-            <Route path="/pending" element={<PendingApproval />} />
-            <Route path="/packages" element={<Packages />} />
-            <Route path="/schedule" element={<Schedule />} />
-            <Route path="/feed" element={<Feed />} />
-            <Route path="/chat" element={<Chat />} />
-            <Route path="/profile" element={<Profile />} />
-            <Route path="/terms" element={<LegalPage kind="terms" />} />
-            <Route path="/privacy" element={<LegalPage kind="privacy" />} />
+      <TooltipProvider>
+        <Toaster />
+        <Sonner />
+        <BrowserRouter>
+          <AuthProvider>
+            <Routes>
+              <Route path="/" element={<Index />} />
+              <Route path="/auth" element={<Auth />} />
+              <Route path="/onboarding" element={<Onboarding />} />
+              <Route path="/pending" element={<PendingApproval />} />
+              <Route path="/packages" element={<Packages />} />
+              <Route path="/schedule" element={<Schedule />} />
+              <Route path="/feed" element={<Feed />} />
+              <Route path="/chat" element={<Chat />} />
+              <Route path="/profile" element={<Profile />} />
+              <Route path="/terms" element={<LegalPage kind="terms" />} />
+              <Route path="/privacy" element={<LegalPage kind="privacy" />} />
 
-            <Route path="/admin" element={<AdminLayout />}>
-              <Route index element={<AdminDashboardHome />} />
-              <Route path="students" element={<AdminStudents />} />
-              <Route path="schedule" element={<AdminSchedule />} />
-              <Route path="forecast" element={<AdminForecast />} />
-              <Route path="billing" element={<AdminBilling />} />
-              <Route path="packages" element={<AdminPackages />} />
-              <Route path="content" element={<AdminContent />} />
-              <Route path="posts" element={<AdminPosts />} />
-              <Route path="terms" element={<AdminTerms />} />
-              <Route path="privacy" element={<AdminPrivacy />} />
-              <Route path="chat" element={<AdminChatList />} />
-              <Route path="notifications" element={<AdminNotifications />} />
-              <Route path="access" element={<AdminAccess />} />
-            </Route>
-            <Route path="/admin/chat/conv" element={<Chat />} />
+              <Route path="/admin" element={<AdminLayout />}>
+                <Route index element={<AdminDashboardHome />} />
+                <Route path="students" element={<AdminStudents />} />
+                <Route path="schedule" element={<AdminSchedule />} />
+                <Route path="forecast" element={<AdminForecast />} />
+                <Route path="billing" element={<AdminBilling />} />
+                <Route path="packages" element={<AdminPackages />} />
+                <Route path="content" element={<AdminContent />} />
+                <Route path="posts" element={<AdminPosts />} />
+                <Route path="terms" element={<AdminTerms />} />
+                <Route path="privacy" element={<AdminPrivacy />} />
+                <Route path="chat" element={<AdminChatList />} />
+                <Route path="notifications" element={<AdminNotifications />} />
+                <Route path="access" element={<AdminAccess />} />
+              </Route>
+              <Route path="/admin/chat/conv" element={<Chat />} />
 
-            <Route path="*" element={<NotFound />} />
-          </Routes>
-        </AuthProvider>
-      </BrowserRouter>
-    </TooltipProvider>
+              <Route path="*" element={<NotFound />} />
+            </Routes>
+          </AuthProvider>
+        </BrowserRouter>
+      </TooltipProvider>
     </LanguageProvider>
   </QueryClientProvider>
 );
