@@ -1,13 +1,19 @@
-import { Link } from "react-router-dom";
+import { Link, useNavigate } from "react-router-dom";
 import { Coins } from "lucide-react";
 import { useTranslation } from "@/i18n/LanguageContext";
 
 export function CreditsBadge({ credits }: { credits: number }) {
   const { t } = useTranslation();
+  const navigate = useNavigate();
+
   return (
     <Link
       to="/packages"
-      className="h-10 px-4 rounded-full glass flex items-center gap-2 hover:bg-primary/10 hover:ring-2 hover:ring-primary/30 transition-all active:scale-95 shadow-lg group"
+      onClick={(e) => {
+        e.preventDefault();
+        navigate("/packages");
+      }}
+      className="h-10 px-4 rounded-full glass flex items-center gap-2 hover:bg-primary/10 hover:ring-2 hover:ring-primary/30 transition-all active:scale-95 shadow-lg group cursor-pointer"
       title={t("credits.yourCredits")}
     >
       <div className="w-6 h-6 rounded-full bg-primary/20 flex items-center justify-center group-hover:bg-primary/30 transition-colors">
