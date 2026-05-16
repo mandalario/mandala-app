@@ -3,8 +3,10 @@ import { BrowserRouter, Route, Routes } from "react-router-dom";
 import { Toaster as Sonner } from "@/components/ui/sonner";
 import { Toaster } from "@/components/ui/toaster";
 import { TooltipProvider } from "@/components/ui/tooltip";
-import { AuthProvider } from "@/hooks/useAuth";
+import { AuthProvider, useAuth } from "@/hooks/useAuth";
 import { LanguageProvider } from "@/i18n/LanguageContext";
+import { useLocation } from "react-router-dom";
+import { BottomNav } from "@/components/BottomNav";
 import Index from "./pages/Index.tsx";
 import Auth from "./pages/Auth.tsx";
 import Onboarding from "./pages/Onboarding.tsx";
@@ -32,6 +34,20 @@ import Profile from "./pages/Profile.tsx";
 import NotFound from "./pages/NotFound.tsx";
 
 const queryClient = new QueryClient();
+
+const ConditionalBottomNav = () => {
+  const { user, isAdmin, profile, loading } = useAuth();
+  const location = useLocation();
+
+  if (loading || !user || isAdmin) return null;
+  
+  const hidePaths = ["/auth", "/onboarding", "/pending", "/chat"];
+  if (hidePaths.includes(location.pathname)) return null;
+  if (location.pathname.startsWith("/admin")) return null;
+  if (profile?.approval_status !== "approved") return null;
+
+  return <BottomNav />;
+};
 
 const App = () => (
   <QueryClientProvider client={queryClient}>
@@ -73,6 +89,7 @@ const App = () => (
 
               <Route path="*" element={<NotFound />} />
             </Routes>
+            <ConditionalBottomNav />
           </AuthProvider>
         </BrowserRouter>
       </TooltipProvider>

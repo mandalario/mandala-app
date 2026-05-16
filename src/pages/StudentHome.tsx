@@ -116,26 +116,14 @@ export default function StudentHome() {
           sub={unread > 0 ? t(unread === 1 ? "dashboard.actions.chatSubUnreadOne" : "dashboard.actions.chatSubUnreadMany", { count: unread }) : t("dashboard.actions.chatSubDefault")}
           badge={unread}
         />
+        <ActionTile 
+          to="/packages" 
+          icon={<CreditCard className="w-5 h-5" />} 
+          label={t("packages.title") || "Comprar Créditos"} 
+          sub="Pacotes e Histórico" 
+        />
       </section>
 
-      <section className="px-5 mt-4">
-        <Link to="/packages" className="glass-strong rounded-3xl p-6 flex items-center justify-between group overflow-hidden relative active:scale-[0.98] transition-transform">
-          <div className="absolute -top-4 -right-4 p-8 opacity-10 group-hover:scale-110 transition-transform text-primary rotate-12">
-             <CreditCard className="w-24 h-24" />
-          </div>
-          <div className="relative z-10">
-            <div className="flex items-center gap-2 mb-1">
-              <span className="w-2 h-2 rounded-full bg-primary animate-pulse" />
-              <p className="text-[10px] uppercase tracking-[0.3em] text-primary/80">{t("packages.eyebrow") || "Recarregar"}</p>
-            </div>
-            <h2 className="text-xl font-bold">{t("packages.title") || "Comprar Créditos"}</h2>
-            <p className="text-xs text-muted-foreground mt-1">Pacotes de aulas e histórico de pagamentos</p>
-          </div>
-          <div className="w-12 h-12 rounded-2xl bg-primary/10 text-primary flex items-center justify-center relative z-10 group-hover:bg-primary/20 transition-colors">
-            <CreditCard className="w-5 h-5" />
-          </div>
-        </Link>
-      </section>
 
       <section className="px-5 mt-8">
         <h2 className="text-sm uppercase tracking-widest text-primary/80 mb-3">{t("dashboard.nextClasses")}</h2>

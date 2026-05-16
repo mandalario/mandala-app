@@ -139,8 +139,13 @@ export default function Profile() {
             onChange={(e) => e.target.files?.[0] && onAvatar(e.target.files[0])} />
         </div>
         <p className="text-xs text-muted-foreground mt-3">{profile.email}</p>
-        <div className="mt-3 inline-flex items-center gap-1.5 text-xs px-3 py-1 rounded-full bg-primary/15 text-primary">
-          {profile.credits} {profile.credits === 1 ? t("profile.credit") : t("profile.credits")}
+        <div className="mt-3 flex flex-col items-center gap-2">
+          <div className="inline-flex items-center gap-1.5 text-xs px-3 py-1 rounded-full bg-primary/15 text-primary">
+            {profile.credits} {profile.credits === 1 ? t("profile.credit") : t("profile.credits")}
+          </div>
+          <Link to="/packages" className="text-[10px] uppercase tracking-widest text-primary hover:underline font-bold">
+            {t("packages.title")} →
+          </Link>
         </div>
       </section>
 

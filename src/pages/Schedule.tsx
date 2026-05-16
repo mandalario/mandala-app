@@ -102,7 +102,9 @@ export default function Schedule() {
           </div>
         </div>
         {billingEnabled && (
-          <div className="glass rounded-xl px-3 py-2 text-xs"><span className="text-muted-foreground">{t("schedule.credits")}</span> <span className="font-bold text-primary">{profile?.credits ?? 0}</span></div>
+          <Link to="/packages" className="glass rounded-xl px-3 py-2 text-xs hover:bg-secondary/40 transition-colors">
+            <span className="text-muted-foreground">{t("schedule.credits")}</span> <span className="font-bold text-primary">{profile?.credits ?? 0}</span>
+          </Link>
         )}
       </header>
 

@@ -203,5 +203,12 @@
       "bookingCancelledTitle": "Clase cancelada",
       "bookingCancelledBody": "Tu clase del {{date}} fue cancelada por condiciones del mar. Tu crédito fue devuelto."
     }
+  },
+  "nav": {
+    "home": "Inicio",
+    "schedule": "Agenda",
+    "buy": "Comprar",
+    "chat": "Chat",
+    "profile": "Perfil"
   }
 }
