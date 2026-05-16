@@ -1,5 +1,5 @@
 import { useEffect, useState } from "react";
-import { Link } from "react-router-dom";
+import { Link, useNavigate } from "react-router-dom";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/hooks/useAuth";
 import { OceanBackground } from "@/components/OceanBackground";
@@ -17,6 +17,7 @@ type NextBooking = { id: string; status: string; class_slots: { date: string; st
 
 export default function StudentHome() {
   const { user, profile } = useAuth();
+  const navigate = useNavigate();
   const { t } = useTranslation();
   const billingEnabled = useBillingEnabled();
   const [next, setNext] = useState<NextBooking[]>([]);
@@ -96,6 +97,14 @@ export default function StudentHome() {
       <header className="px-5 pt-6 pb-4">
         <p className="text-[10px] uppercase tracking-[0.3em] text-primary/80">{t("dashboard.welcome")}</p>
         <h1 className="text-2xl font-bold truncate">{profile?.full_name?.split(" ")[0] ?? t("dashboard.defaultName")}</h1>
+        
+        {/* BOTÃO DE TESTE - SE VOCÊ ESTÁ VENDO ISSO, EU ESTOU EDITANDO O PROJETO CERTO */}
+        <button 
+          onClick={() => navigate("/packages")}
+          className="mt-4 bg-red-600 text-white font-bold py-4 px-8 rounded-full shadow-2xl animate-bounce w-full z-[9999] relative"
+        >
+          CLIQUE AQUI PARA TESTAR COMPRA DE CRÉDITOS
+        </button>
       </header>
 
       <section className="px-5">
