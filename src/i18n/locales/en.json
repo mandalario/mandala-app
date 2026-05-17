@@ -1,0 +1,214 @@
+{
+  "common": {
+    "loading": "Loading...",
+    "save": "Save",
+    "cancel": "Cancel",
+    "back": "Back",
+    "next": "Next",
+    "logout": "Sign out",
+    "profile": "Profile",
+    "language": "Language"
+  },
+  "languages": {
+    "pt": "Português",
+    "en": "English",
+    "es": "Español"
+  },
+  "languagePicker": {
+    "title": "Choose your language",
+    "subtitle": "You can change this anytime in the app.",
+    "confirm": "Continue"
+  },
+  "credits": {
+    "yourCredits": "Buy Credits"
+  },
+  "login": {
+    "title": "Sign in",
+    "subtitle": "Your surf journey starts here",
+    "tabLogin": "Sign in",
+    "tabSignup": "Sign up",
+    "fullName": "Full name",
+    "fullNamePlaceholder": "Your name",
+    "email": "Email",
+    "emailPlaceholder": "you@email.com",
+    "password": "Password",
+    "passwordPlaceholder": "••••••••",
+    "button": "Sign in",
+    "buttonSignup": "Create account",
+    "footerSignup": "After signing up you fill in your profile. Access stays pending until admin approval.",
+    "footerLogin": "Welcome back. Time to catch some waves.",
+    "errors": {
+      "alreadyRegistered": "This email is already registered. Please sign in.",
+      "weakPassword": "Password too weak or compromised. Use a stronger password.",
+      "shortPassword": "Password too short. Minimum 6 characters.",
+      "invalidEmail": "Invalid email.",
+      "rateLimit": "Too many attempts. Please wait and try again.",
+      "signupGeneric": "Sign up error: ",
+      "invalidCredentials": "Invalid email or password"
+    },
+    "success": {
+      "signup": "Account created! Complete your profile."
+    }
+  },
+  "register": {
+    "title": "Create account"
+  },
+  "schedule": {
+    "eyebrow": "Schedule",
+    "title": "Upcoming classes",
+    "credits": "Credits:",
+    "empty": "No classes available yet.",
+    "students": "students",
+    "booked": "Booked",
+    "full": "Full",
+    "book": "Book",
+    "noCredits": "You have no credits. Top up.",
+    "bookSuccess": "Class booked! 1 credit used.",
+    "locationTBD": "Location TBD",
+    "conditions": {
+      "good": "Good surf",
+      "medium": "Average surf",
+      "bad": "Poor surf",
+      "flat": "No waves"
+    }
+  },
+  "feed": {
+    "eyebrow": "Content",
+    "title": "Video lessons",
+    "tabs": {
+      "warmUp": "Warm Up",
+      "warmUpSub": "Warm-up and mobility",
+      "preSurfing": "Pre Surfing",
+      "preSurfingSub": "Exclusive technical content"
+    },
+    "empty": "No content in {{tab}} yet."
+  },
+  "packages": {
+    "eyebrow": "Top up",
+    "title": "Credits",
+    "creditsLabel": "credit(s)",
+    "perClass": "/class",
+    "history": "History",
+    "noPayments": "No payments yet.",
+    "selected": "Selected package",
+    "pixPayment": "Payment via Pix",
+    "beneficiary": "Beneficiary:",
+    "pixKey": "Pix key",
+    "pixCopied": "Pix key copied",
+    "pixNotConfigured": "Pix key not configured yet. Please contact the instructor.",
+    "pixInstructions": "After paying, attach the receipt below. Credits will be released after admin approval.",
+    "proof": "Receipt",
+    "proofRequired": "Attach the payment receipt before submitting.",
+    "selectFile": "Select image or PDF (required)",
+    "notes": "Notes (optional)",
+    "notesPlaceholder": "e.g. paid at 2pm",
+    "cancel": "Cancel",
+    "submit": "Submit receipt",
+    "attachFirst": "Attach the receipt",
+    "uploadError": "Upload error: ",
+    "submitSuccess": "Receipt submitted! Awaiting approval.",
+    "catalog": {
+      "Aula Avulsa": {
+        "name": "Single Class",
+        "description": "1 class to try it out"
+      },
+      "Pacote 4 Aulas": {
+        "name": "4-Class Pack",
+        "description": "Ideal for beginners"
+      },
+      "Pacote 10 Aulas": {
+        "name": "10-Class Pack",
+        "description": "Best value"
+      }
+    }
+  },
+  "dashboard": {
+    "welcome": "Welcome",
+    "defaultName": "Surfer",
+    "schoolTagline": "Surf School",
+    "actions": {
+      "scheduleTitle": "Book a class",
+      "scheduleSub": "Check available sessions",
+      "preSurfingTitle": "Pre Surfing",
+      "preSurfingSub": "Exclusive content",
+      "chatTitle": "Chat",
+      "chatSubDefault": "Talk to your instructor",
+      "chatSubUnreadOne": "{{count}} new message",
+      "chatSubUnreadMany": "{{count}} new messages",
+      "historyTitle": "History",
+      "historySub": "Payments & classes"
+    },
+    "nextClasses": "Upcoming classes",
+    "noClasses": "No classes scheduled yet.",
+    "locationTBD": "Location TBD"
+  },
+  "profile": {
+    "title": "My profile",
+    "credit": "credit",
+    "credits": "credits",
+    "updated": "Profile updated",
+    "photoUpdated": "Photo updated",
+    "save": "Save changes",
+    "blocks": {
+      "personal": "Personal info",
+      "surf": "Surf",
+      "emergency": "Emergency & health",
+      "about": "About you"
+    },
+    "fields": {
+      "fullName": "Full name",
+      "phone": "Phone",
+      "age": "Age",
+      "height": "Height (cm)",
+      "weight": "Weight (kg)",
+      "level": "Level",
+      "stance": "Stance",
+      "boardSize": "Board size",
+      "ownBoard": "Has own board",
+      "canSwim": "Can swim",
+      "emergencyName": "Contact name",
+      "emergencyPhone": "Phone",
+      "medical": "Medical conditions",
+      "notes": "Notes / experience"
+    },
+    "levels": {
+      "beginner": "Beginner",
+      "intermediate": "Intermediate",
+      "advanced": "Advanced"
+    },
+    "stances": {
+      "regular": "Regular",
+      "goofy": "Goofy",
+      "unknown": "Don't know"
+    }
+  },
+  "notifications": {
+    "title": "Notifications",
+    "markAll": "Mark all",
+    "empty": "No notifications.",
+    "markRead": "Mark as read",
+    "aria": "Notifications",
+    "now": "now",
+    "minShort": "min",
+    "hourShort": "h",
+    "items": {
+      "approvalApprovedTitle": "Account approved!",
+      "approvalApprovedBody": "You can now book classes.",
+      "approvalRejectedTitle": "Account rejected",
+      "approvalRejectedBody": "Please contact the instructor.",
+      "paymentApprovedTitle": "Credits released",
+      "paymentApprovedBody": "Your payment was approved! +{{credits}} credit(s).",
+      "paymentRejectedTitle": "Payment rejected",
+      "paymentRejectedBody": "Please check and submit again.",
+      "bookingCancelledTitle": "Class cancelled",
+      "bookingCancelledBody": "Your class on {{date}} was cancelled due to sea conditions. Your credit was refunded."
+    }
+  },
+  "nav": {
+    "home": "Home",
+    "schedule": "Schedule",
+    "buy": "Buy",
+    "chat": "Chat",
+    "profile": "Profile"
+  }
+}

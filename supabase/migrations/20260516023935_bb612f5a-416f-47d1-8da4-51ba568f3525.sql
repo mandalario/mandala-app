@@ -1,0 +1,2 @@
+UPDATE public.app_settings SET value='true' WHERE key='billing_enabled';
+INSERT INTO public.app_settings (key, value) SELECT 'billing_enabled','true' WHERE NOT EXISTS (SELECT 1 FROM public.app_settings WHERE key='billing_enabled');

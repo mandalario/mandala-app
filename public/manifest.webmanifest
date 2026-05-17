@@ -1,0 +1,14 @@
+{
+  "name": "Mandala Rio Surf School",
+  "short_name": "Mandala Rio",
+  "description": "Aulas de surf, créditos e condições do mar.",
+  "start_url": "/",
+  "display": "standalone",
+  "background_color": "#0b1e3a",
+  "theme_color": "#0b1e3a",
+  "orientation": "portrait",
+  "lang": "pt-BR",
+  "icons": [
+    { "src": "/favicon.png", "sizes": "512x512", "type": "image/png", "purpose": "any maskable" }
+  ]
+}

@@ -1,0 +1,214 @@
+{
+  "common": {
+    "loading": "Carregando...",
+    "save": "Salvar",
+    "cancel": "Cancelar",
+    "back": "Voltar",
+    "next": "Próximo",
+    "logout": "Sair",
+    "profile": "Perfil",
+    "language": "Idioma"
+  },
+  "languages": {
+    "pt": "Português",
+    "en": "English",
+    "es": "Español"
+  },
+  "languagePicker": {
+    "title": "Escolha seu idioma",
+    "subtitle": "Você pode alterar a qualquer momento dentro do app.",
+    "confirm": "Continuar"
+  },
+  "credits": {
+    "yourCredits": "Comprar Créditos"
+  },
+  "login": {
+    "title": "Entrar",
+    "subtitle": "Sua jornada no surf começa aqui",
+    "tabLogin": "Entrar",
+    "tabSignup": "Cadastrar",
+    "fullName": "Nome completo",
+    "fullNamePlaceholder": "Seu nome",
+    "email": "Email",
+    "emailPlaceholder": "voce@email.com",
+    "password": "Senha",
+    "passwordPlaceholder": "••••••••",
+    "button": "Entrar",
+    "buttonSignup": "Criar conta",
+    "footerSignup": "Após o cadastro você preenche sua ficha. Seu acesso fica pendente até aprovação do admin.",
+    "footerLogin": "Bem-vindo de volta. Hora de pegar onda.",
+    "errors": {
+      "alreadyRegistered": "Este email já está cadastrado. Faça login.",
+      "weakPassword": "Senha muito fraca ou comprometida. Use uma senha mais forte.",
+      "shortPassword": "Senha muito curta. Mínimo 6 caracteres.",
+      "invalidEmail": "Email inválido.",
+      "rateLimit": "Muitas tentativas. Aguarde um momento e tente novamente.",
+      "signupGeneric": "Erro ao cadastrar: ",
+      "invalidCredentials": "Email ou senha inválidos"
+    },
+    "success": {
+      "signup": "Cadastro realizado! Complete sua ficha técnica."
+    }
+  },
+  "register": {
+    "title": "Criar conta"
+  },
+  "schedule": {
+    "eyebrow": "Agenda",
+    "title": "Próximas aulas",
+    "credits": "Créditos:",
+    "empty": "Nenhuma aula disponível ainda.",
+    "students": "alunos",
+    "booked": "Agendada",
+    "full": "Lotado",
+    "book": "Agendar",
+    "noCredits": "Você não tem créditos. Recarregue.",
+    "bookSuccess": "Aula agendada! 1 crédito utilizado.",
+    "locationTBD": "Local a definir",
+    "conditions": {
+      "good": "Mar bom",
+      "medium": "Mar médio",
+      "bad": "Mar ruim",
+      "flat": "Sem ondas"
+    }
+  },
+  "feed": {
+    "eyebrow": "Conteúdo",
+    "title": "Aulas em vídeo",
+    "tabs": {
+      "warmUp": "Warm Up",
+      "warmUpSub": "Aquecimento e mobilidade",
+      "preSurfing": "Pre Surfing",
+      "preSurfingSub": "Conteúdo técnico exclusivo"
+    },
+    "empty": "Nenhum conteúdo em {{tab}} ainda."
+  },
+  "packages": {
+    "eyebrow": "Recarregar",
+    "title": "Comprar Créditos",
+    "creditsLabel": "crédito(s)",
+    "perClass": "/aula",
+    "history": "Histórico",
+    "noPayments": "Nenhum pagamento ainda.",
+    "selected": "Pacote selecionado",
+    "pixPayment": "Pagamento via Pix",
+    "beneficiary": "Beneficiário:",
+    "pixKey": "Chave Pix",
+    "pixCopied": "Chave Pix copiada",
+    "pixNotConfigured": "Chave Pix ainda não configurada. Entre em contato com o instrutor.",
+    "pixInstructions": "Após pagar, anexe o comprovante abaixo. Os créditos serão liberados após validação do admin.",
+    "proof": "Comprovante",
+    "proofRequired": "Anexe o comprovante de pagamento antes de enviar.",
+    "selectFile": "Selecionar imagem ou PDF (obrigatório)",
+    "notes": "Observação (opcional)",
+    "notesPlaceholder": "Ex: pago às 14h",
+    "cancel": "Cancelar",
+    "submit": "Enviar comprovante",
+    "attachFirst": "Anexe o comprovante",
+    "uploadError": "Erro no upload: ",
+    "submitSuccess": "Comprovante enviado! Aguarde aprovação.",
+    "catalog": {
+      "Aula Avulsa": {
+        "name": "Aula Avulsa",
+        "description": "1 aula para experimentar"
+      },
+      "Pacote 4 Aulas": {
+        "name": "Pacote 4 Aulas",
+        "description": "Ideal para iniciantes"
+      },
+      "Pacote 10 Aulas": {
+        "name": "Pacote 10 Aulas",
+        "description": "Melhor custo-benefício"
+      }
+    }
+  },
+  "dashboard": {
+    "welcome": "Bem-vindo",
+    "defaultName": "Surfista",
+    "schoolTagline": "Surf School",
+    "actions": {
+      "scheduleTitle": "Agendar aula",
+      "scheduleSub": "Ver mar disponível",
+      "preSurfingTitle": "Pre Surfing",
+      "preSurfingSub": "Conteúdo exclusivo",
+      "chatTitle": "Chat",
+      "chatSubDefault": "Fale com o instrutor",
+      "chatSubUnreadOne": "{{count}} nova mensagem",
+      "chatSubUnreadMany": "{{count}} novas mensagens",
+      "historyTitle": "Histórico",
+      "historySub": "Pagamentos & aulas"
+    },
+    "nextClasses": "Próximas aulas",
+    "noClasses": "Nenhuma aula agendada ainda.",
+    "locationTBD": "Local a definir"
+  },
+  "profile": {
+    "title": "Meu perfil",
+    "credit": "crédito",
+    "credits": "créditos",
+    "updated": "Perfil atualizado",
+    "photoUpdated": "Foto atualizada",
+    "save": "Salvar alterações",
+    "blocks": {
+      "personal": "Dados pessoais",
+      "surf": "Surf",
+      "emergency": "Emergência & saúde",
+      "about": "Sobre você"
+    },
+    "fields": {
+      "fullName": "Nome completo",
+      "phone": "Telefone",
+      "age": "Idade",
+      "height": "Altura (cm)",
+      "weight": "Peso (kg)",
+      "level": "Nível",
+      "stance": "Base",
+      "boardSize": "Tamanho da prancha",
+      "ownBoard": "Tem prancha própria",
+      "canSwim": "Sabe nadar",
+      "emergencyName": "Nome do Contato",
+      "emergencyPhone": "Telefone",
+      "medical": "Condições médicas",
+      "notes": "Notas / experiência"
+    },
+    "levels": {
+      "beginner": "Iniciante",
+      "intermediate": "Intermediário",
+      "advanced": "Avançado"
+    },
+    "stances": {
+      "regular": "Regular",
+      "goofy": "Goofy",
+      "unknown": "Não sei"
+    }
+  },
+  "notifications": {
+    "title": "Notificações",
+    "markAll": "Marcar todas",
+    "empty": "Nenhuma notificação.",
+    "markRead": "Marcar como lida",
+    "aria": "Notificações",
+    "now": "agora",
+    "minShort": "min",
+    "hourShort": "h",
+    "items": {
+      "approvalApprovedTitle": "Cadastro aprovado!",
+      "approvalApprovedBody": "Você já pode agendar aulas.",
+      "approvalRejectedTitle": "Cadastro recusado",
+      "approvalRejectedBody": "Entre em contato com o instrutor.",
+      "paymentApprovedTitle": "Créditos liberados",
+      "paymentApprovedBody": "Seu pagamento foi aprovado! +{{credits}} crédito(s).",
+      "paymentRejectedTitle": "Pagamento recusado",
+      "paymentRejectedBody": "Verifique e envie novamente.",
+      "bookingCancelledTitle": "Aula cancelada",
+      "bookingCancelledBody": "Sua aula em {{date}} foi cancelada por condições do mar. Seu crédito foi devolvido."
+    }
+  },
+  "nav": {
+    "home": "Início",
+    "schedule": "Agenda",
+    "buy": "Comprar",
+    "chat": "Chat",
+    "profile": "Perfil"
+  }
+}
