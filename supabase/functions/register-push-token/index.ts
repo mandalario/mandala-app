@@ -21,12 +21,11 @@ Deno.serve(async (req) => {
       { global: { headers: { Authorization: authHeader } } },
     );
 
-    const token = authHeader.replace("Bearer ", "");
-    const { data: claimsData, error: claimsErr } = await supabase.auth.getClaims(token);
-    if (claimsErr || !claimsData?.claims) {
+    const { data: { user }, error: authErr } = await supabase.auth.getUser();
+    if (authErr || !user) {
       return json({ error: "Unauthorized" }, 401);
     }
-    const authUserId = claimsData.claims.sub;
+    const authUserId = user.id;
 
     const { userId, tenantId, pushToken } = await req.json();
     if (!pushToken) return json({ error: "pushToken é obrigatório" }, 400);

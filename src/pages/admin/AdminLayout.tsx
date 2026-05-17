@@ -1,9 +1,10 @@
+import { useEffect } from "react";
 import { Link, NavLink, Outlet, useNavigate } from "react-router-dom";
 import { useAuth } from "@/hooks/useAuth";
 import { OceanBackground } from "@/components/OceanBackground";
 import { Brand } from "@/components/Brand";
 import { NotificationsBell } from "@/components/NotificationsBell";
-import { LayoutDashboard, Users, CalendarDays, ScrollText, Video, MessageCircle, LogOut, Package, Wind, Image as ImageIcon, DollarSign, ShieldCheck, Bell, KeyRound } from "lucide-react";
+import { LayoutDashboard, Users, CalendarDays, ScrollText, Video, MessageCircle, LogOut, Package, Wind, Image as ImageIcon, DollarSign, ShieldCheck, Bell, KeyRound, Loader2 } from "lucide-react";
 import logoMandala from "@/assets/logo-mandala.png";
 
 const nav = [
@@ -26,9 +27,23 @@ export default function AdminLayout() {
   const { profile, signOut, isAdmin, loading, user } = useAuth();
   const navigate = useNavigate();
 
-  if (loading) return null;
-  if (!user) { navigate("/auth", { replace: true }); return null; }
-  if (!isAdmin) { navigate("/", { replace: true }); return null; }
+  useEffect(() => {
+    if (loading) return;
+    if (!user) {
+      navigate("/auth", { replace: true });
+    } else if (!isAdmin) {
+      navigate("/", { replace: true });
+    }
+  }, [user, isAdmin, loading, navigate]);
+
+  if (loading || !user || !isAdmin) {
+    return (
+      <div className="relative min-h-screen flex items-center justify-center">
+        <OceanBackground />
+        <Loader2 className="w-8 h-8 animate-spin text-primary" />
+      </div>
+    );
+  }
 
   return (
     <div className="relative min-h-screen flex">
