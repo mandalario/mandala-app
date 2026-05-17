@@ -96,8 +96,8 @@ Deno.serve(async (req) => {
     const mpData = await mpResp.json();
     if (!mpResp.ok) {
       console.error("MP error:", mpData);
-      return new Response(JSON.stringify({ error: mpData?.message ?? "Erro Mercado Pago" }), {
-        status: 502, headers: { ...corsHeaders, "Content-Type": "application/json" },
+      return new Response(JSON.stringify({ error: `[Mercado Pago] ${mpData?.message ?? "Erro Desconhecido"}` }), {
+        status: 200, headers: { ...corsHeaders, "Content-Type": "application/json" },
       });
     }
 
