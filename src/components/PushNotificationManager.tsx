@@ -24,7 +24,16 @@ export function PushNotificationManager() {
         });
 
         if (error) {
-          console.error("Error registering push token:", error);
+          let errorMessage = error.message;
+          try {
+            if (error.context) {
+              const body = await error.context.json();
+              errorMessage = body?.error || error.message;
+            }
+          } catch (e) {
+            // ignore
+          }
+          console.error("Error registering push token:", errorMessage);
         } else {
           console.log("Push token registered successfully");
         }

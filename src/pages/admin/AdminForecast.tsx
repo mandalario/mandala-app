@@ -4,15 +4,16 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Switch } from "@/components/ui/switch";
+import { Textarea } from "@/components/ui/textarea";
 import { toast } from "sonner";
-import { Wind, Loader2, Plus, Trash2, ExternalLink, Globe } from "lucide-react";
+import { Wind, Loader2, Plus, Trash2, ExternalLink, Globe, Waves, Star } from "lucide-react";
 
 type Provider = { id: string; kind: string; label: string; config: any; is_active: boolean };
 const sb = supabase as any;
 
 const KINDS = [
   { value: "windguru_widget", label: "WindGuru (widget grátis)", help: "Embute o widget oficial. Você só informa o ID do spot WindGuru." },
-  { value: "windguru_api", label: "WindGuru API (paga)", help: "Requer token salvo em segredo (WINDGURU_API_KEY)." },
+  { value: "windguru_api", label: "WindGuru API (paga)", help: "Requer token salvo in segredo (WINDGURU_API_KEY)." },
   { value: "open_meteo_marine", label: "Open-Meteo Marine (grátis, sem chave)", help: "Use latitude/longitude do spot." },
 ];
 
@@ -29,7 +30,6 @@ export default function AdminForecast() {
   useEffect(() => { load(); }, []);
 
   const activate = async (p: Provider) => {
-    // Deactivate others, then activate this one
     await sb.from("forecast_providers").update({ is_active: false }).neq("id", p.id);
     await sb.from("forecast_providers").update({ is_active: true }).eq("id", p.id);
     toast.success("Provedor ativado"); load();
@@ -40,8 +40,12 @@ export default function AdminForecast() {
   const remove = async (id: string) => { if (!confirm("Remover provedor?")) return; await sb.from("forecast_providers").delete().eq("id", id); load(); };
 
   return (
-    <div className="space-y-5">
-      <div className="flex items-end justify-between gap-3 flex-wrap">
+    <div className="space-y-6">
+      {/* Editor de Condições Atuais */}
+      <SeaConditionCardEditor />
+
+      {/* Provedores de Previsão */}
+      <div className="flex items-end justify-between gap-3 flex-wrap pt-6 border-t border-white/10">
         <div>
           <p className="text-xs uppercase tracking-widest text-primary/80">Previsão do mar</p>
           <h1 className="text-3xl font-bold">Provedores de previsão</h1>
@@ -101,7 +105,6 @@ function ProviderEditor({ provider, onClose }: { provider: Provider; onClose: ()
     let res;
     if (form.id) res = await sb.from("forecast_providers").update(payload).eq("id", form.id);
     else {
-      // if creating active, deactivate others first
       if (form.is_active) await sb.from("forecast_providers").update({ is_active: false }).neq("id", "00000000-0000-0000-0000-000000000000");
       res = await sb.from("forecast_providers").insert(payload);
     }
@@ -162,4 +165,230 @@ function defaultConfig(kind: string) {
   if (kind === "windguru_widget") return { spot_id: "" };
   if (kind === "windguru_api") return { station_id: "" };
   return { lat: -23.0, lon: -43.5 };
+}
+
+function SeaConditionCardEditor() {
+  const [location, setLocation] = useState("Arpoador, Rio de Janeiro, Brasil");
+  const [summary, setSummary] = useState("Céu limpo e mar glass");
+  const [stars, setStars] = useState(4);
+  const [status, setStatus] = useState<"excelente" | "bom" | "medio" | "ruim" | "flat">("excelente");
+  const [waves, setWaves] = useState("1.2m");
+  const [period, setPeriod] = useState("10s");
+  const [waveDir, setWaveDir] = useState("SSE");
+  const [wind, setWind] = useState("8 km/h");
+  const [waterTemp, setWaterTemp] = useState("25°C");
+  const [airTemp, setAirTemp] = useState("27°C");
+  const [idealFor, setIdealFor] = useState("Todos os Níveis");
+  const [loading, setLoading] = useState(true);
+  const [saving, setSaving] = useState(false);
+
+  useEffect(() => {
+    const load = async () => {
+      const { data } = await sb
+        .from("app_settings")
+        .select("value")
+        .eq("key", "sea_condition_card")
+        .maybeSingle();
+      if (data?.value) {
+        try {
+          const parsed = JSON.parse(data.value);
+          setLocation(parsed.location || "");
+          setSummary(parsed.summary || "");
+          setStars(parsed.stars || 4);
+          setStatus(parsed.status || "excelente");
+          setWaves(parsed.waves || "");
+          setPeriod(parsed.period || "");
+          setWaveDir(parsed.wave_dir || "");
+          setWind(parsed.wind || "");
+          setWaterTemp(parsed.water_temp || "");
+          setAirTemp(parsed.air_temp || "");
+          setIdealFor(parsed.ideal_for || "");
+        } catch (e) {
+          console.error(e);
+        }
+      }
+      setLoading(false);
+    };
+    load();
+  }, []);
+
+  const save = async () => {
+    setSaving(true);
+    const value = JSON.stringify({
+      location,
+      summary,
+      stars,
+      status,
+      waves,
+      period,
+      wave_dir: waveDir,
+      wind,
+      water_temp: waterTemp,
+      air_temp: airTemp,
+      ideal_for: idealFor,
+      updated_at: new Date().toISOString(),
+    });
+    const { error } = await sb
+      .from("app_settings")
+      .upsert({ key: "sea_condition_card", value }, { onConflict: "key" });
+    setSaving(false);
+    if (error) {
+      toast.error(error.message);
+    } else {
+      toast.success("Painel de condições do mar atualizado!");
+    }
+  };
+
+  if (loading) {
+    return (
+      <div className="glass rounded-2xl p-6 text-center animate-pulse text-sm text-muted-foreground">
+        Carregando painel de edição das condições do mar...
+      </div>
+    );
+  }
+
+  return (
+    <div className="glass-strong rounded-3xl p-5 space-y-4">
+      <div className="flex items-center gap-3">
+        <div className="w-10 h-10 rounded-2xl bg-primary/15 text-primary flex items-center justify-center shrink-0">
+          <Waves className="w-5 h-5" />
+        </div>
+        <div>
+          <h2 className="font-bold text-lg">Painel de Condições Atuais do Mar</h2>
+          <p className="text-xs text-muted-foreground">Preencha os dados abaixo para atualizar o painel visual na tela inicial do aluno.</p>
+        </div>
+      </div>
+
+      <div className="space-y-4 border-t border-white/5 pt-4">
+        {/* Localização e Resumo */}
+        <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+          <div className="space-y-1.5">
+            <Label className="text-xs font-semibold">Localização</Label>
+            <Input
+              value={location}
+              onChange={(e) => setLocation(e.target.value)}
+              placeholder="Ex: Arpoador, Rio de Janeiro, Brasil"
+              className="bg-input/60 border-0 h-10 rounded-xl"
+            />
+          </div>
+          <div className="space-y-1.5">
+            <Label className="text-xs font-semibold">Resumo / Céu e Mar</Label>
+            <Input
+              value={summary}
+              onChange={(e) => setSummary(e.target.value)}
+              placeholder="Ex: Céu limpo e mar glass"
+              className="bg-input/60 border-0 h-10 rounded-xl"
+            />
+          </div>
+        </div>
+
+        {/* Avaliação e Classificação */}
+        <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+          <div className="space-y-1.5">
+            <Label className="text-xs font-semibold">Avaliação (1 a 5 Estrelas)</Label>
+            <select
+              value={stars}
+              onChange={(e) => setStars(Number(e.target.value))}
+              className="w-full h-10 rounded-xl border border-white/10 bg-background/50 px-3 text-sm focus:outline-none focus:ring-1 focus:ring-primary"
+            >
+              <option value={1}>⭐ (Muito Ruim)</option>
+              <option value={2}>⭐⭐ (Regular)</option>
+              <option value={3}>⭐⭐⭐ (Bom)</option>
+              <option value={4}>⭐⭐⭐⭐ (Muito Bom)</option>
+              <option value={5}>⭐⭐⭐⭐⭐ (Excelente)</option>
+            </select>
+          </div>
+          <div className="space-y-1.5">
+            <Label className="text-xs font-semibold">Destaque do Mar</Label>
+            <select
+              value={status}
+              onChange={(e) => setStatus(e.target.value as any)}
+              className="w-full h-10 rounded-xl border border-white/10 bg-background/50 px-3 text-sm focus:outline-none focus:ring-1 focus:ring-primary"
+            >
+              <option value="excelente">Excelente ✨</option>
+              <option value="bom">Bom 👍</option>
+              <option value="medio">Médio / Atenção ⚠️</option>
+              <option value="ruim">Ruim / Ressaca 🚩</option>
+              <option value="flat">Sem Ondas / Flat 🏖️</option>
+            </select>
+          </div>
+        </div>
+
+        {/* Parâmetros Grid - Linha 1 */}
+        <div className="grid grid-cols-2 sm:grid-cols-4 gap-4">
+          <div className="space-y-1.5">
+            <Label className="text-xs font-semibold">Ondas (m)</Label>
+            <Input
+              value={waves}
+              onChange={(e) => setWaves(e.target.value)}
+              placeholder="Ex: 1.2m"
+              className="bg-input/60 border-0 h-10 rounded-xl"
+            />
+          </div>
+          <div className="space-y-1.5">
+            <Label className="text-xs font-semibold">Período (s)</Label>
+            <Input
+              value={period}
+              onChange={(e) => setPeriod(e.target.value)}
+              placeholder="Ex: 10s"
+              className="bg-input/60 border-0 h-10 rounded-xl"
+            />
+          </div>
+          <div className="space-y-1.5">
+            <Label className="text-xs font-semibold">Dir. Onda</Label>
+            <Input
+              value={waveDir}
+              onChange={(e) => setWaveDir(e.target.value)}
+              placeholder="Ex: SSE"
+              className="bg-input/60 border-0 h-10 rounded-xl"
+            />
+          </div>
+          <div className="space-y-1.5">
+            <Label className="text-xs font-semibold">Vento</Label>
+            <Input
+              value={wind}
+              onChange={(e) => setWind(e.target.value)}
+              placeholder="Ex: 8 km/h"
+              className="bg-input/60 border-0 h-10 rounded-xl"
+            />
+          </div>
+        </div>
+
+        {/* Parâmetros Grid - Linha 2 */}
+        <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
+          <div className="space-y-1.5">
+            <Label className="text-xs font-semibold">Temperatura da Água</Label>
+            <Input
+              value={waterTemp}
+              onChange={(e) => setWaterTemp(e.target.value)}
+              placeholder="Ex: 25°C"
+              className="bg-input/60 border-0 h-10 rounded-xl"
+            />
+          </div>
+          <div className="space-y-1.5">
+            <Label className="text-xs font-semibold">Temperatura do Ar</Label>
+            <Input
+              value={airTemp}
+              onChange={(e) => setAirTemp(e.target.value)}
+              placeholder="Ex: 27°C"
+              className="bg-input/60 border-0 h-10 rounded-xl"
+            />
+          </div>
+          <div className="space-y-1.5">
+            <Label className="text-xs font-semibold">Ideal para (Nível)</Label>
+            <Input
+              value={idealFor}
+              onChange={(e) => setIdealFor(e.target.value)}
+              placeholder="Ex: Todos os Níveis"
+              className="bg-input/60 border-0 h-10 rounded-xl"
+            />
+          </div>
+        </div>
+
+        <Button onClick={save} disabled={saving} className="w-full h-11 rounded-xl bg-gradient-to-r from-primary to-accent font-bold mt-2 shadow-lg hover:shadow-primary/20 transition-all">
+          {saving ? <Loader2 className="w-4 h-4 animate-spin" /> : "Atualizar Painel do Aluno"}
+        </Button>
+      </div>
+    </div>
+  );
 }

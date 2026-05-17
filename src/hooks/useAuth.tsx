@@ -1,4 +1,4 @@
-import { createContext, useCallback, useContext, useEffect, useState, ReactNode } from "react";
+import { createContext, useCallback, useContext, useEffect, useState, useRef, ReactNode } from "react";
 import { Session, User } from "@supabase/supabase-js";
 import { supabase } from "@/integrations/supabase/client";
 
@@ -9,6 +9,9 @@ type Profile = {
   approval_status: "pending" | "approved" | "rejected";
   profile_completed: boolean;
   credits: number;
+  credits_grupo: number;
+  credits_particular: number;
+  credits_aluguel: number;
   avatar_url: string | null;
 };
 
@@ -31,6 +34,15 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
   const [isAdmin, setIsAdmin] = useState(false);
   const [loading, setLoading] = useState(true);
 
+  // Refs para evitar stale closure no listener do onAuthStateChange
+  const userRef = useRef<User | null>(null);
+  const profileRef = useRef<Profile | null>(null);
+
+  useEffect(() => {
+    userRef.current = user;
+    profileRef.current = profile;
+  }, [user, profile]);
+
   const getProfilePayload = (currentUser: User) => ({
     id: currentUser.id,
     email: currentUser.email ?? "",
@@ -49,7 +61,7 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
     const fetchProfile = async () => {
       const { data, error } = await supabase
         .from("profiles")
-        .select("id, email, full_name, approval_status, profile_completed, credits, avatar_url")
+        .select("id, email, full_name, approval_status, profile_completed, credits, credits_grupo, credits_particular, credits_aluguel, avatar_url")
         .eq("id", currentUser.id)
         .maybeSingle();
       return { data, error };
@@ -109,14 +121,26 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
     let mounted = true;
 
     // Listener FIRST
-    const { data: { subscription } } = supabase.auth.onAuthStateChange((_event, newSession) => {
+    const { data: { subscription } } = supabase.auth.onAuthStateChange((event, newSession) => {
       if (!mounted) return;
+      
+      const isSameUser = userRef.current && newSession?.user && userRef.current.id === newSession.user.id;
+      const hasProfile = !!profileRef.current;
+      
       setSession(newSession);
       setUser(newSession?.user ?? null);
+      
       if (newSession?.user) {
-        // Mantém loading=true até o perfil ser carregado, evitando que o
-        // Index/Onboarding decida o redirect com profile=null.
-        setLoading(true);
+        // Só define loading=true se for um login novo, se o usuário mudou,
+        // ou se ainda não tivermos o perfil carregado.
+        // Se for apenas uma revalidação/atualização de token do mesmo usuário,
+        // carregamos no background mantendo loading=false para evitar piscar/recarregar a tela.
+        const shouldShowLoader = !isSameUser || !hasProfile;
+        
+        if (shouldShowLoader) {
+          setLoading(true);
+        }
+        
         setTimeout(() => {
           if (!mounted) return;
           loadProfileAndRole(newSession.user).finally(() => {

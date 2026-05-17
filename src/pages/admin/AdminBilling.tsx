@@ -32,7 +32,11 @@ export default function AdminBilling() {
     ]);
     setBillingEnabled((appS?.value ?? "false") === "true");
     const sm: Record<string, string> = {};
-    (secrets ?? []).forEach((r: any) => { sm[r.key] = r.value ?? ""; });
+    (secrets ?? []).forEach((r: any) => {
+      let val = r.value ?? "";
+      if (val === "null" || val === "undefined") val = "";
+      sm[r.key] = val;
+    });
     setToken(sm.mp_access_token ?? "");
     setEnvironment(sm.mp_environment || "sandbox");
     setWebhookSecret(sm.mp_webhook_secret ?? "");

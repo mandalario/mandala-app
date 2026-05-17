@@ -77,7 +77,26 @@ export default function Packages() {
                 <button key={p.id} onClick={() => setSelected(p)} className="w-full text-left glass-strong rounded-2xl p-5 hover:bg-secondary/30 transition-colors active:scale-[0.99]">
                   <div className="flex items-start justify-between gap-4">
                     <div>
-                      <div className="text-xs uppercase tracking-widest text-primary/80">{p.credits} {t("packages.creditsLabel")}</div>
+                      <div className="flex items-center gap-1.5 flex-wrap">
+                        <span className="text-xs uppercase tracking-widest text-primary/80">{p.credits} {t("packages.creditsLabel")}</span>
+                        {(() => {
+                          const typeLabels: Record<string, string> = {
+                            avulsa_grupo: "Grupo",
+                            avulsa_particular: "Particular",
+                            aluguel: "Aluguel",
+                          };
+                          const typeColors: Record<string, string> = {
+                            avulsa_grupo: "bg-blue-500/10 text-blue-400 border border-blue-500/20",
+                            avulsa_particular: "bg-purple-500/10 text-purple-400 border border-purple-500/20",
+                            aluguel: "bg-amber-500/10 text-amber-400 border border-amber-500/20",
+                          };
+                          return (
+                            <span className={`text-[9px] uppercase font-bold px-1.5 py-0.5 rounded-full border ${typeColors[p.class_type ?? "avulsa_grupo"]}`}>
+                              {typeLabels[p.class_type ?? "avulsa_grupo"]}
+                            </span>
+                          );
+                        })()}
+                      </div>
                       <div className="font-bold text-lg mt-0.5">{dn}</div>
                       {dd && <div className="text-sm text-muted-foreground mt-1">{dd}</div>}
                     </div>
@@ -144,7 +163,18 @@ function PixCheckout({ pkg, onBack, t }: { pkg: Pkg; onBack: () => void; t: (k: 
     });
     setCreating(false);
     if (fnErr) {
-      setError(fnErr.message || "Erro ao gerar Pix");
+      let errorMessage = "Erro ao gerar Pix";
+      try {
+        if (fnErr.context) {
+          const body = await fnErr.context.json();
+          errorMessage = body?.error || fnErr.message;
+        } else {
+          errorMessage = fnErr.message;
+        }
+      } catch (e) {
+        errorMessage = fnErr.message || "Erro ao gerar Pix";
+      }
+      setError(errorMessage);
       return;
     }
     if ((data as any)?.error) {
@@ -196,7 +226,20 @@ function PixCheckout({ pkg, onBack, t }: { pkg: Pkg; onBack: () => void; t: (k: 
       setApplePayLoading(false);
 
       if (fnErr || (data as any)?.error) {
-        setError(fnErr?.message || (data as any)?.error || "Erro ao processar Apple Pay");
+        let errorMessage = (data as any)?.error || "Erro ao processar Apple Pay";
+        if (fnErr) {
+          try {
+            if (fnErr.context) {
+              const body = await fnErr.context.json();
+              errorMessage = body?.error || fnErr.message;
+            } else {
+              errorMessage = fnErr.message;
+            }
+          } catch (e) {
+            errorMessage = fnErr.message || errorMessage;
+          }
+        }
+        setError(errorMessage);
         return;
       }
       setPix({ paymentId: (data as any).payment_id, qrCode: null, qrCodeBase64: null });

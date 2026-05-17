@@ -7,13 +7,14 @@ import { NotificationsBell } from "@/components/NotificationsBell";
 import { CreditsBadge } from "@/components/CreditsBadge";
 import { HomeBanners } from "@/components/HomeBanners";
 import { DailyQuote } from "@/components/DailyQuote";
+import { SeaConditionCard } from "@/components/SeaConditionCard";
 import { Waves, Calendar, CreditCard, MessageCircle, Video, User as UserIcon } from "lucide-react";
 import logoMandala from "@/assets/logo-mandala.png";
 import { useTranslation } from "@/i18n/LanguageContext";
 import { LanguageSwitcher } from "@/components/LanguageSwitcher";
 import { useBillingEnabled } from "@/hooks/useBillingEnabled";
 
-type NextBooking = { id: string; status: string; class_slots: { date: string; start_time: string; location: string | null } | null };
+type NextBooking = { id: string; status: string; class_slots: { date: string; start_time: string; location: string | null; notes: string | null } | null };
 
 export default function StudentHome() {
   const { user, profile } = useAuth();
@@ -29,7 +30,7 @@ export default function StudentHome() {
       const today = new Date().toISOString().slice(0, 10);
       const { data: nb } = await supabase
         .from("bookings")
-        .select("id, status, class_slots(date, start_time, location)")
+        .select("id, status, class_slots(date, start_time, location, notes)")
         .eq("user_id", user.id)
         .eq("status", "confirmed")
         .gte("class_slots.date", today)
@@ -80,7 +81,12 @@ export default function StudentHome() {
           </div>
         </div>
         <div className="flex items-center gap-2 shrink-0">
-          <CreditsBadge credits={profile?.credits ?? 0} />
+          <CreditsBadge 
+            credits={profile?.credits ?? 0} 
+            creditsGrupo={profile?.credits_grupo}
+            creditsParticular={profile?.credits_particular}
+            creditsAluguel={profile?.credits_aluguel}
+          />
           <LanguageSwitcher compact />
           <NotificationsBell />
           <Link to="/profile" className="w-10 h-10 rounded-full glass flex items-center justify-center overflow-hidden shrink-0 ring-2 ring-primary/20" aria-label="Perfil">
@@ -116,14 +122,18 @@ export default function StudentHome() {
           sub={unread > 0 ? t(unread === 1 ? "dashboard.actions.chatSubUnreadOne" : "dashboard.actions.chatSubUnreadMany", { count: unread }) : t("dashboard.actions.chatSubDefault")}
           badge={unread}
         />
-        <ActionTile 
-          to="/packages" 
-          icon={<CreditCard className="w-5 h-5" />} 
-          label={t("packages.title") || "Comprar Créditos"} 
-          sub="Pacotes e Histórico" 
+        <ActionTile
+          to="/packages"
+          icon={<CreditCard className="w-5 h-5" />}
+          label={t("packages.title") || "Comprar Créditos"}
+          sub="Pacotes e Histórico"
         />
       </section>
 
+
+      <section className="px-5 mt-8">
+        <SeaConditionCard />
+      </section>
 
       <section className="px-5 mt-8">
         <h2 className="text-sm uppercase tracking-widest text-primary/80 mb-3">{t("dashboard.nextClasses")}</h2>
@@ -134,18 +144,28 @@ export default function StudentHome() {
           </div>
         ) : (
           <div className="space-y-2">
-            {next.map((b) => (
-              <div key={b.id} className="glass rounded-2xl p-4 flex items-center gap-3">
-                <div className="w-12 h-12 rounded-xl bg-primary/15 text-primary flex flex-col items-center justify-center text-xs font-bold">
-                  <span>{new Date(b.class_slots!.date + "T12:00:00").toLocaleDateString("pt-BR", { day: "2-digit" })}</span>
-                  <span className="uppercase">{new Date(b.class_slots!.date + "T12:00:00").toLocaleDateString("pt-BR", { month: "short" }).slice(0, 3)}</span>
+            {next.map((b) => {
+              const isConfirmed = b.class_slots?.notes?.includes("[CONFIRMADA]") ?? false;
+              return (
+                <div key={b.id} className="glass rounded-2xl p-4 flex items-center gap-3">
+                  <div className="w-12 h-12 rounded-xl bg-primary/15 text-primary flex flex-col items-center justify-center text-xs font-bold">
+                    <span>{new Date(b.class_slots!.date + "T12:00:00").toLocaleDateString("pt-BR", { day: "2-digit" })}</span>
+                    <span className="uppercase">{new Date(b.class_slots!.date + "T12:00:00").toLocaleDateString("pt-BR", { month: "short" }).slice(0, 3)}</span>
+                  </div>
+                  <div className="flex-1">
+                    <div className="font-semibold text-sm flex items-center gap-1.5 flex-wrap">
+                      {parseInt(b.class_slots!.start_time.slice(0, 2), 10)}h
+                      {isConfirmed && (
+                        <span className="inline-flex items-center gap-1 text-[9px] uppercase font-bold px-1.5 py-0.5 rounded-full bg-success/15 text-success border border-success/30">
+                          ✓ Confirmada
+                        </span>
+                      )}
+                    </div>
+                    <div className="text-xs text-muted-foreground">{b.class_slots!.location ?? t("dashboard.locationTBD")}</div>
+                  </div>
                 </div>
-                <div className="flex-1">
-                  <div className="font-semibold text-sm">{b.class_slots!.start_time.slice(0, 5)}</div>
-                  <div className="text-xs text-muted-foreground">{b.class_slots!.location ?? t("dashboard.locationTBD")}</div>
-                </div>
-              </div>
-            ))}
+              );
+            })}
           </div>
         )}
       </section>

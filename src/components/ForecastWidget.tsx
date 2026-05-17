@@ -74,13 +74,23 @@ export function ForecastWidget() {
       <div className="glass-strong rounded-2xl p-4">
         <div className="text-xs uppercase tracking-widest text-primary/80 mb-3">Previsão Marine — 7 dias</div>
         <div className="grid grid-cols-7 gap-2">
-          {daily.time.map((d: string, i: number) => (
-            <div key={d} className="rounded-xl bg-secondary/30 p-2 text-center">
-              <div className="text-[10px] text-muted-foreground">{new Date(d + "T12:00").toLocaleDateString("pt-BR", { weekday: "short" })}</div>
-              <div className="text-sm font-bold mt-1">{daily.wave_height_max?.[i]?.toFixed(1) ?? "—"}m</div>
-              <div className="text-[10px] text-muted-foreground">{daily.wave_period_max?.[i]?.toFixed(0) ?? "—"}s</div>
-            </div>
-          ))}
+          {daily.time.map((d: string, i: number) => {
+            const dateObj = new Date(d + "T12:00");
+            const weekday = dateObj.toLocaleDateString("pt-BR", { weekday: "short" }).replace(".", "");
+            const dayMonth = dateObj.toLocaleDateString("pt-BR", { day: "2-digit", month: "2-digit" });
+            return (
+              <div key={d} className="rounded-xl bg-secondary/20 p-2.5 text-center flex flex-col justify-between min-h-[105px] border border-white/5 hover:bg-secondary/40 hover:border-primary/20 transition-all duration-300">
+                <div>
+                  <div className="text-[10px] font-bold text-primary uppercase tracking-wider">{weekday}</div>
+                  <div className="text-[9px] text-muted-foreground font-semibold mt-0.5">{dayMonth}</div>
+                </div>
+                <div className="mt-2 mb-1">
+                  <div className="text-sm font-extrabold text-foreground">{daily.wave_height_max?.[i]?.toFixed(1) ?? "—"}m</div>
+                  <div className="text-[10px] text-muted-foreground/80 mt-0.5">{daily.wave_period_max?.[i]?.toFixed(0) ?? "—"}s</div>
+                </div>
+              </div>
+            );
+          })}
         </div>
       </div>
     );

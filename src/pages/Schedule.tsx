@@ -9,7 +9,7 @@ import { ArrowLeft, Loader2, Waves, Wind, CloudOff, Calendar as Cal } from "luci
 import { useTranslation } from "@/i18n/LanguageContext";
 import { useBillingEnabled } from "@/hooks/useBillingEnabled";
 
-type Slot = { id: string; date: string; start_time: string; end_time: string; capacity: number; location: string | null; notes: string | null; is_open: boolean };
+type Slot = { id: string; date: string; start_time: string; end_time: string; capacity: number; location: string | null; notes: string | null; is_open: boolean; class_type: "avulsa_grupo" | "avulsa_particular" | "aluguel" };
 type Cond = { date: string; condition: "good" | "medium" | "bad" | "flat"; notes: string | null };
 type Booking = { slot_id: string; status: string };
 
@@ -80,12 +80,45 @@ export default function Schedule() {
   const myBooked = useMemo(() => new Set(bookings.map((b) => b.slot_id)), [bookings]);
 
   const book = async (slot: Slot) => {
-    if (billingEnabled && (profile?.credits ?? 0) < 1) { toast.error(t("schedule.noCredits")); return; }
+    if (billingEnabled) {
+      const type = slot.class_type ?? "avulsa_grupo";
+      let userCredits = 0;
+      let typeLabel = "Aula em Grupo";
+      if (type === "avulsa_grupo") {
+        userCredits = profile?.credits_grupo ?? 0;
+        typeLabel = "Aula em Grupo";
+      } else if (type === "avulsa_particular") {
+        userCredits = profile?.credits_particular ?? 0;
+        typeLabel = "Aula Particular";
+      } else if (type === "aluguel") {
+        userCredits = profile?.credits_aluguel ?? 0;
+        typeLabel = "Aluguel";
+      }
+
+      if (userCredits < 1) {
+        toast.error(`Você não tem créditos de ${typeLabel}. Por favor, recarregue.`);
+        return;
+      }
+    }
     setBookingId(slot.id);
-    const { error } = await supabase.from("bookings").insert({ slot_id: slot.id, user_id: user!.id });
+    const { error } = await supabase.from("bookings").upsert(
+      { slot_id: slot.id, user_id: user!.id, status: "confirmed", is_accepted: null },
+      { onConflict: "slot_id, user_id" }
+    );
     setBookingId(null);
     if (error) { toast.error(error.message); return; }
     toast.success(t("schedule.bookSuccess"));
+    await refreshProfile();
+    load();
+  };
+
+  const unbook = async (slot: Slot) => {
+    if (!window.confirm("Tem certeza que deseja desmarcar esta aula? Seu crédito será devolvido.")) return;
+    setBookingId(slot.id);
+    const { error } = await supabase.from("bookings").update({ status: "cancelled" }).eq("slot_id", slot.id).eq("user_id", user!.id);
+    setBookingId(null);
+    if (error) { toast.error(error.message); return; }
+    toast.success("Aula desmarcada com sucesso! Crédito devolvido.");
     await refreshProfile();
     load();
   };
@@ -102,8 +135,10 @@ export default function Schedule() {
           </div>
         </div>
         {billingEnabled && (
-          <Link to="/packages" className="glass rounded-xl px-3 py-2 text-xs hover:bg-secondary/40 transition-colors">
-            <span className="text-muted-foreground">{t("schedule.credits")}</span> <span className="font-bold text-primary">{profile?.credits ?? 0}</span>
+          <Link to="/packages" className="glass rounded-xl px-3 py-2 text-[10px] sm:text-xs hover:bg-secondary/40 transition-colors flex flex-col sm:flex-row gap-1 sm:gap-2 text-right">
+            <div><span className="text-muted-foreground">Grupo:</span> <span className="font-bold text-primary">{profile?.credits_grupo ?? 0}</span></div>
+            <div><span className="text-muted-foreground">Particular:</span> <span className="font-bold text-primary">{profile?.credits_particular ?? 0}</span></div>
+            <div><span className="text-muted-foreground">Aluguel:</span> <span className="font-bold text-primary">{profile?.credits_aluguel ?? 0}</span></div>
           </Link>
         )}
       </header>
@@ -134,15 +169,53 @@ export default function Schedule() {
                     const taken = counts[s.id] ?? 0;
                     const isMine = myBooked.has(s.id);
                     const full = taken >= s.capacity;
+                    const isConfirmed = s.notes?.includes("[CONFIRMADA]") ?? false;
+                    const cleanNotes = s.notes
+                      ? s.notes
+                        .replace(/\[CONFIRMADA\]\s*/g, "")
+                        .replace(/\[IMPREVISTO\]\s*([^[\]\-]*)\s*(-|—)?\s*/g, "")
+                        .trim()
+                      : "";
+
+                    const typeLabels: Record<string, string> = {
+                      avulsa_grupo: "Grupo",
+                      avulsa_particular: "Particular",
+                      aluguel: "Aluguel",
+                    };
+                    const typeColors: Record<string, string> = {
+                      avulsa_grupo: "bg-blue-500/10 text-blue-400 border-blue-500/20",
+                      avulsa_particular: "bg-purple-500/10 text-purple-400 border-purple-500/20",
+                      aluguel: "bg-amber-500/10 text-amber-400 border-amber-500/20",
+                    };
+
                     return (
                       <div key={s.id} className="glass-strong rounded-2xl p-4 flex items-center gap-4">
                         <div className="flex-1">
-                          <div className="font-semibold">{s.start_time.slice(0, 5)} – {s.end_time.slice(0, 5)}</div>
+                          <div className="font-semibold flex items-center gap-1.5 flex-wrap text-base">
+                            {parseInt(s.start_time.slice(0, 2), 10)}h
+                            <span className={`text-[10px] uppercase font-bold px-2 py-0.5 rounded-full border ${typeColors[s.class_type ?? "avulsa_grupo"]}`}>
+                              {typeLabels[s.class_type ?? "avulsa_grupo"]}
+                            </span>
+                            {isConfirmed && (
+                              <span className="inline-flex items-center gap-1 text-[9px] uppercase font-bold px-1.5 py-0.5 rounded-full bg-success/15 text-success border border-success/30">
+                                ✓ Confirmada
+                              </span>
+                            )}
+                          </div>
                           <div className="text-xs text-muted-foreground">{s.location ?? t("schedule.locationTBD")} · {taken}/{s.capacity} {t("schedule.students")}</div>
-                          {s.notes && <div className="text-xs text-muted-foreground mt-1">{s.notes}</div>}
+                          {cleanNotes && <div className="text-xs text-muted-foreground mt-1 italic">{cleanNotes}</div>}
                         </div>
                         {isMine ? (
-                          <span className="text-xs px-3 py-2 rounded-xl bg-success/15 text-success font-semibold">{t("schedule.booked")}</span>
+                          <div className="flex flex-col gap-2 items-end">
+                            <span className="text-[10px] uppercase tracking-widest px-3 py-1.5 rounded-xl bg-success/15 text-success font-bold">{t("schedule.booked")}</span>
+                            <button
+                              onClick={() => unbook(s)}
+                              disabled={bookingId === s.id}
+                              className="text-[11px] text-destructive hover:bg-destructive/10 px-2 py-1 rounded-md font-semibold transition-all disabled:opacity-50 flex items-center justify-center gap-1"
+                            >
+                              {bookingId === s.id ? <Loader2 className="w-3 h-3 animate-spin" /> : "Desmarcar"}
+                            </button>
+                          </div>
                         ) : (
                           <Button onClick={() => book(s)} disabled={full || bookingId === s.id} className="rounded-xl bg-gradient-to-r from-primary to-accent text-primary-foreground font-semibold disabled:opacity-40">
                             {bookingId === s.id ? <Loader2 className="w-4 h-4 animate-spin" /> : full ? t("schedule.full") : t("schedule.book")}

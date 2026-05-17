@@ -5,7 +5,6 @@ import { OceanBackground } from "@/components/OceanBackground";
 import { Button } from "@/components/ui/button";
 import { supabase } from "@/integrations/supabase/client";
 import { Hourglass, LogOut, RefreshCw, XCircle } from "lucide-react";
-import { toast } from "sonner";
 
 export default function PendingApproval() {
   const { user, profile, signOut, refreshProfile } = useAuth();
@@ -37,23 +36,8 @@ export default function PendingApproval() {
     };
   }, [user, refreshProfile]);
 
-  const handleRefresh = async () => {
-    await refreshProfile();
-    // Re-fetch directly to be sure (state may not have updated yet)
-    if (user) {
-      const { data } = await supabase
-        .from("profiles")
-        .select("approval_status, profile_completed")
-        .eq("id", user.id)
-        .maybeSingle();
-      if (data?.approval_status === "approved" && data?.profile_completed) {
-        navigate("/", { replace: true });
-      } else if (data?.approval_status === "rejected") {
-        toast.error("Cadastro recusado pelo instrutor.");
-      } else {
-        toast.info("Ainda aguardando aprovação do instrutor.");
-      }
-    }
+  const handleRefresh = () => {
+    window.location.reload();
   };
 
   return (
@@ -82,7 +66,10 @@ export default function PendingApproval() {
             </Button>
             <Button
               variant="ghost"
-              onClick={signOut}
+              onClick={async () => {
+                await signOut();
+                navigate("/auth", { replace: true });
+              }}
               className="flex-1 h-11 rounded-xl"
             >
               <LogOut className="w-4 h-4 mr-2" /> Sair

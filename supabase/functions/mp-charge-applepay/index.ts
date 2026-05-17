@@ -71,8 +71,8 @@ Deno.serve(async (req) => {
 
     const { data: secrets } = await admin
       .from("admin_secrets").select("key, value").in("key", ["mp_access_token"]);
-    const accessToken = (secrets ?? []).find((s: any) => s.key === "mp_access_token")?.value;
-    if (!accessToken) {
+    const accessToken = (secrets ?? []).find((s: any) => s.key === "mp_access_token")?.value?.trim();
+    if (!accessToken || accessToken === "null" || accessToken === "undefined") {
       return new Response(JSON.stringify({ error: "Mercado Pago não configurado" }), {
         status: 400, headers: { ...corsHeaders, "Content-Type": "application/json" },
       });
@@ -114,7 +114,7 @@ Deno.serve(async (req) => {
 
     const status = mpData.status === "approved" ? "approved"
       : mpData.status === "rejected" || mpData.status === "cancelled" ? "rejected"
-      : "pending";
+        : "pending";
 
     const { data: payment, error: insErr } = await admin
       .from("payments").insert({

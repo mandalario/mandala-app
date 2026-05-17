@@ -58,8 +58,8 @@ Deno.serve(async (req) => {
       .in("key", ["mp_access_token", "mp_webhook_secret"]);
     const sm: Record<string, string | null> = {};
     (secrets ?? []).forEach((r: any) => { sm[r.key] = r.value; });
-    const accessToken = sm.mp_access_token;
-    if (!accessToken) {
+    const accessToken = sm.mp_access_token?.trim();
+    if (!accessToken || accessToken === "null" || accessToken === "undefined") {
       await log({
         mp_payment_id: paymentId,
         event_type: eventType,

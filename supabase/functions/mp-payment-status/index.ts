@@ -50,8 +50,8 @@ Deno.serve(async (req) => {
 
     const { data: secrets } = await admin
       .from("admin_secrets").select("value").eq("key", "mp_access_token").maybeSingle();
-    const accessToken = secrets?.value;
-    if (!accessToken) {
+    const accessToken = secrets?.value?.trim();
+    if (!accessToken || accessToken === "null" || accessToken === "undefined") {
       return new Response(JSON.stringify({ status: pay.status }), {
         headers: { ...corsHeaders, "Content-Type": "application/json" }, status: 200,
       });

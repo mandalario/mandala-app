@@ -14,7 +14,7 @@ import { format, addDays } from "date-fns";
 import { cn } from "@/lib/utils";
 import {
   Plus, Trash2, Loader2, Waves, Wind, CloudOff, Clock, MapPin, Users,
-  CalendarDays, Sparkles, Repeat, Wand2, Lock, Pencil, ChevronDown, ChevronUp, CheckSquare, Square, X,
+  CalendarDays, Sparkles, Repeat, Wand2, Lock, Pencil, ChevronDown, ChevronUp, CheckSquare, Square, X, RefreshCw
 } from "lucide-react";
 import { Modal } from "./AdminStudents";
 import { ForecastWidget } from "@/components/ForecastWidget";
@@ -26,6 +26,7 @@ type Slot = {
   id: string; date: string; start_time: string; end_time: string;
   capacity: number; location: string | null; notes: string | null; is_open: boolean;
   min_level: Level | null;
+  class_type: "avulsa_grupo" | "avulsa_particular" | "aluguel";
 };
 type Cond = { id: string; date: string; condition: "good" | "medium" | "bad" | "flat"; notes: string | null; min_level: Level | null };
 type CondKey = Cond["condition"];
@@ -33,6 +34,7 @@ type Template = {
   id: string; weekday: number; start_time: string; end_time: string;
   duration_min: number; capacity: number; location: string | null;
   notes: string | null; is_active: boolean;
+  class_type: "avulsa_grupo" | "avulsa_particular" | "aluguel";
 };
 
 const condLabel: Record<CondKey, string> = { good: "Mar bom", medium: "Mar médio", bad: "Mar ruim", flat: "Sem ondas" };
@@ -53,7 +55,7 @@ const WEEKDAYS_LONG = ["Domingo", "Segunda", "Terça", "Quarta", "Quinta", "Sext
 
 const ymd = (d: Date) => format(d, "yyyy-MM-dd");
 
-type BookingRow = { id: string; slot_id: string; user_id: string; status: string; profiles: { full_name: string | null; email: string; avatar_url: string | null } | null };
+type BookingRow = { id: string; slot_id: string; user_id: string; status: string; is_accepted: boolean | null; profiles: { full_name: string | null; email: string; avatar_url: string | null } | null };
 
 export default function AdminSchedule() {
   const [slots, setSlots] = useState<Slot[]>([]);
@@ -70,16 +72,28 @@ export default function AdminSchedule() {
   const [loading, setLoading] = useState(true);
   const [selectedSlotIds, setSelectedSlotIds] = useState<Set<string>>(new Set());
   const [expandedSlot, setExpandedSlot] = useState<string | null>(null);
+  const [imprevistoSlot, setImprevistoSlot] = useState<Slot | null>(null);
 
   const load = async () => {
     setLoading(true);
     const today = ymd(new Date());
-    const [{ data: s }, { data: c }, { data: t }, { data: b }] = await Promise.all([
+    const [{ data: s }, { data: c }, { data: t }] = await Promise.all([
       supabase.from("class_slots").select("*").gte("date", today).order("date").order("start_time"),
       supabase.from("surf_conditions").select("*").gte("date", today).order("date"),
       supabase.from("weekly_schedule_templates").select("*").order("weekday").order("start_time"),
-      supabase.from("bookings").select("id, slot_id, user_id, status, profiles(full_name, email, avatar_url)").eq("status", "confirmed"),
     ]);
+
+    const { data: bData, error: bErr } = await supabase.from("bookings").select("*").eq("status", "confirmed");
+    if (bErr) console.error("Erro ao carregar agendamentos:", bErr);
+    
+    let b = bData || [];
+    if (b.length > 0) {
+      const userIds = [...new Set(b.map((x) => x.user_id))];
+      const { data: pData } = await supabase.from("profiles").select("id, full_name, email, avatar_url").in("id", userIds);
+      const pMap = Object.fromEntries((pData || []).map((p) => [p.id, p]));
+      b = b.map((x) => ({ ...x, profiles: pMap[x.user_id] || null }));
+    }
+
     setSlots((s ?? []) as Slot[]);
     setConds((c ?? []) as Cond[]);
     setTemplates((t ?? []) as Template[]);
@@ -130,6 +144,108 @@ export default function AdminSchedule() {
     if (error) return toast.error(error.message);
     toast.success(level ? `Restrito a ≥ ${LEVEL_LABEL[level]}` : "Restrição removida");
     load();
+  };
+
+  const handleConfirmClass = async (s: Slot) => {
+    try {
+      const cleanNotes = s.notes ? s.notes.replace(/\[IMPREVISTO\][^]*?|\[CONFIRMADA\]\s*/g, "").trim() : "";
+      const newNotes = `[CONFIRMADA] ${cleanNotes}`.trim();
+      
+      const { error } = await supabase
+        .from("class_slots")
+        .update({ notes: newNotes || null })
+        .eq("id", s.id);
+
+      if (error) throw error;
+      toast.success("Aula confirmada!");
+      load();
+    } catch (err: any) {
+      toast.error(err.message || "Erro ao confirmar aula");
+    }
+  };
+
+  const handleResetClassStatus = async (s: Slot) => {
+    try {
+      const cleanNotes = s.notes ? s.notes.replace(/\[IMPREVISTO\][^]*?|\[CONFIRMADA\]\s*/g, "").trim() : "";
+      
+      const { error } = await supabase
+        .from("class_slots")
+        .update({ notes: cleanNotes || null, is_open: true })
+        .eq("id", s.id);
+
+      if (error) throw error;
+      toast.success("Status da aula restaurado!");
+      load();
+    } catch (err: any) {
+      toast.error(err.message || "Erro ao restaurar status da aula");
+    }
+  };
+
+  const handleAcceptBooking = async (booking: BookingRow, slot: Slot) => {
+    const studentName = booking.profiles?.full_name ?? booking.profiles?.email ?? "Aluno";
+    try {
+      const { error } = await supabase
+        .from("bookings")
+        .update({ is_accepted: true })
+        .eq("id", booking.id);
+
+      if (error) throw error;
+
+      // Create notification for the student
+      const dateStr = format(new Date(slot.date + "T12:00:00"), "dd/MM");
+      const timeStr = `${parseInt(slot.start_time.slice(0, 2), 10)}h`;
+      
+      const { error: nErr } = await supabase.from("notifications").insert({
+        user_id: booking.user_id,
+        title: "Agendamento Aceito!",
+        body: `Seu agendamento para a aula de ${dateStr} às ${timeStr} foi aceito pelo instrutor. Bons treinos!`,
+        kind: "approval",
+      });
+
+      if (nErr) console.error("Erro ao enviar notificação:", nErr);
+
+      toast.success(`${studentName} aceito com sucesso!`);
+      load();
+    } catch (err: any) {
+      toast.error(err.message || "Erro ao aceitar aluno");
+    }
+  };
+
+  const handleUnbookStudent = async (booking: BookingRow, slot: Slot) => {
+    const studentName = booking.profiles?.full_name ?? booking.profiles?.email ?? "Aluno";
+    const confirmCancel = window.confirm(`Tem certeza que deseja desmarcar o agendamento de ${studentName} para esta aula? O crédito dele será devolvido.`);
+    if (!confirmCancel) return;
+
+    try {
+      // 1. Update booking status to 'cancelled'
+      const { error } = await supabase
+        .from("bookings")
+        .update({ 
+          status: "cancelled", 
+          notes: "Desmarcado pelo administrador" 
+        })
+        .eq("id", booking.id);
+
+      if (error) throw error;
+
+      // 2. Create notification for the student
+      const dateStr = format(new Date(slot.date + "T12:00:00"), "dd/MM");
+      const timeStr = `${parseInt(slot.start_time.slice(0, 2), 10)}h`;
+      
+      const { error: nErr } = await supabase.from("notifications").insert({
+        user_id: booking.user_id,
+        title: "Agendamento Removido",
+        body: `Seu agendamento para a aula de ${dateStr} às ${timeStr} foi desmarcado pelo instrutor. Seu crédito foi devolvido.`,
+        kind: "class_cancellation",
+      });
+
+      if (nErr) console.error("Erro ao enviar notificação:", nErr);
+
+      toast.success(`${studentName} desmarcado com sucesso!`);
+      load();
+    } catch (err: any) {
+      toast.error(err.message || "Erro ao desmarcar aluno");
+    }
   };
 
   const toggleSelectSlot = (id: string) => {
@@ -212,6 +328,7 @@ export default function AdminSchedule() {
           _capacity: t.capacity,
           _location: t.location,
           _notes: t.notes,
+          _class_type: t.class_type,
         });
         if (!error && typeof data === "number") total += data;
       }
@@ -232,7 +349,16 @@ export default function AdminSchedule() {
       <div className="flex items-end justify-between gap-3 flex-wrap">
         <div>
           <p className="text-xs uppercase tracking-widest text-primary/80">Configuração</p>
-          <h1 className="text-3xl font-bold">Agenda & Mar</h1>
+          <h1 className="text-3xl font-bold flex items-center gap-2">
+            Agenda & Mar
+            <button
+              onClick={() => { load(); toast.success("Agenda atualizada!"); }}
+              className="p-1.5 rounded-xl bg-secondary/60 hover:bg-secondary text-muted-foreground hover:text-foreground transition-all active:scale-95 border border-border/40 inline-flex items-center justify-center"
+              title="Atualizar dados"
+            >
+              <RefreshCw className="w-4 h-4" />
+            </button>
+          </h1>
           <p className="text-sm text-muted-foreground mt-1">Configure períodos recorrentes ou gerencie dia a dia.</p>
         </div>
       </div>
@@ -424,6 +550,23 @@ export default function AdminSchedule() {
                                 <div className="font-semibold flex items-center gap-2 flex-wrap">
                                   {s.start_time.slice(0, 5)} – {s.end_time.slice(0, 5)}
                                   {s.min_level && <span className="text-[10px] uppercase px-2 py-0.5 rounded-full bg-accent/15 text-accent border border-accent/30">≥ {LEVEL_LABEL[s.min_level]}</span>}
+                                  {(() => {
+                                    const typeLabels: Record<string, string> = {
+                                      avulsa_grupo: "Grupo",
+                                      avulsa_particular: "Particular",
+                                      aluguel: "Aluguel",
+                                    };
+                                    const typeColors: Record<string, string> = {
+                                      avulsa_grupo: "bg-blue-500/10 text-blue-400 border-blue-500/20",
+                                      avulsa_particular: "bg-purple-500/10 text-purple-400 border-purple-500/20",
+                                      aluguel: "bg-amber-500/10 text-amber-400 border-amber-500/20",
+                                    };
+                                    return (
+                                      <span className={`text-[10px] uppercase font-bold px-2 py-0.5 rounded-full border ${typeColors[s.class_type ?? "avulsa_grupo"]}`}>
+                                        {typeLabels[s.class_type ?? "avulsa_grupo"]}
+                                      </span>
+                                    );
+                                  })()}
                                   <span className={cn(
                                     "text-[10px] uppercase font-bold px-2 py-0.5 rounded-full border",
                                     full
@@ -445,7 +588,68 @@ export default function AdminSchedule() {
                                     full ? "bg-destructive" : taken > 0 ? "bg-warning" : "bg-success/60",
                                   )} style={{ width: `${pct}%` }} />
                                 </div>
-                                {s.notes && <div className="text-xs text-muted-foreground mt-1 italic">{s.notes}</div>}
+                                
+                                {/* Status Badges */}
+                                <div className="flex flex-wrap gap-1.5 mt-2">
+                                  {isConfirmedSlot(s.notes) ? (
+                                    <span className="inline-flex items-center gap-1 text-[9px] uppercase font-bold px-2 py-0.5 rounded-full bg-success/15 text-success border border-success/30">
+                                      ✓ Pode Acontecer
+                                    </span>
+                                  ) : isImprevistoSlot(s.notes) ? (
+                                    <span className="inline-flex items-center gap-1 text-[9px] uppercase font-bold px-2 py-0.5 rounded-full bg-destructive/15 text-destructive border border-destructive/30">
+                                      ⚠️ Cancelada
+                                    </span>
+                                  ) : (
+                                    <span className="inline-flex items-center gap-1 text-[9px] uppercase font-bold px-2 py-0.5 rounded-full bg-warning/15 text-warning border border-warning/30">
+                                      ⏳ A Confirmar
+                                    </span>
+                                  )}
+                                </div>
+
+                                {/* Imprevisto Reason */}
+                                {isImprevistoSlot(s.notes) && (
+                                  <div className="text-xs text-destructive mt-1.5 font-medium bg-destructive/5 px-2.5 py-1.5 rounded-lg border border-destructive/10">
+                                    <span className="font-semibold">Motivo do Cancelamento:</span> <span className="italic">{getImprevistoReason(s.notes)}</span>
+                                  </div>
+                                )}
+
+                                {/* Clean notes */}
+                                {getDisplayNotes(s.notes) && (
+                                  <div className="text-xs text-muted-foreground mt-1.5 italic bg-secondary/10 px-2 py-1 rounded-lg">
+                                    {getDisplayNotes(s.notes)}
+                                  </div>
+                                )}
+
+                                {/* Action buttons */}
+                                <div className="flex items-center gap-2 mt-3 pt-2 border-t border-dashed border-border/30">
+                                  <span className="text-[10px] font-semibold text-muted-foreground uppercase tracking-wider">Status da Aula:</span>
+                                  <div className="flex gap-1.5">
+                                    {!isConfirmedSlot(s.notes) && (
+                                      <button
+                                        onClick={() => handleConfirmClass(s)}
+                                        className="text-[10px] font-bold uppercase tracking-wider px-2 py-1 rounded-md bg-success/10 hover:bg-success/20 text-success transition-all active:scale-95 border border-success/20"
+                                      >
+                                        Confirmar Aula
+                                      </button>
+                                    )}
+                                    {!isImprevistoSlot(s.notes) && (
+                                      <button
+                                        onClick={() => setImprevistoSlot(s)}
+                                        className="text-[10px] font-bold uppercase tracking-wider px-2 py-1 rounded-md bg-destructive/10 hover:bg-destructive/20 text-destructive transition-all active:scale-95 border border-destructive/20"
+                                      >
+                                        Cancelar Aula
+                                      </button>
+                                    )}
+                                    {(isConfirmedSlot(s.notes) || isImprevistoSlot(s.notes)) && (
+                                      <button
+                                        onClick={() => handleResetClassStatus(s)}
+                                        className="text-[10px] font-bold uppercase tracking-wider px-2 py-1 rounded-md bg-secondary hover:bg-secondary/80 text-muted-foreground hover:text-foreground transition-all active:scale-95"
+                                      >
+                                        Restaurar
+                                      </button>
+                                    )}
+                                  </div>
+                                </div>
                               </div>
                               <Select
                                 value={s.min_level ?? "any"}
@@ -473,35 +677,79 @@ export default function AdminSchedule() {
                               <button onClick={() => removeSlot(s.id)} className="w-8 h-8 rounded-lg flex items-center justify-center hover:bg-destructive/10" title="Excluir">
                                 <Trash2 className="w-4 h-4 text-muted-foreground hover:text-destructive" />
                               </button>
-                              {taken > 0 && (
-                                <button
-                                  onClick={() => setExpandedSlot(isExpanded ? null : s.id)}
-                                  className="w-8 h-8 rounded-lg flex items-center justify-center hover:bg-secondary/40"
-                                  title="Ver agendados"
-                                >
-                                  {isExpanded ? <ChevronUp className="w-4 h-4" /> : <ChevronDown className="w-4 h-4" />}
-                                </button>
-                              )}
+                              <button
+                                onClick={() => taken > 0 && setExpandedSlot(isExpanded ? null : s.id)}
+                                disabled={taken === 0}
+                                className={cn(
+                                  "text-[10px] font-bold uppercase tracking-wider px-2.5 py-1 rounded-md transition-all border flex items-center gap-1.5 shrink-0",
+                                  taken === 0 
+                                    ? "bg-transparent border-border/40 text-muted-foreground opacity-60 cursor-not-allowed"
+                                    : isExpanded
+                                      ? "bg-primary/20 border-primary text-primary active:scale-95"
+                                      : "bg-primary/10 border-primary/20 text-primary hover:bg-primary/20 active:scale-95"
+                                )}
+                                title={taken === 0 ? "Nenhum aluno inscrito" : "Gerenciar Alunos Inscritos"}
+                              >
+                                <Users className="w-3.5 h-3.5" />
+                                Alunos ({taken})
+                              </button>
                             </div>
 
                             {isExpanded && taken > 0 && (
-                              <div className="mt-3 pt-3 border-t border-border/40 space-y-1.5">
-                                <div className="text-[10px] uppercase tracking-widest text-muted-foreground mb-1.5">Agendados</div>
-                                {slotBookings.map((b) => (
-                                  <div key={b.id} className="flex items-center gap-2 text-sm">
-                                    <div className="w-7 h-7 rounded-full bg-primary/15 text-primary flex items-center justify-center overflow-hidden text-[11px] font-semibold shrink-0">
-                                      {b.profiles?.avatar_url ? (
-                                        <img src={b.profiles.avatar_url} alt="" className="w-full h-full object-cover" />
-                                      ) : (
-                                        (b.profiles?.full_name ?? b.profiles?.email ?? "?")[0]?.toUpperCase()
-                                      )}
+                              <div className="mt-3 pt-3 border-t border-border/40 space-y-2">
+                                <div className="text-[10px] uppercase tracking-widest text-muted-foreground mb-1">Alunos Inscritos</div>
+                                {slotBookings.map((b) => {
+                                  const isAccepted = b.is_accepted === true;
+                                  const isPending = b.is_accepted === null;
+
+                                  return (
+                                    <div key={b.id} className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 text-sm py-2 px-3 rounded-xl bg-secondary/10 border border-border/20">
+                                      <div className="flex items-center gap-2.5 min-w-0">
+                                        <div className="w-8 h-8 rounded-full bg-primary/15 text-primary flex items-center justify-center overflow-hidden text-xs font-semibold shrink-0">
+                                          {b.profiles?.avatar_url ? (
+                                            <img src={b.profiles.avatar_url} alt="" className="w-full h-full object-cover" />
+                                          ) : (
+                                            (b.profiles?.full_name ?? b.profiles?.email ?? "?")[0]?.toUpperCase()
+                                          )}
+                                        </div>
+                                        <div className="flex-1 min-w-0">
+                                          <div className="font-semibold flex items-center gap-1.5 flex-wrap">
+                                            <span className="truncate">{b.profiles?.full_name ?? "Sem nome"}</span>
+                                            {isPending ? (
+                                              <span className="text-[9px] uppercase font-bold px-1.5 py-0.5 rounded-full bg-warning/15 text-warning border border-warning/30">
+                                                ⏳ Pendente
+                                              </span>
+                                            ) : isAccepted ? (
+                                              <span className="text-[9px] uppercase font-bold px-1.5 py-0.5 rounded-full bg-success/15 text-success border border-success/30">
+                                                ✓ Aceito
+                                              </span>
+                                            ) : null}
+                                          </div>
+                                          <div className="text-[10px] text-muted-foreground truncate">{b.profiles?.email}</div>
+                                        </div>
+                                      </div>
+
+                                      <div className="flex items-center gap-1.5 justify-end">
+                                        {isPending && (
+                                          <button
+                                            onClick={() => handleAcceptBooking(b, s)}
+                                            className="text-[10px] font-bold uppercase tracking-wider px-2 py-1 rounded-md bg-success text-success-foreground hover:bg-success/90 transition-all active:scale-95"
+                                            title="Aceitar Inscrição"
+                                          >
+                                            Aceitar
+                                          </button>
+                                        )}
+                                        <button
+                                          onClick={() => handleUnbookStudent(b, s)}
+                                          className="text-[10px] font-bold uppercase tracking-wider px-2 py-1 rounded-md bg-destructive/10 hover:bg-destructive/20 text-destructive transition-all active:scale-95 border border-destructive/20"
+                                          title={isPending ? "Recusar Inscrição" : "Desmarcar Aluno"}
+                                        >
+                                          {isPending ? "Recusar" : "Desmarcar"}
+                                        </button>
+                                      </div>
                                     </div>
-                                    <div className="flex-1 min-w-0">
-                                      <div className="font-medium truncate">{b.profiles?.full_name ?? b.profiles?.email ?? "—"}</div>
-                                      {b.profiles?.full_name && <div className="text-[10px] text-muted-foreground truncate">{b.profiles?.email}</div>}
-                                    </div>
-                                  </div>
-                                ))}
+                                  );
+                                })}
                               </div>
                             )}
                           </div>
@@ -561,8 +809,25 @@ export default function AdminSchedule() {
                       <span className="text-[10px] opacity-70">{t.duration_min}min</span>
                     </div>
                     <div className="flex-1 min-w-0">
-                      <div className="font-semibold">
+                      <div className="font-semibold flex items-center gap-1.5 flex-wrap">
                         {WEEKDAYS_LONG[t.weekday]} · {t.start_time.slice(0, 5)} – {t.end_time.slice(0, 5)}
+                        {(() => {
+                          const typeLabels: Record<string, string> = {
+                            avulsa_grupo: "Grupo",
+                            avulsa_particular: "Particular",
+                            aluguel: "Aluguel",
+                          };
+                          const typeColors: Record<string, string> = {
+                            avulsa_grupo: "bg-blue-500/10 text-blue-400 border-blue-500/20",
+                            avulsa_particular: "bg-purple-500/10 text-purple-400 border-purple-500/20",
+                            aluguel: "bg-amber-500/10 text-amber-400 border-amber-500/20",
+                          };
+                          return (
+                            <span className={`text-[9px] uppercase font-bold px-1.5 py-0.5 rounded-full border ${typeColors[t.class_type ?? "avulsa_grupo"]}`}>
+                              {typeLabels[t.class_type ?? "avulsa_grupo"]}
+                            </span>
+                          );
+                        })()}
                       </div>
                       <div className="text-xs text-muted-foreground flex flex-wrap items-center gap-2 mt-1">
                         <span className="inline-flex items-center gap-1"><Clock className="w-3 h-3" /> {slotsCount} aulas/dia</span>
@@ -592,6 +857,16 @@ export default function AdminSchedule() {
       {showTemplate && <TemplateForm existing={showTemplate.existing} onClose={() => { setShowTemplate(null); load(); }} />}
       {editSlot && <EditSlotForm slot={editSlot} onClose={() => { setEditSlot(null); load(); }} />}
       {bulkEdit && <BulkEditForm slots={bulkEdit} onClose={() => { setBulkEdit(null); setSelectedSlotIds(new Set()); load(); }} />}
+      {imprevistoSlot && (
+        <ImprevistoModal
+          slot={imprevistoSlot}
+          onClose={() => setImprevistoSlot(null)}
+          onSuccess={() => {
+            setImprevistoSlot(null);
+            load();
+          }}
+        />
+      )}
     </div>
   );
 }
@@ -610,7 +885,11 @@ function Legend({ dot, label }: { dot: string; label: string }) {
 }
 
 function SlotForm({ date, onClose }: { date: string; onClose: () => void }) {
-  const [f, setF] = useState({ date, start_time: "08:00", end_time: "09:00", capacity: 4, location: "", notes: "", min_level: "" as "" | Level });
+  const [f, setF] = useState({ 
+    date, start_time: "08:00", end_time: "09:00", capacity: 6, location: "", notes: "", 
+    min_level: "" as "" | Level,
+    class_type: "avulsa_grupo" as "avulsa_grupo" | "avulsa_particular" | "aluguel"
+  });
   const [loading, setLoading] = useState(false);
   const submit = async () => {
     setLoading(true);
@@ -618,6 +897,7 @@ function SlotForm({ date, onClose }: { date: string; onClose: () => void }) {
       date: f.date, start_time: f.start_time, end_time: f.end_time,
       capacity: f.capacity, location: f.location || null, notes: f.notes || null,
       min_level: (f.min_level || null) as any,
+      class_type: f.class_type,
     });
     setLoading(false);
     if (error) return toast.error(error.message);
@@ -634,6 +914,17 @@ function SlotForm({ date, onClose }: { date: string; onClose: () => void }) {
         <div className="grid grid-cols-2 gap-2">
           <div><Label>Início</Label><Input type="time" value={f.start_time} onChange={(e) => setF({ ...f, start_time: e.target.value })} className="bg-input/60 border-0 h-11 rounded-xl mt-1" /></div>
           <div><Label>Fim</Label><Input type="time" value={f.end_time} onChange={(e) => setF({ ...f, end_time: e.target.value })} className="bg-input/60 border-0 h-11 rounded-xl mt-1" /></div>
+        </div>
+        <div>
+          <Label>Tipo de Horário</Label>
+          <Select value={f.class_type} onValueChange={(v: any) => setF({ ...f, class_type: v })}>
+            <SelectTrigger className="bg-input/60 border-0 h-11 rounded-xl mt-1"><SelectValue /></SelectTrigger>
+            <SelectContent>
+              <SelectItem value="avulsa_grupo">Aula Avulsa em Grupo</SelectItem>
+              <SelectItem value="avulsa_particular">Aula Avulsa Particular</SelectItem>
+              <SelectItem value="aluguel">Aluguel</SelectItem>
+            </SelectContent>
+          </Select>
         </div>
         <div><Label>Vagas</Label><Input type="number" min={1} value={f.capacity} onChange={(e) => setF({ ...f, capacity: +e.target.value })} className="bg-input/60 border-0 h-11 rounded-xl mt-1" /></div>
         <div><Label>Local</Label><Input value={f.location} onChange={(e) => setF({ ...f, location: e.target.value })} placeholder="Ex: Praia Mole" className="bg-input/60 border-0 h-11 rounded-xl mt-1" /></div>
@@ -659,7 +950,10 @@ function SlotForm({ date, onClose }: { date: string; onClose: () => void }) {
 }
 
 function PeriodForm({ date, onClose }: { date: string; onClose: () => void }) {
-  const [f, setF] = useState({ date, start_time: "08:00", end_time: "11:00", duration_min: 60, capacity: 4, location: "", notes: "" });
+  const [f, setF] = useState({ 
+    date, start_time: "07:00", end_time: "13:00", duration_min: 60, capacity: 6, location: "", notes: "",
+    class_type: "avulsa_grupo" as "avulsa_grupo" | "avulsa_particular" | "aluguel"
+  });
   const [loading, setLoading] = useState(false);
   const preview = Math.max(0, Math.floor((timeToMin(f.end_time) - timeToMin(f.start_time)) / f.duration_min));
   const submit = async () => {
@@ -673,6 +967,7 @@ function PeriodForm({ date, onClose }: { date: string; onClose: () => void }) {
       _capacity: f.capacity,
       _location: f.location || null,
       _notes: f.notes || null,
+      _class_type: f.class_type,
     });
     setLoading(false);
     if (error) return toast.error(error.message);
@@ -691,6 +986,17 @@ function PeriodForm({ date, onClose }: { date: string; onClose: () => void }) {
         <div className="grid grid-cols-2 gap-2">
           <div><Label>Início</Label><Input type="time" value={f.start_time} onChange={(e) => setF({ ...f, start_time: e.target.value })} className="bg-input/60 border-0 h-11 rounded-xl mt-1" /></div>
           <div><Label>Fim</Label><Input type="time" value={f.end_time} onChange={(e) => setF({ ...f, end_time: e.target.value })} className="bg-input/60 border-0 h-11 rounded-xl mt-1" /></div>
+        </div>
+        <div>
+          <Label>Tipo de Horário</Label>
+          <Select value={f.class_type} onValueChange={(v: any) => setF({ ...f, class_type: v })}>
+            <SelectTrigger className="bg-input/60 border-0 h-11 rounded-xl mt-1"><SelectValue /></SelectTrigger>
+            <SelectContent>
+              <SelectItem value="avulsa_grupo">Aula Avulsa em Grupo</SelectItem>
+              <SelectItem value="avulsa_particular">Aula Avulsa Particular</SelectItem>
+              <SelectItem value="aluguel">Aluguel</SelectItem>
+            </SelectContent>
+          </Select>
         </div>
         <div className="grid grid-cols-2 gap-2">
           <div><Label>Duração da aula (min)</Label><Input type="number" min={15} step={15} value={f.duration_min} onChange={(e) => setF({ ...f, duration_min: +e.target.value })} className="bg-input/60 border-0 h-11 rounded-xl mt-1" /></div>
@@ -777,13 +1083,14 @@ function CondForm({ date, existing, onClose }: { date: string; existing?: Cond; 
 function TemplateForm({ existing, onClose }: { existing?: Template; onClose: () => void }) {
   const [f, setF] = useState({
     weekday: existing?.weekday ?? 1,
-    start_time: existing?.start_time?.slice(0, 5) ?? "08:00",
-    end_time: existing?.end_time?.slice(0, 5) ?? "11:00",
+    start_time: existing?.start_time?.slice(0, 5) ?? "07:00",
+    end_time: existing?.end_time?.slice(0, 5) ?? "13:00",
     duration_min: existing?.duration_min ?? 60,
-    capacity: existing?.capacity ?? 4,
+    capacity: existing?.capacity ?? 6,
     location: existing?.location ?? "",
     notes: existing?.notes ?? "",
     is_active: existing?.is_active ?? true,
+    class_type: existing?.class_type ?? ("avulsa_grupo" as "avulsa_grupo" | "avulsa_particular" | "aluguel"),
   });
   const [loading, setLoading] = useState(false);
   const preview = Math.max(0, Math.floor((timeToMin(f.end_time) - timeToMin(f.start_time)) / f.duration_min));
@@ -799,6 +1106,7 @@ function TemplateForm({ existing, onClose }: { existing?: Template; onClose: () 
       location: f.location || null,
       notes: f.notes || null,
       is_active: f.is_active,
+      class_type: f.class_type,
     };
     const q = existing
       ? supabase.from("weekly_schedule_templates").update(payload).eq("id", existing.id)
@@ -825,6 +1133,17 @@ function TemplateForm({ existing, onClose }: { existing?: Template; onClose: () 
         <div className="grid grid-cols-2 gap-2">
           <div><Label>Início</Label><Input type="time" value={f.start_time} onChange={(e) => setF({ ...f, start_time: e.target.value })} className="bg-input/60 border-0 h-11 rounded-xl mt-1" /></div>
           <div><Label>Fim</Label><Input type="time" value={f.end_time} onChange={(e) => setF({ ...f, end_time: e.target.value })} className="bg-input/60 border-0 h-11 rounded-xl mt-1" /></div>
+        </div>
+        <div>
+          <Label>Tipo de Horário</Label>
+          <Select value={f.class_type} onValueChange={(v: any) => setF({ ...f, class_type: v })}>
+            <SelectTrigger className="bg-input/60 border-0 h-11 rounded-xl mt-1"><SelectValue /></SelectTrigger>
+            <SelectContent>
+              <SelectItem value="avulsa_grupo">Aula Avulsa em Grupo</SelectItem>
+              <SelectItem value="avulsa_particular">Aula Avulsa Particular</SelectItem>
+              <SelectItem value="aluguel">Aluguel</SelectItem>
+            </SelectContent>
+          </Select>
         </div>
         <div className="grid grid-cols-2 gap-2">
           <div><Label>Duração (min)</Label><Input type="number" min={15} step={15} value={f.duration_min} onChange={(e) => setF({ ...f, duration_min: +e.target.value })} className="bg-input/60 border-0 h-11 rounded-xl mt-1" /></div>
@@ -860,6 +1179,7 @@ function EditSlotForm({ slot, onClose }: { slot: Slot; onClose: () => void }) {
     notes: slot.notes ?? "",
     min_level: (slot.min_level ?? "") as "" | Level,
     is_open: slot.is_open,
+    class_type: slot.class_type ?? ("avulsa_grupo" as "avulsa_grupo" | "avulsa_particular" | "aluguel"),
   });
   const [loading, setLoading] = useState(false);
   const submit = async () => {
@@ -873,6 +1193,7 @@ function EditSlotForm({ slot, onClose }: { slot: Slot; onClose: () => void }) {
       notes: f.notes || null,
       min_level: (f.min_level || null) as any,
       is_open: f.is_open,
+      class_type: f.class_type,
     }).eq("id", slot.id);
     setLoading(false);
     if (error) return toast.error(error.message);
@@ -890,6 +1211,17 @@ function EditSlotForm({ slot, onClose }: { slot: Slot; onClose: () => void }) {
         <div className="grid grid-cols-2 gap-2">
           <div><Label>Início</Label><Input type="time" value={f.start_time} onChange={(e) => setF({ ...f, start_time: e.target.value })} className="bg-input/60 border-0 h-11 rounded-xl mt-1" /></div>
           <div><Label>Fim</Label><Input type="time" value={f.end_time} onChange={(e) => setF({ ...f, end_time: e.target.value })} className="bg-input/60 border-0 h-11 rounded-xl mt-1" /></div>
+        </div>
+        <div>
+          <Label>Tipo de Horário</Label>
+          <Select value={f.class_type} onValueChange={(v: any) => setF({ ...f, class_type: v })}>
+            <SelectTrigger className="bg-input/60 border-0 h-11 rounded-xl mt-1"><SelectValue /></SelectTrigger>
+            <SelectContent>
+              <SelectItem value="avulsa_grupo">Aula Avulsa em Grupo</SelectItem>
+              <SelectItem value="avulsa_particular">Aula Avulsa Particular</SelectItem>
+              <SelectItem value="aluguel">Aluguel</SelectItem>
+            </SelectContent>
+          </Select>
         </div>
         <div><Label>Vagas</Label><Input type="number" min={1} value={f.capacity} onChange={(e) => setF({ ...f, capacity: +e.target.value })} className="bg-input/60 border-0 h-11 rounded-xl mt-1" /></div>
         <div><Label>Local</Label><Input value={f.location} onChange={(e) => setF({ ...f, location: e.target.value })} className="bg-input/60 border-0 h-11 rounded-xl mt-1" /></div>
@@ -993,6 +1325,127 @@ function BulkEditForm({ slots, onClose }: { slots: Slot[]; onClose: () => void }
       <Button onClick={submit} disabled={loading} className="w-full h-11 rounded-xl bg-gradient-to-r from-primary to-accent mt-4">
         {loading ? <Loader2 className="w-4 h-4 animate-spin" /> : `Aplicar a ${slots.length} horário(s)`}
       </Button>
+    </Modal>
+  );
+}
+
+const isConfirmedSlot = (notes: string | null) => notes?.includes("[CONFIRMADA]") ?? false;
+const isImprevistoSlot = (notes: string | null) => notes?.includes("[IMPREVISTO]") ?? false;
+
+const getImprevistoReason = (notes: string | null) => {
+  if (!notes) return "";
+  const match = notes.match(/\[IMPREVISTO\]\s*([^[\]\-]*)/);
+  return match ? match[1].trim() : "";
+};
+
+const getDisplayNotes = (notes: string | null) => {
+  if (!notes) return "";
+  return notes
+    .replace(/\[CONFIRMADA\]\s*/g, "")
+    .replace(/\[IMPREVISTO\]\s*([^[\]\-]*)\s*(-|—)?\s*/g, "")
+    .trim();
+};
+
+function ImprevistoModal({ slot, onClose, onSuccess }: { slot: Slot; onClose: () => void; onSuccess: () => void }) {
+  const [reason, setReason] = useState("");
+  const [loading, setLoading] = useState(false);
+
+  const handleSubmit = async () => {
+    if (!reason.trim()) {
+      toast.error("Por favor, digite o motivo do cancelamento");
+      return;
+    }
+    setLoading(true);
+    try {
+      // 1. Get confirmed bookings for this slot to refund and notify
+      const { data: bookingsToCancel, error: bErr } = await supabase
+        .from("bookings")
+        .select("id, user_id")
+        .eq("slot_id", slot.id)
+        .eq("status", "confirmed");
+
+      if (bErr) throw bErr;
+
+      // 2. Update slot status to cancelled & closed
+      const cleanNotes = slot.notes ? slot.notes.replace(/\[IMPREVISTO\][^]*?|\[CONFIRMADA\]\s*/g, "").trim() : "";
+      const newNotes = `[IMPREVISTO] ${reason.trim()}${cleanNotes ? " - " + cleanNotes : ""}`;
+
+      const { error: sErr } = await supabase
+        .from("class_slots")
+        .update({ is_open: false, notes: newNotes })
+        .eq("id", slot.id);
+
+      if (sErr) throw sErr;
+
+      // 3. Update bookings to cancelled (refunds credits) and create notifications
+      if (bookingsToCancel && bookingsToCancel.length > 0) {
+        const { error: upErr } = await supabase
+          .from("bookings")
+          .update({ status: "cancelled", notes: `Cancelada por motivo: ${reason.trim()}` })
+          .eq("slot_id", slot.id)
+          .eq("status", "confirmed");
+
+        if (upErr) throw upErr;
+
+        // Insert notifications for each student
+        const notifications = bookingsToCancel.map((b) => ({
+          user_id: b.user_id,
+          title: "Aula Cancelada",
+          body: `A aula do dia ${format(new Date(slot.date + "T12:00:00"), "dd/MM")} às ${parseInt(slot.start_time.slice(0, 2), 10)}h foi cancelada. Motivo: ${reason.trim()}. Seu crédito foi devolvido.`,
+          kind: "class_cancellation",
+        }));
+
+        const { error: nErr } = await supabase.from("notifications").insert(notifications);
+        if (nErr) throw nErr;
+      }
+
+      toast.success("Aula cancelada e alunos notificados com sucesso!");
+      onSuccess();
+    } catch (err: any) {
+      toast.error(err.message || "Erro ao cancelar aula");
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  return (
+    <Modal onClose={onClose}>
+      <h2 className="text-xl font-bold mb-2 text-destructive flex items-center gap-2">
+        ⚠️ Cancelar Aula
+      </h2>
+      <p className="text-sm text-muted-foreground mb-4">
+        Ao cancelar, esta aula será <strong>fechada</strong>. Todos os alunos agendados serão <strong>desmarcados</strong> e seus <strong>créditos serão devolvidos</strong> automaticamente, além de receberem uma notificação com o motivo.
+      </p>
+      <div className="space-y-4">
+        <div>
+          <Label>Motivo do Cancelamento</Label>
+          <Input
+            value={reason}
+            onChange={(e) => setReason(e.target.value)}
+            placeholder="Ex: Chuva forte com raios, Instrutor doente..."
+            className="bg-input/60 border-0 h-11 rounded-xl mt-1"
+            disabled={loading}
+            autoFocus
+          />
+        </div>
+        <div className="flex gap-2">
+          <Button
+            onClick={onClose}
+            variant="outline"
+            className="flex-1 h-11 rounded-xl"
+            disabled={loading}
+          >
+            Voltar
+          </Button>
+          <Button
+            onClick={handleSubmit}
+            className="flex-1 h-11 rounded-xl bg-destructive hover:bg-destructive/90 text-destructive-foreground font-semibold"
+            disabled={loading || !reason.trim()}
+          >
+            {loading ? <Loader2 className="w-4 h-4 animate-spin" /> : "Confirmar Cancelamento"}
+          </Button>
+        </div>
+      </div>
     </Modal>
   );
 }

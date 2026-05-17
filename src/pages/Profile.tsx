@@ -67,7 +67,6 @@ export default function Profile() {
       weight_kg: form.weight_kg ? Number(form.weight_kg) : null,
       age: form.age ? Number(form.age) : null,
       stance: form.stance,
-      surf_level: form.surf_level,
       has_own_board: form.has_own_board,
       can_swim: form.can_swim,
       board_size: form.board_size || null,
@@ -139,11 +138,25 @@ export default function Profile() {
             onChange={(e) => e.target.files?.[0] && onAvatar(e.target.files[0])} />
         </div>
         <p className="text-xs text-muted-foreground mt-3">{profile.email}</p>
-        <div className="mt-3 flex flex-col items-center gap-2">
-          <div className="inline-flex items-center gap-1.5 text-xs px-3 py-1 rounded-full bg-primary/15 text-primary">
-            {profile.credits} {profile.credits === 1 ? t("profile.credit") : t("profile.credits")}
+        <div className="mt-3 flex flex-col items-center gap-2 w-full max-w-xs">
+          <div className="w-full glass rounded-2xl p-3 text-center space-y-1.5 border border-primary/20">
+            <p className="text-[10px] uppercase tracking-widest text-muted-foreground">Meus Créditos</p>
+            <div className="grid grid-cols-3 gap-2 text-center">
+              <div>
+                <p className="text-xs text-muted-foreground">Grupo</p>
+                <p className="text-sm font-bold text-primary">{profile.credits_grupo ?? 0}</p>
+              </div>
+              <div className="border-x border-border/40">
+                <p className="text-xs text-muted-foreground">Particular</p>
+                <p className="text-sm font-bold text-primary">{profile.credits_particular ?? 0}</p>
+              </div>
+              <div>
+                <p className="text-xs text-muted-foreground">Aluguel</p>
+                <p className="text-sm font-bold text-primary">{profile.credits_aluguel ?? 0}</p>
+              </div>
+            </div>
           </div>
-          <Link to="/packages" className="text-[10px] uppercase tracking-widest text-primary hover:underline font-bold">
+          <Link to="/packages" className="text-[10px] uppercase tracking-widest text-primary hover:underline font-bold mt-1">
             {t("packages.title")} →
           </Link>
         </div>
@@ -163,7 +176,7 @@ export default function Profile() {
         <Block title={t("profile.blocks.surf")}>
           <div className="grid grid-cols-2 gap-3">
             <Field label={t("profile.fields.level")}>
-              <Select value={form.surf_level} onValueChange={(v) => setForm({ ...form, surf_level: v })}>
+              <Select disabled value={form.surf_level} onValueChange={(v) => setForm({ ...form, surf_level: v })}>
                 <SelectTrigger><SelectValue /></SelectTrigger>
                 <SelectContent>
                   <SelectItem value="iniciante">{t("profile.levels.beginner")}</SelectItem>
@@ -183,11 +196,25 @@ export default function Profile() {
               </Select>
             </Field>
           </div>
-          <Field label={t("profile.fields.boardSize")}><Input value={form.board_size} onChange={(e) => setForm({ ...form, board_size: e.target.value })} /></Field>
           <div className="grid grid-cols-2 gap-3">
             <ToggleRow label={t("profile.fields.ownBoard")} value={form.has_own_board} onChange={(v) => setForm({ ...form, has_own_board: v })} />
             <ToggleRow label={t("profile.fields.canSwim")} value={form.can_swim} onChange={(v) => setForm({ ...form, can_swim: v })} />
           </div>
+          {form.has_own_board && (
+            <Field label={t("profile.fields.boardSize")}>
+              <Select value={form.board_size} onValueChange={(v) => setForm({ ...form, board_size: v })}>
+                <SelectTrigger><SelectValue placeholder="Selecione a prancha" /></SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="Longboard soft">Longboard soft</SelectItem>
+                  <SelectItem value="Longboard fibra">Longboard fibra</SelectItem>
+                  <SelectItem value="Fun board">Fun board</SelectItem>
+                  <SelectItem value="Mid Length">Mid Length</SelectItem>
+                  <SelectItem value="Evolution">Evolution</SelectItem>
+                  <SelectItem value="Shortboard">Shortboard</SelectItem>
+                </SelectContent>
+              </Select>
+            </Field>
+          )}
         </Block>
 
         <Block title={t("profile.blocks.emergency")}>

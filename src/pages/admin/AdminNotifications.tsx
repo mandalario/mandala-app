@@ -89,7 +89,18 @@ export default function AdminNotifications() {
           url: pushUrl.trim() || undefined,
         },
       });
-      if (error) throw error;
+      if (error) {
+        let errorMessage = error.message;
+        try {
+          if (error.context) {
+            const body = await error.context.json();
+            errorMessage = body?.error || error.message;
+          }
+        } catch (e) {
+          // ignore
+        }
+        throw new Error(errorMessage);
+      }
       if (!data?.ok) {
         toast.error(data?.error ?? "Falha ao enviar push");
       } else {
@@ -117,7 +128,18 @@ export default function AdminNotifications() {
           url: "/feed",
         },
       });
-      if (error) throw error;
+      if (error) {
+        let errorMessage = error.message;
+        try {
+          if (error.context) {
+            const body = await error.context.json();
+            errorMessage = body?.error || error.message;
+          }
+        } catch (e) {
+          // ignore
+        }
+        throw new Error(errorMessage);
+      }
       if (data?.ok) toast.success("Push enviado! Verifique seu celular.");
       else toast.error(data?.error ?? "Falha ao enviar push");
     } catch (e) {

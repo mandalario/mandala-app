@@ -22,7 +22,9 @@ const schema = z.object({
   height_cm: z.coerce.number().min(80).max(230),
   surf_level: z.enum(["iniciante", "intermediario", "avancado"]),
   stance: z.enum(["regular", "goofy", "desconhecido"]),
-  can_swim: z.boolean(),
+  can_swim: z.boolean().refine((val) => val === true, {
+    message: "É obrigatório saber nadar para se cadastrar.",
+  }),
   has_own_board: z.boolean(),
   board_size: z.string().trim().max(50).optional().or(z.literal("")),
   experience_notes: z.string().trim().max(500).optional().or(z.literal("")),
@@ -111,6 +113,10 @@ export default function Onboarding() {
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!user) return;
+    if (!form.can_swim) {
+      toast.error("É obrigatório saber nadar para se cadastrar.");
+      return;
+    }
     const parsed = schema.safeParse(form);
     if (!parsed.success) {
       toast.error(parsed.error.issues[0].message);
@@ -234,12 +240,24 @@ export default function Onboarding() {
                 </Field>
               </div>
 
-              <ToggleRow label="Sei nadar" description="Importante para sua segurança no mar" checked={form.can_swim} onChange={(v) => setForm({ ...form, can_swim: v })} />
+              <ToggleRow label="Sei nadar (Obrigatório)" description="Obrigatório para sua segurança no mar" checked={form.can_swim} onChange={(v) => setForm({ ...form, can_swim: v })} />
               <ToggleRow label="Tenho prancha própria" description="Caso contrário, providenciamos uma" checked={form.has_own_board} onChange={(v) => setForm({ ...form, has_own_board: v })} />
 
               {form.has_own_board && (
                 <Field label="Tamanho da prancha">
-                  <Input value={form.board_size} onChange={(e) => setForm({ ...form, board_size: e.target.value })} placeholder={`Ex: 6'2"`} className="bg-input/60 border-0 h-11 rounded-xl" />
+                  <Select value={form.board_size} onValueChange={(v) => setForm({ ...form, board_size: v })}>
+                    <SelectTrigger className="bg-input/60 border-0 h-11 rounded-xl">
+                      <SelectValue placeholder="Selecione a prancha" />
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="Longboard soft">Longboard soft</SelectItem>
+                      <SelectItem value="Longboard fibra">Longboard fibra</SelectItem>
+                      <SelectItem value="Fun board">Fun board</SelectItem>
+                      <SelectItem value="Mid Length">Mid Length</SelectItem>
+                      <SelectItem value="Evolution">Evolution</SelectItem>
+                      <SelectItem value="Shortboard">Shortboard</SelectItem>
+                    </SelectContent>
+                  </Select>
                 </Field>
               )}
 

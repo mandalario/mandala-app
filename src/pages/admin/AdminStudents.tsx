@@ -17,6 +17,7 @@ type Student = {
   experience_notes: string | null; medical_conditions: string | null;
   emergency_contact_name: string | null; emergency_contact_phone: string | null;
   approval_status: string; credits: number; created_at: string;
+  credits_grupo: number; credits_particular: number; credits_aluguel: number;
 };
 
 export default function AdminStudents() {
@@ -92,7 +93,11 @@ export default function AdminStudents() {
                 </div>
                 <div className="text-xs text-muted-foreground truncate">{s.email}</div>
               </div>
-              <div className="text-xs text-muted-foreground hidden md:block">{s.credits} créd.</div>
+              <div className="text-[11px] text-muted-foreground hidden md:flex flex-col text-right shrink-0">
+                <div>G: <span className="font-semibold text-foreground">{s.credits_grupo}</span></div>
+                <div>P: <span className="font-semibold text-foreground">{s.credits_particular}</span></div>
+                <div>A: <span className="font-semibold text-foreground">{s.credits_aluguel}</span></div>
+              </div>
             </button>
           ))}
         </div>
@@ -176,7 +181,9 @@ function StudentSheet({ student, onClose, onSaved }: { student: Student; onClose
       medical_conditions: f.medical_conditions,
       emergency_contact_name: f.emergency_contact_name,
       emergency_contact_phone: f.emergency_contact_phone,
-      credits: f.credits,
+      credits_grupo: f.credits_grupo,
+      credits_particular: f.credits_particular,
+      credits_aluguel: f.credits_aluguel,
     }).eq("id", student.id);
     setSaving(false);
     if (error) return toast.error(error.message);
@@ -212,7 +219,7 @@ function StudentSheet({ student, onClose, onSaved }: { student: Student; onClose
           {initial}
         </div>
         <div className="grid grid-cols-3 gap-3 flex-1">
-          <Stat label="Créditos" value={`${f.credits}`} />
+          <Stat label="Créditos (G/P/A)" value={`${f.credits_grupo} / ${f.credits_particular} / ${f.credits_aluguel}`} />
           <Stat label="Nível" value={f.surf_level ?? "—"} />
           <Stat label="Base" value={f.stance ?? "—"} />
         </div>
@@ -224,7 +231,11 @@ function StudentSheet({ student, onClose, onSaved }: { student: Student; onClose
         <Field label="Idade"><Input type="number" value={f.age ?? ""} onChange={(e) => set("age", e.target.value ? +e.target.value : null)} /></Field>
         <Field label="Peso (kg)"><Input type="number" value={f.weight_kg ?? ""} onChange={(e) => set("weight_kg", e.target.value ? +e.target.value : null)} /></Field>
         <Field label="Altura (cm)"><Input type="number" value={f.height_cm ?? ""} onChange={(e) => set("height_cm", e.target.value ? +e.target.value : null)} /></Field>
-        <Field label="Créditos"><Input type="number" value={f.credits} onChange={(e) => set("credits", e.target.value ? +e.target.value : 0)} /></Field>
+        <div className="grid grid-cols-3 gap-2 md:col-span-2">
+          <Field label="Créd. Grupo"><Input type="number" value={f.credits_grupo} onChange={(e) => set("credits_grupo", e.target.value ? +e.target.value : 0)} /></Field>
+          <Field label="Créd. Particular"><Input type="number" value={f.credits_particular} onChange={(e) => set("credits_particular", e.target.value ? +e.target.value : 0)} /></Field>
+          <Field label="Créd. Aluguel"><Input type="number" value={f.credits_aluguel} onChange={(e) => set("credits_aluguel", e.target.value ? +e.target.value : 0)} /></Field>
+        </div>
       </Section>
 
       <Section icon={<Activity className="w-4 h-4" />} title="Surf & evolução">
@@ -325,7 +336,22 @@ function CreateStudentSheet({ onClose, onCreated }: { onClose: () => void; onCre
       },
     });
     setLoading(false);
-    if (error || (data as any)?.error) return toast.error((data as any)?.error ?? error?.message ?? "Erro");
+    if (error || (data as any)?.error) {
+      let errorMessage = (data as any)?.error || "Erro";
+      if (error) {
+        try {
+          if (error.context) {
+            const body = await error.context.json();
+            errorMessage = body?.error || error.message;
+          } else {
+            errorMessage = error.message;
+          }
+        } catch (e) {
+          errorMessage = error.message || errorMessage;
+        }
+      }
+      return toast.error(errorMessage);
+    }
     toast.success("Aluno criado e aprovado");
     onCreated();
   };

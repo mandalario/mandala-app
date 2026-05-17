@@ -62,8 +62,8 @@ Deno.serve(async (req) => {
       .in("key", ["mp_access_token", "mp_environment"]);
     const sm: Record<string, string | null> = {};
     (secrets ?? []).forEach((r: any) => { sm[r.key] = r.value; });
-    const accessToken = sm.mp_access_token;
-    if (!accessToken) {
+    const accessToken = sm.mp_access_token?.trim();
+    if (!accessToken || accessToken === "null" || accessToken === "undefined") {
       return new Response(JSON.stringify({ error: "Mercado Pago não configurado" }), {
         status: 400, headers: { ...corsHeaders, "Content-Type": "application/json" },
       });
