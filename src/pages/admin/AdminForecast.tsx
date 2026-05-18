@@ -167,18 +167,33 @@ function defaultConfig(kind: string) {
   return { lat: -23.0, lon: -43.5 };
 }
 
+const daysOfWeekList = [
+  { id: "seg", label: "Segunda" },
+  { id: "ter", label: "Terça" },
+  { id: "qua", label: "Quarta" },
+  { id: "qui", label: "Quinta" },
+  { id: "sex", label: "Sexta" },
+  { id: "sab", label: "Sábado" },
+  { id: "dom", label: "Domingo" }
+];
+
+const defaultCondition = {
+  location: "Arpoador, Rio de Janeiro, Brasil",
+  summary: "Céu limpo e mar glass",
+  stars: 4,
+  status: "excelente",
+  waves: "1.2m",
+  period: "10s",
+  wave_dir: "SSE",
+  wind: "Leste",
+  water_temp: "25°C",
+  air_temp: "Seca",
+  ideal_for: "Todos os Níveis"
+};
+
 function SeaConditionCardEditor() {
-  const [location, setLocation] = useState("Arpoador, Rio de Janeiro, Brasil");
-  const [summary, setSummary] = useState("Céu limpo e mar glass");
-  const [stars, setStars] = useState(4);
-  const [status, setStatus] = useState<"excelente" | "bom" | "medio" | "ruim" | "flat">("excelente");
-  const [waves, setWaves] = useState("1.2m");
-  const [period, setPeriod] = useState("10s");
-  const [waveDir, setWaveDir] = useState("SSE");
-  const [wind, setWind] = useState("8 km/h");
-  const [waterTemp, setWaterTemp] = useState("25°C");
-  const [airTemp, setAirTemp] = useState("27°C");
-  const [idealFor, setIdealFor] = useState("Todos os Níveis");
+  const [weekData, setWeekData] = useState<Record<string, any>>({});
+  const [activeDay, setActiveDay] = useState("seg");
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
 
@@ -189,23 +204,41 @@ function SeaConditionCardEditor() {
         .select("value")
         .eq("key", "sea_condition_card")
         .maybeSingle();
+        
+      const initial = {} as Record<string, any>;
+      daysOfWeekList.forEach(d => initial[d.id] = { ...defaultCondition });
+
       if (data?.value) {
         try {
           const parsed = JSON.parse(data.value);
-          setLocation(parsed.location || "");
-          setSummary(parsed.summary || "");
-          setStars(parsed.stars || 4);
-          setStatus(parsed.status || "excelente");
-          setWaves(parsed.waves || "");
-          setPeriod(parsed.period || "");
-          setWaveDir(parsed.wave_dir || "");
-          setWind(parsed.wind || "");
-          setWaterTemp(parsed.water_temp || "");
-          setAirTemp(parsed.air_temp || "");
-          setIdealFor(parsed.ideal_for || "");
+          if (parsed.seg) {
+            setWeekData({ ...initial, ...parsed });
+          } else {
+            // Migrate old flat format to weekly
+            const migrated = { ...initial };
+            daysOfWeekList.forEach(d => {
+              migrated[d.id] = {
+                location: parsed.location || defaultCondition.location,
+                summary: parsed.summary || defaultCondition.summary,
+                stars: parsed.stars || defaultCondition.stars,
+                status: parsed.status || defaultCondition.status,
+                waves: parsed.waves || defaultCondition.waves,
+                period: parsed.period || defaultCondition.period,
+                wave_dir: parsed.wave_dir || defaultCondition.wave_dir,
+                wind: parsed.wind || defaultCondition.wind,
+                water_temp: parsed.water_temp || defaultCondition.water_temp,
+                air_temp: parsed.air_temp || defaultCondition.air_temp,
+                ideal_for: parsed.ideal_for || defaultCondition.ideal_for
+              };
+            });
+            setWeekData(migrated);
+          }
         } catch (e) {
           console.error(e);
+          setWeekData(initial);
         }
+      } else {
+        setWeekData(initial);
       }
       setLoading(false);
     };
@@ -215,17 +248,7 @@ function SeaConditionCardEditor() {
   const save = async () => {
     setSaving(true);
     const value = JSON.stringify({
-      location,
-      summary,
-      stars,
-      status,
-      waves,
-      period,
-      wave_dir: waveDir,
-      wind,
-      water_temp: waterTemp,
-      air_temp: airTemp,
-      ideal_for: idealFor,
+      ...weekData,
       updated_at: new Date().toISOString(),
     });
     const { error } = await sb
@@ -235,8 +258,18 @@ function SeaConditionCardEditor() {
     if (error) {
       toast.error(error.message);
     } else {
-      toast.success("Painel de condições do mar atualizado!");
+      toast.success("Painel de condições da semana atualizado!");
     }
+  };
+
+  const handleChange = (key: string, val: any) => {
+    setWeekData(prev => ({
+      ...prev,
+      [activeDay]: {
+        ...(prev[activeDay] || defaultCondition),
+        [key]: val
+      }
+    }));
   };
 
   if (loading) {
@@ -247,16 +280,32 @@ function SeaConditionCardEditor() {
     );
   }
 
+  const currentData = weekData[activeDay] || defaultCondition;
+
   return (
     <div className="glass-strong rounded-3xl p-5 space-y-4">
-      <div className="flex items-center gap-3">
+      <div className="flex items-center gap-3 mb-2">
         <div className="w-10 h-10 rounded-2xl bg-primary/15 text-primary flex items-center justify-center shrink-0">
           <Waves className="w-5 h-5" />
         </div>
         <div>
-          <h2 className="font-bold text-lg">Painel de Condições Atuais do Mar</h2>
-          <p className="text-xs text-muted-foreground">Preencha os dados abaixo para atualizar o painel visual na tela inicial do aluno.</p>
+          <h2 className="font-bold text-lg">Previsão da Semana</h2>
+          <p className="text-xs text-muted-foreground">Configure as condições do mar para cada dia da semana.</p>
         </div>
+      </div>
+
+      <div className="flex gap-2 overflow-x-auto pb-2 scrollbar-hide">
+        {daysOfWeekList.map(d => (
+          <Button
+            key={d.id}
+            variant={activeDay === d.id ? "default" : "outline"}
+            size="sm"
+            onClick={() => setActiveDay(d.id)}
+            className={`rounded-xl px-4 ${activeDay === d.id ? "bg-primary text-primary-foreground" : "bg-background/50"}`}
+          >
+            {d.label}
+          </Button>
+        ))}
       </div>
 
       <div className="space-y-4 border-t border-white/5 pt-4">
@@ -265,8 +314,8 @@ function SeaConditionCardEditor() {
           <div className="space-y-1.5">
             <Label className="text-xs font-semibold">Localização</Label>
             <Input
-              value={location}
-              onChange={(e) => setLocation(e.target.value)}
+              value={currentData.location}
+              onChange={(e) => handleChange("location", e.target.value)}
               placeholder="Ex: Arpoador, Rio de Janeiro, Brasil"
               className="bg-input/60 border-0 h-10 rounded-xl"
             />
@@ -274,8 +323,8 @@ function SeaConditionCardEditor() {
           <div className="space-y-1.5">
             <Label className="text-xs font-semibold">Resumo / Céu e Mar</Label>
             <Input
-              value={summary}
-              onChange={(e) => setSummary(e.target.value)}
+              value={currentData.summary}
+              onChange={(e) => handleChange("summary", e.target.value)}
               placeholder="Ex: Céu limpo e mar glass"
               className="bg-input/60 border-0 h-10 rounded-xl"
             />
@@ -287,8 +336,8 @@ function SeaConditionCardEditor() {
           <div className="space-y-1.5">
             <Label className="text-xs font-semibold">Avaliação (1 a 5 Estrelas)</Label>
             <select
-              value={stars}
-              onChange={(e) => setStars(Number(e.target.value))}
+              value={currentData.stars}
+              onChange={(e) => handleChange("stars", Number(e.target.value))}
               className="w-full h-10 rounded-xl border border-white/10 bg-background/50 px-3 text-sm focus:outline-none focus:ring-1 focus:ring-primary"
             >
               <option value={1}>⭐ (Muito Ruim)</option>
@@ -301,8 +350,8 @@ function SeaConditionCardEditor() {
           <div className="space-y-1.5">
             <Label className="text-xs font-semibold">Destaque do Mar</Label>
             <select
-              value={status}
-              onChange={(e) => setStatus(e.target.value as any)}
+              value={currentData.status}
+              onChange={(e) => handleChange("status", e.target.value)}
               className="w-full h-10 rounded-xl border border-white/10 bg-background/50 px-3 text-sm focus:outline-none focus:ring-1 focus:ring-primary"
             >
               <option value="excelente">Excelente ✨</option>
@@ -319,8 +368,8 @@ function SeaConditionCardEditor() {
           <div className="space-y-1.5">
             <Label className="text-xs font-semibold">Ondas (m)</Label>
             <Input
-              value={waves}
-              onChange={(e) => setWaves(e.target.value)}
+              value={currentData.waves}
+              onChange={(e) => handleChange("waves", e.target.value)}
               placeholder="Ex: 1.2m"
               className="bg-input/60 border-0 h-10 rounded-xl"
             />
@@ -328,8 +377,8 @@ function SeaConditionCardEditor() {
           <div className="space-y-1.5">
             <Label className="text-xs font-semibold">Período (s)</Label>
             <Input
-              value={period}
-              onChange={(e) => setPeriod(e.target.value)}
+              value={currentData.period}
+              onChange={(e) => handleChange("period", e.target.value)}
               placeholder="Ex: 10s"
               className="bg-input/60 border-0 h-10 rounded-xl"
             />
@@ -337,18 +386,18 @@ function SeaConditionCardEditor() {
           <div className="space-y-1.5">
             <Label className="text-xs font-semibold">Dir. Onda</Label>
             <Input
-              value={waveDir}
-              onChange={(e) => setWaveDir(e.target.value)}
+              value={currentData.wave_dir}
+              onChange={(e) => handleChange("wave_dir", e.target.value)}
               placeholder="Ex: SSE"
               className="bg-input/60 border-0 h-10 rounded-xl"
             />
           </div>
           <div className="space-y-1.5">
-            <Label className="text-xs font-semibold">Vento</Label>
+            <Label className="text-xs font-semibold">Direção do vento</Label>
             <Input
-              value={wind}
-              onChange={(e) => setWind(e.target.value)}
-              placeholder="Ex: 8 km/h"
+              value={currentData.wind}
+              onChange={(e) => handleChange("wind", e.target.value)}
+              placeholder="Ex: Leste, NE, S"
               className="bg-input/60 border-0 h-10 rounded-xl"
             />
           </div>
@@ -359,26 +408,26 @@ function SeaConditionCardEditor() {
           <div className="space-y-1.5">
             <Label className="text-xs font-semibold">Temperatura da Água</Label>
             <Input
-              value={waterTemp}
-              onChange={(e) => setWaterTemp(e.target.value)}
+              value={currentData.water_temp}
+              onChange={(e) => handleChange("water_temp", e.target.value)}
               placeholder="Ex: 25°C"
               className="bg-input/60 border-0 h-10 rounded-xl"
             />
           </div>
           <div className="space-y-1.5">
-            <Label className="text-xs font-semibold">Temperatura do Ar</Label>
+            <Label className="text-xs font-semibold">Maré</Label>
             <Input
-              value={airTemp}
-              onChange={(e) => setAirTemp(e.target.value)}
-              placeholder="Ex: 27°C"
+              value={currentData.air_temp}
+              onChange={(e) => handleChange("air_temp", e.target.value)}
+              placeholder="Ex: Seca, Cheia, 0.4m"
               className="bg-input/60 border-0 h-10 rounded-xl"
             />
           </div>
           <div className="space-y-1.5">
             <Label className="text-xs font-semibold">Ideal para (Nível)</Label>
             <Input
-              value={idealFor}
-              onChange={(e) => setIdealFor(e.target.value)}
+              value={currentData.ideal_for}
+              onChange={(e) => handleChange("ideal_for", e.target.value)}
               placeholder="Ex: Todos os Níveis"
               className="bg-input/60 border-0 h-10 rounded-xl"
             />
@@ -386,9 +435,10 @@ function SeaConditionCardEditor() {
         </div>
 
         <Button onClick={save} disabled={saving} className="w-full h-11 rounded-xl bg-gradient-to-r from-primary to-accent font-bold mt-2 shadow-lg hover:shadow-primary/20 transition-all">
-          {saving ? <Loader2 className="w-4 h-4 animate-spin" /> : "Atualizar Painel do Aluno"}
+          {saving ? <Loader2 className="w-4 h-4 animate-spin" /> : "Salvar Previsão da Semana"}
         </Button>
       </div>
     </div>
   );
 }
+

@@ -38,14 +38,26 @@ export default function Schedule() {
   const [counts, setCounts] = useState<Record<string, number>>({});
   const [loading, setLoading] = useState(true);
   const [bookingId, setBookingId] = useState<string | null>(null);
+  const [filterDate, setFilterDate] = useState<string>("");
+  const [showChoiceModal, setShowChoiceModal] = useState<Slot | null>(null);
 
   const today = new Date().toISOString().slice(0, 10);
 
   const load = async () => {
     setLoading(true);
+    let q = supabase.from("class_slots").select("*").eq("is_open", true).order("date").order("start_time");
+    
+    if (filterDate) {
+      q = q.eq("date", filterDate);
+    } else {
+      const d = new Date();
+      d.setDate(d.getDate() + 7);
+      q = q.gte("date", today).lte("date", d.toISOString().slice(0, 10));
+    }
+
     const [{ data: s }, { data: c }, { data: b }] = await Promise.all([
-      supabase.from("class_slots").select("*").gte("date", today).eq("is_open", true).order("date").order("start_time"),
-      supabase.from("surf_conditions").select("date, condition, notes").gte("date", today),
+      q,
+      supabase.from("surf_conditions").select("date, condition, notes").gte("date", filterDate || today),
       supabase.from("bookings").select("slot_id, status").eq("user_id", user!.id).neq("status", "cancelled"),
     ]);
     setSlots((s ?? []) as Slot[]);
@@ -63,7 +75,7 @@ export default function Schedule() {
     setLoading(false);
   };
 
-  useEffect(() => { if (user) load(); }, [user]);
+  useEffect(() => { if (user) load(); }, [user, filterDate]);
 
   const condByDate = useMemo(() => {
     const m: Record<string, Cond> = {};
@@ -79,9 +91,10 @@ export default function Schedule() {
 
   const myBooked = useMemo(() => new Set(bookings.map((b) => b.slot_id)), [bookings]);
 
-  const book = async (slot: Slot) => {
+  const book = async (slot: Slot, chosenType?: "avulsa_grupo" | "avulsa_particular") => {
     if (billingEnabled) {
-      const type = slot.class_type ?? "avulsa_grupo";
+      const type = chosenType || slot.class_type || "avulsa_grupo";
+      
       let userCredits = 0;
       let typeLabel = "Aula em Grupo";
       if (type === "avulsa_grupo") {
@@ -100,16 +113,31 @@ export default function Schedule() {
         return;
       }
     }
+    
     setBookingId(slot.id);
+    const payload: any = { slot_id: slot.id, user_id: user!.id, status: "confirmed", is_accepted: null };
+    if (chosenType) {
+      payload.credit_used = chosenType;
+    }
+
     const { error } = await supabase.from("bookings").upsert(
-      { slot_id: slot.id, user_id: user!.id, status: "confirmed", is_accepted: null },
+      payload,
       { onConflict: "slot_id, user_id" }
     );
     setBookingId(null);
+    setShowChoiceModal(null);
     if (error) { toast.error(error.message); return; }
     toast.success(t("schedule.bookSuccess"));
     await refreshProfile();
     load();
+  };
+
+  const handleBookClick = (slot: Slot) => {
+    if (slot.class_type === "ambos") {
+      setShowChoiceModal(slot);
+    } else {
+      book(slot);
+    }
   };
 
   const unbook = async (slot: Slot) => {
@@ -142,6 +170,31 @@ export default function Schedule() {
           </Link>
         )}
       </header>
+
+      <div className="px-5 mb-4">
+        <div className="glass rounded-2xl p-3 flex items-center justify-between gap-3">
+          <div className="text-sm font-semibold flex items-center gap-2">
+            <Cal className="w-4 h-4 text-primary" />
+            {filterDate ? "Buscando data específica" : "Próximos 7 dias"}
+          </div>
+          <div className="flex items-center gap-2">
+            {filterDate && (
+              <button 
+                onClick={() => setFilterDate("")}
+                className="text-xs text-muted-foreground hover:text-foreground px-2 py-1"
+              >
+                Limpar
+              </button>
+            )}
+            <input 
+              type="date" 
+              value={filterDate}
+              onChange={(e) => setFilterDate(e.target.value)}
+              className="bg-secondary/40 text-sm border-0 rounded-xl px-3 py-1.5 outline-none focus:ring-2 focus:ring-primary/50"
+            />
+          </div>
+        </div>
+      </div>
 
       {loading ? (
         <div className="px-5"><div className="glass rounded-2xl p-8 text-center"><Loader2 className="w-5 h-5 animate-spin mx-auto" /></div></div>
@@ -181,11 +234,13 @@ export default function Schedule() {
                       avulsa_grupo: "Grupo",
                       avulsa_particular: "Particular",
                       aluguel: "Aluguel",
+                      ambos: "Grupo/Particular",
                     };
                     const typeColors: Record<string, string> = {
                       avulsa_grupo: "bg-blue-500/10 text-blue-400 border-blue-500/20",
                       avulsa_particular: "bg-purple-500/10 text-purple-400 border-purple-500/20",
                       aluguel: "bg-amber-500/10 text-amber-400 border-amber-500/20",
+                      ambos: "bg-emerald-500/10 text-emerald-500 border-emerald-500/20",
                     };
 
                     return (
@@ -217,7 +272,7 @@ export default function Schedule() {
                             </button>
                           </div>
                         ) : (
-                          <Button onClick={() => book(s)} disabled={full || bookingId === s.id} className="rounded-xl bg-gradient-to-r from-primary to-accent text-primary-foreground font-semibold disabled:opacity-40">
+                          <Button onClick={() => handleBookClick(s)} disabled={full || bookingId === s.id} className="rounded-xl bg-gradient-to-r from-primary to-accent text-primary-foreground font-semibold disabled:opacity-40">
                             {bookingId === s.id ? <Loader2 className="w-4 h-4 animate-spin" /> : full ? t("schedule.full") : t("schedule.book")}
                           </Button>
                         )}
@@ -228,6 +283,45 @@ export default function Schedule() {
               </div>
             );
           })}
+        </div>
+      )}
+
+      {showChoiceModal && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-background/80 backdrop-blur-sm">
+          <div className="bg-card border border-border shadow-lg rounded-3xl w-full max-w-sm p-6">
+            <h2 className="text-xl font-bold mb-2">Escolha o tipo de aula</h2>
+            <p className="text-sm text-muted-foreground mb-6">
+              Esta aula aceita ambas as modalidades. Como você deseja participar?
+            </p>
+            <div className="space-y-3">
+              <Button 
+                onClick={() => book(showChoiceModal, "avulsa_grupo")}
+                className="w-full bg-blue-500/20 text-blue-500 hover:bg-blue-500/30 font-semibold"
+                size="lg"
+                disabled={bookingId !== null}
+              >
+                {bookingId === showChoiceModal.id ? <Loader2 className="w-4 h-4 animate-spin mr-2" /> : null}
+                Usar Crédito de Grupo
+              </Button>
+              <Button 
+                onClick={() => book(showChoiceModal, "avulsa_particular")}
+                className="w-full bg-purple-500/20 text-purple-400 hover:bg-purple-500/30 font-semibold"
+                size="lg"
+                disabled={bookingId !== null}
+              >
+                {bookingId === showChoiceModal.id ? <Loader2 className="w-4 h-4 animate-spin mr-2" /> : null}
+                Usar Crédito Particular
+              </Button>
+              <Button 
+                onClick={() => setShowChoiceModal(null)}
+                variant="ghost"
+                className="w-full mt-2"
+                disabled={bookingId !== null}
+              >
+                Cancelar
+              </Button>
+            </div>
+          </div>
         </div>
       )}
     </div>

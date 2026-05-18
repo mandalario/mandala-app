@@ -198,7 +198,7 @@ export default function Profile() {
           </div>
           <div className="grid grid-cols-2 gap-3">
             <ToggleRow label={t("profile.fields.ownBoard")} value={form.has_own_board} onChange={(v) => setForm({ ...form, has_own_board: v })} />
-            <ToggleRow label={t("profile.fields.canSwim")} value={form.can_swim} onChange={(v) => setForm({ ...form, can_swim: v })} />
+            <ToggleRow label={t("profile.fields.canSwim")} value={form.can_swim} disabled onChange={(v) => setForm({ ...form, can_swim: v })} />
           </div>
           {form.has_own_board && (
             <Field label={t("profile.fields.boardSize")}>
@@ -248,9 +248,9 @@ const Block = ({ title, children }: { title: string; children: React.ReactNode }
 const Field = ({ label, children }: { label: string; children: React.ReactNode }) => (
   <div className="space-y-1.5"><Label className="text-xs">{label}</Label>{children}</div>
 );
-const ToggleRow = ({ label, value, onChange }: { label: string; value: boolean; onChange: (v: boolean) => void }) => (
-  <button type="button" onClick={() => onChange(!value)}
-    className={`h-10 px-3 rounded-xl border text-sm flex items-center justify-between ${value ? "border-primary/40 bg-primary/10 text-primary" : "border-input bg-background"}`}>
+const ToggleRow = ({ label, value, onChange, disabled }: { label: string; value: boolean; onChange: (v: boolean) => void; disabled?: boolean }) => (
+  <button type="button" disabled={disabled} onClick={() => !disabled && onChange(!value)}
+    className={`h-10 px-3 rounded-xl border text-sm flex items-center justify-between ${value ? "border-primary/40 bg-primary/10 text-primary" : "border-input bg-background"} ${disabled ? "opacity-60 cursor-not-allowed" : ""}`}>
     {label}
     <span className={`w-4 h-4 rounded-full ${value ? "bg-primary" : "bg-muted"}`} />
   </button>

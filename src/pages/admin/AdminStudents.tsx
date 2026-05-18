@@ -260,7 +260,7 @@ function StudentSheet({ student, onClose, onSaved }: { student: Student; onClose
           </Select>
         </Field>
         <Field label="Tamanho da prancha"><Input value={f.board_size ?? ""} onChange={(e) => set("board_size", e.target.value)} /></Field>
-        <Toggle label="Sabe nadar" value={!!f.can_swim} onChange={(v) => set("can_swim", v)} />
+        <Toggle label="Sabe nadar" value={true} disabled onChange={() => {}} />
         <Toggle label="Prancha própria" value={!!f.has_own_board} onChange={(v) => set("has_own_board", v)} />
         <Field label="Notas de evolução" full>
           <Textarea rows={4} value={f.experience_notes ?? ""} onChange={(e) => set("experience_notes", e.target.value)} placeholder="Manobras dominadas, pontos a melhorar, progressão..." />
@@ -307,7 +307,7 @@ function CreateStudentSheet({ onClose, onCreated }: { onClose: () => void; onCre
     email: "", password: "", full_name: "", phone: "",
     age: "", weight_kg: "", height_cm: "",
     surf_level: "iniciante", stance: "desconhecido",
-    can_swim: false, has_own_board: false, board_size: "",
+    can_swim: true, has_own_board: false, board_size: "",
     experience_notes: "",
   });
   const set = (k: string, v: any) => setF((p) => ({ ...p, [k]: v }));
@@ -393,7 +393,7 @@ function CreateStudentSheet({ onClose, onCreated }: { onClose: () => void; onCre
           </Select>
         </Field>
         <Field label="Tamanho prancha"><Input value={f.board_size} onChange={(e) => set("board_size", e.target.value)} /></Field>
-        <Toggle label="Sabe nadar" value={f.can_swim} onChange={(v) => set("can_swim", v)} />
+        <Toggle label="Sabe nadar" value={true} disabled onChange={() => {}} />
         <Toggle label="Prancha própria" value={f.has_own_board} onChange={(v) => set("has_own_board", v)} />
         <Field label="Notas iniciais" full>
           <Textarea rows={3} value={f.experience_notes} onChange={(e) => set("experience_notes", e.target.value)} />
@@ -429,10 +429,10 @@ const Field = ({ label, children, full }: any) => (
   </div>
 );
 
-const Toggle = ({ label, value, onChange }: any) => (
-  <div className="flex items-center justify-between glass rounded-xl px-3 py-2.5">
+const Toggle = ({ label, value, onChange, disabled }: any) => (
+  <div className={`flex items-center justify-between glass rounded-xl px-3 py-2.5 ${disabled ? "opacity-60" : ""}`}>
     <span className="text-sm">{label}</span>
-    <Switch checked={value} onCheckedChange={onChange} />
+    <Switch disabled={disabled} checked={value} onCheckedChange={onChange} />
   </div>
 );
 

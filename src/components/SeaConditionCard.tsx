@@ -1,6 +1,6 @@
 import { useEffect, useState } from "react";
 import { supabase } from "@/integrations/supabase/client";
-import { Waves, Timer, Navigation, Wind, Thermometer, Star } from "lucide-react";
+import { Waves, Timer, Navigation, Wind, Thermometer, Star, Droplets } from "lucide-react";
 
 type SeaCondition = {
   location: string;
@@ -41,16 +41,29 @@ const defaultData: SeaCondition = {
   waves: "1.2m",
   period: "10s",
   wave_dir: "SSE",
-  wind: "8 km/h",
+  wind: "Leste",
   water_temp: "22°C",
-  air_temp: "26°C",
+  air_temp: "Seca (0.4m)",
   ideal_for: "Todos os Níveis",
   updated_at: new Date().toISOString(),
 };
 
+const daysOfWeekList = [
+  { id: "dom", label: "Dom" },
+  { id: "seg", label: "Seg" },
+  { id: "ter", label: "Ter" },
+  { id: "qua", label: "Qua" },
+  { id: "qui", label: "Qui" },
+  { id: "sex", label: "Sex" },
+  { id: "sab", label: "Sáb" },
+];
+
 export function SeaConditionCard() {
-  const [data, setData] = useState<SeaCondition | null>(null);
+  const [data, setData] = useState<any>(null);
   const [loading, setLoading] = useState(true);
+
+  const todayIndex = new Date().getDay();
+  const [selectedDay, setSelectedDay] = useState(daysOfWeekList[todayIndex].id);
 
   useEffect(() => {
     const load = async () => {
@@ -106,9 +119,12 @@ export function SeaConditionCard() {
     );
   }
 
-  const activeData = data || defaultData;
-  const updatedAtFormatted = activeData.updated_at
-    ? new Date(activeData.updated_at).toLocaleString("pt-BR", {
+  // Handle both old flat format and new weekly format
+  const isWeeklyFormat = data && data.seg !== undefined;
+  const activeData = isWeeklyFormat ? (data[selectedDay] || defaultData) : (data || defaultData);
+  
+  const updatedAtFormatted = data?.updated_at
+    ? new Date(data.updated_at).toLocaleString("pt-BR", {
         day: "2-digit",
         month: "2-digit",
         hour: "2-digit",
@@ -147,11 +163,36 @@ export function SeaConditionCard() {
           </div>
 
           {/* Badge de Status */}
-          <span className={`text-[10px] uppercase font-bold tracking-wider px-3 py-1 rounded-full border ${statusColors[activeData.status] ?? statusColors.excelente}`}>
-            {statusLabels[activeData.status] ?? "Excelente"}
+          <span className={`text-[10px] uppercase font-bold tracking-wider px-3 py-1 rounded-full border ${statusColors[activeData.status as keyof typeof statusColors] ?? statusColors.excelente}`}>
+            {statusLabels[activeData.status as keyof typeof statusLabels] ?? "Excelente"}
           </span>
         </div>
       </div>
+
+      {/* Seletor de Dias da Semana */}
+      {isWeeklyFormat && (
+        <div className="bg-[#0b3350]/90 backdrop-blur-md px-5 py-3 border-t border-white/5 overflow-x-auto scrollbar-hide">
+          <div className="flex gap-2 w-max">
+            {daysOfWeekList.map(d => {
+              const isSelected = selectedDay === d.id;
+              const isToday = d.id === daysOfWeekList[todayIndex].id;
+              return (
+                <button
+                  key={d.id}
+                  onClick={() => setSelectedDay(d.id)}
+                  className={`px-3 py-1.5 rounded-xl text-xs font-bold transition-all ${
+                    isSelected
+                      ? "bg-sky-400 text-[#092942] shadow-sm shadow-sky-400/20 scale-105"
+                      : "bg-white/5 text-sky-200/60 hover:bg-white/10 hover:text-sky-100"
+                  }`}
+                >
+                  {isToday ? "Hoje" : d.label}
+                </button>
+              );
+            })}
+          </div>
+        </div>
+      )}
 
       {/* Seção Inferior - Grid Transparente combinando com o fundo */}
       <div className="bg-[#092942]/65 backdrop-blur-md p-5 space-y-4 border-t border-white/10">
@@ -180,7 +221,7 @@ export function SeaConditionCard() {
           {/* Vento */}
           <div className="bg-white/5 border border-white/10 rounded-2xl p-3 flex flex-col items-center justify-center text-center backdrop-blur-sm">
             <Wind className="w-5 h-5 text-sky-400 mb-1" />
-            <span className="text-[10px] text-sky-200/60 uppercase font-semibold">Vento</span>
+            <span className="text-[10px] text-sky-200/60 uppercase font-semibold">Direção do vento</span>
             <span className="text-base font-extrabold text-white mt-0.5">{activeData.wind}</span>
           </div>
 
@@ -191,10 +232,10 @@ export function SeaConditionCard() {
             <span className="text-base font-extrabold text-sky-300 mt-0.5">{activeData.water_temp}</span>
           </div>
 
-          {/* Ar */}
+          {/* Maré */}
           <div className="bg-white/5 border border-white/10 rounded-2xl p-3 flex flex-col items-center justify-center text-center backdrop-blur-sm">
-            <Thermometer className="w-5 h-5 text-orange-400 mb-1" />
-            <span className="text-[10px] text-sky-200/60 uppercase font-semibold">Ar</span>
+            <Droplets className="w-5 h-5 text-orange-400 mb-1" />
+            <span className="text-[10px] text-sky-200/60 uppercase font-semibold">Maré</span>
             <span className="text-base font-extrabold text-orange-400 mt-0.5">{activeData.air_temp}</span>
           </div>
         </div>

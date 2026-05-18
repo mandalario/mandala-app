@@ -85,7 +85,7 @@ export default function AdminSchedule() {
 
     const { data: bData, error: bErr } = await supabase.from("bookings").select("*").eq("status", "confirmed");
     if (bErr) console.error("Erro ao carregar agendamentos:", bErr);
-    
+
     let b = bData || [];
     if (b.length > 0) {
       const userIds = [...new Set(b.map((x) => x.user_id))];
@@ -150,7 +150,7 @@ export default function AdminSchedule() {
     try {
       const cleanNotes = s.notes ? s.notes.replace(/\[IMPREVISTO\][^]*?|\[CONFIRMADA\]\s*/g, "").trim() : "";
       const newNotes = `[CONFIRMADA] ${cleanNotes}`.trim();
-      
+
       const { error } = await supabase
         .from("class_slots")
         .update({ notes: newNotes || null })
@@ -167,7 +167,7 @@ export default function AdminSchedule() {
   const handleResetClassStatus = async (s: Slot) => {
     try {
       const cleanNotes = s.notes ? s.notes.replace(/\[IMPREVISTO\][^]*?|\[CONFIRMADA\]\s*/g, "").trim() : "";
-      
+
       const { error } = await supabase
         .from("class_slots")
         .update({ notes: cleanNotes || null, is_open: true })
@@ -194,7 +194,7 @@ export default function AdminSchedule() {
       // Create notification for the student
       const dateStr = format(new Date(slot.date + "T12:00:00"), "dd/MM");
       const timeStr = `${parseInt(slot.start_time.slice(0, 2), 10)}h`;
-      
+
       const { error: nErr } = await supabase.from("notifications").insert({
         user_id: booking.user_id,
         title: "Agendamento Aceito!",
@@ -220,9 +220,9 @@ export default function AdminSchedule() {
       // 1. Update booking status to 'cancelled'
       const { error } = await supabase
         .from("bookings")
-        .update({ 
-          status: "cancelled", 
-          notes: "Desmarcado pelo administrador" 
+        .update({
+          status: "cancelled",
+          notes: "Desmarcado pelo administrador"
         })
         .eq("id", booking.id);
 
@@ -231,7 +231,7 @@ export default function AdminSchedule() {
       // 2. Create notification for the student
       const dateStr = format(new Date(slot.date + "T12:00:00"), "dd/MM");
       const timeStr = `${parseInt(slot.start_time.slice(0, 2), 10)}h`;
-      
+
       const { error: nErr } = await supabase.from("notifications").insert({
         user_id: booking.user_id,
         title: "Agendamento Removido",
@@ -548,114 +548,78 @@ export default function AdminSchedule() {
                               </div>
                               <div className="flex-1 min-w-0">
                                 <div className="font-semibold flex items-center gap-2 flex-wrap">
-                                  {s.start_time.slice(0, 5)} – {s.end_time.slice(0, 5)}
-                                  {s.min_level && <span className="text-[10px] uppercase px-2 py-0.5 rounded-full bg-accent/15 text-accent border border-accent/30">≥ {LEVEL_LABEL[s.min_level]}</span>}
+                                  <span className="text-base tracking-tight">{s.start_time.slice(0, 5)} – {s.end_time.slice(0, 5)}</span>
+                                  
+                                  {s.min_level && <span className="text-[9px] uppercase px-2 py-0.5 rounded-full bg-accent/15 text-accent border border-accent/30">≥ {LEVEL_LABEL[s.min_level]}</span>}
+                                  
                                   {(() => {
-                                    const typeLabels: Record<string, string> = {
-                                      avulsa_grupo: "Grupo",
-                                      avulsa_particular: "Particular",
-                                      aluguel: "Aluguel",
-                                    };
-                                    const typeColors: Record<string, string> = {
-                                      avulsa_grupo: "bg-blue-500/10 text-blue-400 border-blue-500/20",
-                                      avulsa_particular: "bg-purple-500/10 text-purple-400 border-purple-500/20",
-                                      aluguel: "bg-amber-500/10 text-amber-400 border-amber-500/20",
-                                    };
+                                    const typeLabels: Record<string, string> = { avulsa_grupo: "Grupo", avulsa_particular: "Particular", aluguel: "Aluguel", ambos: "Grupo e Particular" };
+                                    const typeColors: Record<string, string> = { avulsa_grupo: "bg-blue-500/10 text-blue-400 border-blue-500/20", avulsa_particular: "bg-purple-500/10 text-purple-400 border-purple-500/20", aluguel: "bg-amber-500/10 text-amber-400 border-amber-500/20", ambos: "bg-emerald-500/10 text-emerald-500 border-emerald-500/20" };
                                     return (
-                                      <span className={`text-[10px] uppercase font-bold px-2 py-0.5 rounded-full border ${typeColors[s.class_type ?? "avulsa_grupo"]}`}>
+                                      <span className={`text-[9px] uppercase font-bold px-2 py-0.5 rounded-full border ${typeColors[s.class_type ?? "avulsa_grupo"]}`}>
                                         {typeLabels[s.class_type ?? "avulsa_grupo"]}
                                       </span>
                                     );
                                   })()}
-                                  <span className={cn(
-                                    "text-[10px] uppercase font-bold px-2 py-0.5 rounded-full border",
-                                    full
-                                      ? "bg-destructive/15 text-destructive border-destructive/30"
-                                      : taken > 0
-                                        ? "bg-warning/15 text-warning border-warning/30"
-                                        : "bg-success/10 text-success border-success/30",
-                                  )}>
-                                    {taken}/{s.capacity} {full ? "lotado" : "agendados"}
-                                  </span>
-                                </div>
-                                <div className="text-xs text-muted-foreground flex flex-wrap items-center gap-2 mt-0.5">
-                                  <span className="inline-flex items-center gap-1"><Users className="w-3 h-3" /> {s.capacity} vagas</span>
-                                  {s.location && <span className="inline-flex items-center gap-1"><MapPin className="w-3 h-3" /> {s.location}</span>}
-                                </div>
-                                <div className="mt-2 h-1.5 rounded-full bg-secondary/40 overflow-hidden">
-                                  <div className={cn(
-                                    "h-full transition-all",
-                                    full ? "bg-destructive" : taken > 0 ? "bg-warning" : "bg-success/60",
-                                  )} style={{ width: `${pct}%` }} />
-                                </div>
-                                
-                                {/* Status Badges */}
-                                <div className="flex flex-wrap gap-1.5 mt-2">
+
                                   {isConfirmedSlot(s.notes) ? (
-                                    <span className="inline-flex items-center gap-1 text-[9px] uppercase font-bold px-2 py-0.5 rounded-full bg-success/15 text-success border border-success/30">
-                                      ✓ Pode Acontecer
-                                    </span>
+                                    <span className="inline-flex items-center gap-1 text-[9px] uppercase font-bold px-2 py-0.5 rounded-full bg-success/15 text-success border border-success/30">✓ Confirmada</span>
                                   ) : isImprevistoSlot(s.notes) ? (
-                                    <span className="inline-flex items-center gap-1 text-[9px] uppercase font-bold px-2 py-0.5 rounded-full bg-destructive/15 text-destructive border border-destructive/30">
-                                      ⚠️ Cancelada
-                                    </span>
+                                    <span className="inline-flex items-center gap-1 text-[9px] uppercase font-bold px-2 py-0.5 rounded-full bg-destructive/15 text-destructive border border-destructive/30">⚠️ Cancelada</span>
                                   ) : (
-                                    <span className="inline-flex items-center gap-1 text-[9px] uppercase font-bold px-2 py-0.5 rounded-full bg-warning/15 text-warning border border-warning/30">
-                                      ⏳ A Confirmar
-                                    </span>
+                                    <span className="inline-flex items-center gap-1 text-[9px] uppercase font-bold px-2 py-0.5 rounded-full bg-warning/15 text-warning border border-warning/30">⏳ A Confirmar</span>
                                   )}
                                 </div>
 
-                                {/* Imprevisto Reason */}
-                                {isImprevistoSlot(s.notes) && (
-                                  <div className="text-xs text-destructive mt-1.5 font-medium bg-destructive/5 px-2.5 py-1.5 rounded-lg border border-destructive/10">
-                                    <span className="font-semibold">Motivo do Cancelamento:</span> <span className="italic">{getImprevistoReason(s.notes)}</span>
+                                <div className="text-xs text-muted-foreground flex flex-wrap items-center gap-3 mt-2">
+                                  <div className="flex items-center gap-1.5">
+                                    <Users className="w-3.5 h-3.5 text-primary/70" />
+                                    <span className={cn("font-medium", full ? "text-destructive" : taken > 0 ? "text-warning" : "text-foreground/80")}>
+                                      {taken}/{s.capacity} agendados
+                                    </span>
                                   </div>
-                                )}
+                                  
+                                  {s.location && (
+                                    <div className="flex items-center gap-1.5">
+                                      <MapPin className="w-3.5 h-3.5 text-primary/70" />
+                                      <span className="truncate max-w-[120px] sm:max-w-xs">{s.location}</span>
+                                    </div>
+                                  )}
 
-                                {/* Clean notes */}
-                                {getDisplayNotes(s.notes) && (
-                                  <div className="text-xs text-muted-foreground mt-1.5 italic bg-secondary/10 px-2 py-1 rounded-lg">
-                                    {getDisplayNotes(s.notes)}
-                                  </div>
-                                )}
-
-                                {/* Action buttons */}
-                                <div className="flex items-center gap-2 mt-3 pt-2 border-t border-dashed border-border/30">
-                                  <span className="text-[10px] font-semibold text-muted-foreground uppercase tracking-wider">Status da Aula:</span>
-                                  <div className="flex gap-1.5">
+                                  <div className="flex items-center gap-1.5 ml-auto">
                                     {!isConfirmedSlot(s.notes) && (
-                                      <button
-                                        onClick={() => handleConfirmClass(s)}
-                                        className="text-[10px] font-bold uppercase tracking-wider px-2 py-1 rounded-md bg-success/10 hover:bg-success/20 text-success transition-all active:scale-95 border border-success/20"
-                                      >
-                                        Confirmar Aula
-                                      </button>
+                                      <button onClick={() => handleConfirmClass(s)} className="text-[9px] font-bold uppercase tracking-wider px-2 py-1 rounded bg-success/10 hover:bg-success/20 text-success transition-all active:scale-95 border border-success/20">Confirmar</button>
                                     )}
                                     {!isImprevistoSlot(s.notes) && (
-                                      <button
-                                        onClick={() => setImprevistoSlot(s)}
-                                        className="text-[10px] font-bold uppercase tracking-wider px-2 py-1 rounded-md bg-destructive/10 hover:bg-destructive/20 text-destructive transition-all active:scale-95 border border-destructive/20"
-                                      >
-                                        Cancelar Aula
-                                      </button>
+                                      <button onClick={() => setImprevistoSlot(s)} className="text-[9px] font-bold uppercase tracking-wider px-2 py-1 rounded bg-destructive/10 hover:bg-destructive/20 text-destructive transition-all active:scale-95 border border-destructive/20">Cancelar</button>
                                     )}
                                     {(isConfirmedSlot(s.notes) || isImprevistoSlot(s.notes)) && (
-                                      <button
-                                        onClick={() => handleResetClassStatus(s)}
-                                        className="text-[10px] font-bold uppercase tracking-wider px-2 py-1 rounded-md bg-secondary hover:bg-secondary/80 text-muted-foreground hover:text-foreground transition-all active:scale-95"
-                                      >
-                                        Restaurar
-                                      </button>
+                                      <button onClick={() => handleResetClassStatus(s)} className="text-[9px] font-bold uppercase tracking-wider px-2 py-1 rounded bg-secondary hover:bg-secondary/80 text-muted-foreground transition-all active:scale-95">Restaurar</button>
                                     )}
                                   </div>
                                 </div>
+
+                                <div className="mt-2 h-1 rounded-full bg-secondary/40 overflow-hidden">
+                                  <div className={cn("h-full transition-all", full ? "bg-destructive" : taken > 0 ? "bg-warning" : "bg-success/60")} style={{ width: `${pct}%` }} />
+                                </div>
+
+                                {isImprevistoSlot(s.notes) && (
+                                  <div className="text-[11px] text-destructive mt-1.5 font-medium">
+                                    Motivo: <span className="italic">{getImprevistoReason(s.notes)}</span>
+                                  </div>
+                                )}
+
+                                {getDisplayNotes(s.notes) && (
+                                  <div className="text-[11px] text-muted-foreground mt-1.5 italic bg-secondary/10 px-2 py-1 rounded-md inline-block">
+                                    {getDisplayNotes(s.notes)}
+                                  </div>
+                                )}
                               </div>
                               <Select
                                 value={s.min_level ?? "any"}
                                 onValueChange={(v) => updateSlotLevel(s, v === "any" ? null : (v as Level))}
                               >
-                                <SelectTrigger className="h-8 w-[140px] text-xs bg-background/40 border-border/40 hidden md:flex">
+                                <SelectTrigger className="h-8 w-[130px] text-xs bg-background/40 border-border/40 hidden lg:flex">
                                   <SelectValue placeholder="Nível" />
                                 </SelectTrigger>
                                 <SelectContent>
@@ -682,7 +646,7 @@ export default function AdminSchedule() {
                                 disabled={taken === 0}
                                 className={cn(
                                   "text-[10px] font-bold uppercase tracking-wider px-2.5 py-1 rounded-md transition-all border flex items-center gap-1.5 shrink-0",
-                                  taken === 0 
+                                  taken === 0
                                     ? "bg-transparent border-border/40 text-muted-foreground opacity-60 cursor-not-allowed"
                                     : isExpanded
                                       ? "bg-primary/20 border-primary text-primary active:scale-95"
@@ -695,63 +659,90 @@ export default function AdminSchedule() {
                               </button>
                             </div>
 
-                            {isExpanded && taken > 0 && (
-                              <div className="mt-3 pt-3 border-t border-border/40 space-y-2">
-                                <div className="text-[10px] uppercase tracking-widest text-muted-foreground mb-1">Alunos Inscritos</div>
-                                {slotBookings.map((b) => {
-                                  const isAccepted = b.is_accepted === true;
-                                  const isPending = b.is_accepted === null;
+                            {isExpanded && taken > 0 && (() => {
+                              const pB = slotBookings.filter(b => (b as any).credit_used === 'avulsa_particular');
+                              const gB = slotBookings.filter(b => (b as any).credit_used !== 'avulsa_particular');
 
-                                  return (
-                                    <div key={b.id} className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 text-sm py-2 px-3 rounded-xl bg-secondary/10 border border-border/20">
-                                      <div className="flex items-center gap-2.5 min-w-0">
-                                        <div className="w-8 h-8 rounded-full bg-primary/15 text-primary flex items-center justify-center overflow-hidden text-xs font-semibold shrink-0">
-                                          {b.profiles?.avatar_url ? (
-                                            <img src={b.profiles.avatar_url} alt="" className="w-full h-full object-cover" />
-                                          ) : (
-                                            (b.profiles?.full_name ?? b.profiles?.email ?? "?")[0]?.toUpperCase()
+                              const renderStudent = (b: any) => {
+                                const isAccepted = b.is_accepted === true;
+                                const isPending = b.is_accepted === null;
+
+                                return (
+                                  <div key={b.id} className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 text-sm py-2 px-3 rounded-xl bg-secondary/10 border border-border/20">
+                                    <div className="flex items-center gap-2.5 min-w-0">
+                                      <div className="w-8 h-8 rounded-full bg-primary/15 text-primary flex items-center justify-center overflow-hidden text-xs font-semibold shrink-0">
+                                        {b.profiles?.avatar_url ? (
+                                          <img src={b.profiles.avatar_url} alt="" className="w-full h-full object-cover" />
+                                        ) : (
+                                          (b.profiles?.full_name ?? b.profiles?.email ?? "?")[0]?.toUpperCase()
+                                        )}
+                                      </div>
+                                      <div className="flex-1 min-w-0">
+                                        <div className="font-semibold flex items-center gap-1.5 flex-wrap">
+                                          <span className="truncate">{b.profiles?.full_name ?? "Sem nome"}</span>
+                                          {isPending ? (
+                                            <span className="text-[9px] uppercase font-bold px-1.5 py-0.5 rounded-full bg-warning/15 text-warning border border-warning/30">
+                                              ⏳ Pendente
+                                            </span>
+                                          ) : isAccepted ? (
+                                            <span className="text-[9px] uppercase font-bold px-1.5 py-0.5 rounded-full bg-success/15 text-success border border-success/30">
+                                              ✓ Aceito
+                                            </span>
+                                          ) : null}
+                                          {(b as any).credit_used && (
+                                            <span className={cn(
+                                              "text-[9px] uppercase font-bold px-1.5 py-0.5 rounded-full border",
+                                              (b as any).credit_used === 'avulsa_particular' ? "bg-purple-500/10 text-purple-400 border-purple-500/20" :
+                                              (b as any).credit_used === 'aluguel' ? "bg-amber-500/10 text-amber-400 border-amber-500/20" :
+                                              "bg-blue-500/10 text-blue-400 border-blue-500/20"
+                                            )}>
+                                              {(b as any).credit_used === 'avulsa_particular' ? 'Particular' : (b as any).credit_used === 'aluguel' ? 'Aluguel' : 'Grupo'}
+                                            </span>
                                           )}
                                         </div>
-                                        <div className="flex-1 min-w-0">
-                                          <div className="font-semibold flex items-center gap-1.5 flex-wrap">
-                                            <span className="truncate">{b.profiles?.full_name ?? "Sem nome"}</span>
-                                            {isPending ? (
-                                              <span className="text-[9px] uppercase font-bold px-1.5 py-0.5 rounded-full bg-warning/15 text-warning border border-warning/30">
-                                                ⏳ Pendente
-                                              </span>
-                                            ) : isAccepted ? (
-                                              <span className="text-[9px] uppercase font-bold px-1.5 py-0.5 rounded-full bg-success/15 text-success border border-success/30">
-                                                ✓ Aceito
-                                              </span>
-                                            ) : null}
-                                          </div>
-                                          <div className="text-[10px] text-muted-foreground truncate">{b.profiles?.email}</div>
-                                        </div>
-                                      </div>
-
-                                      <div className="flex items-center gap-1.5 justify-end">
-                                        {isPending && (
-                                          <button
-                                            onClick={() => handleAcceptBooking(b, s)}
-                                            className="text-[10px] font-bold uppercase tracking-wider px-2 py-1 rounded-md bg-success text-success-foreground hover:bg-success/90 transition-all active:scale-95"
-                                            title="Aceitar Inscrição"
-                                          >
-                                            Aceitar
-                                          </button>
-                                        )}
-                                        <button
-                                          onClick={() => handleUnbookStudent(b, s)}
-                                          className="text-[10px] font-bold uppercase tracking-wider px-2 py-1 rounded-md bg-destructive/10 hover:bg-destructive/20 text-destructive transition-all active:scale-95 border border-destructive/20"
-                                          title={isPending ? "Recusar Inscrição" : "Desmarcar Aluno"}
-                                        >
-                                          {isPending ? "Recusar" : "Desmarcar"}
-                                        </button>
+                                        <div className="text-[10px] text-muted-foreground truncate">{b.profiles?.email}</div>
                                       </div>
                                     </div>
-                                  );
-                                })}
-                              </div>
-                            )}
+
+                                    <div className="flex items-center gap-1.5 justify-end">
+                                      {isPending && (
+                                        <button
+                                          onClick={() => handleAcceptBooking(b, s)}
+                                          className="text-[10px] font-bold uppercase tracking-wider px-2 py-1 rounded-md bg-success text-success-foreground hover:bg-success/90 transition-all active:scale-95"
+                                          title="Aceitar Inscrição"
+                                        >
+                                          Aceitar
+                                        </button>
+                                      )}
+                                      <button
+                                        onClick={() => handleUnbookStudent(b, s)}
+                                        className="text-[10px] font-bold uppercase tracking-wider px-2 py-1 rounded-md bg-destructive/10 hover:bg-destructive/20 text-destructive transition-all active:scale-95 border border-destructive/20"
+                                        title={isPending ? "Recusar Inscrição" : "Desmarcar Aluno"}
+                                      >
+                                        {isPending ? "Recusar" : "Desmarcar"}
+                                      </button>
+                                    </div>
+                                  </div>
+                                );
+                              };
+
+                              return (
+                                <div className="mt-3 pt-3 border-t border-border/40 space-y-4">
+                                  {gB.length > 0 && (
+                                    <div className="space-y-2">
+                                      <div className="text-[10px] uppercase tracking-widest text-muted-foreground mb-1">Alunos em Grupo</div>
+                                      {gB.map(renderStudent)}
+                                    </div>
+                                  )}
+                                  {pB.length > 0 && (
+                                    <div className="space-y-2">
+                                      <div className="text-[10px] uppercase tracking-widest text-muted-foreground mb-1">Alunos Particular</div>
+                                      {pB.map(renderStudent)}
+                                    </div>
+                                  )}
+                                </div>
+                              );
+                            })()}
                           </div>
                         );
                       })}
@@ -774,7 +765,7 @@ export default function AdminSchedule() {
                   Depois clique em <span className="font-semibold text-foreground">Aplicar</span> para gerar os horários nos próximos dias.
                 </p>
               </div>
-              <div className="flex gap-2">
+              <div className="flex flex-wrap gap-2">
                 <Button onClick={() => applyTemplates(14)} variant="secondary" className="rounded-xl bg-secondary/60 border-0">
                   <Wand2 className="w-4 h-4 mr-1" /> Aplicar 14 dias
                 </Button>
@@ -783,6 +774,22 @@ export default function AdminSchedule() {
                 </Button>
                 <Button onClick={() => setShowTemplate({})} className="rounded-xl bg-gradient-to-r from-primary to-accent">
                   <Plus className="w-4 h-4 mr-1" /> Novo
+                </Button>
+                <Button 
+                  variant="destructive" 
+                  className="rounded-xl"
+                  onClick={async () => {
+                    if (confirm("ATENÇÃO: Deseja apagar TODOS os períodos recorrentes (templates)?")) {
+                      const { error } = await supabase.from('weekly_schedule_templates').delete().neq('id', '00000000-0000-0000-0000-000000000000');
+                      if (error) toast.error(error.message);
+                      else {
+                        toast.success("Todos os templates foram apagados!");
+                        load();
+                      }
+                    }
+                  }}
+                >
+                  <Trash2 className="w-4 h-4 mr-1" /> Apagar Todos
                 </Button>
               </div>
             </div>
@@ -816,11 +823,13 @@ export default function AdminSchedule() {
                             avulsa_grupo: "Grupo",
                             avulsa_particular: "Particular",
                             aluguel: "Aluguel",
+                            ambos: "Grupo e Particular"
                           };
                           const typeColors: Record<string, string> = {
                             avulsa_grupo: "bg-blue-500/10 text-blue-400 border-blue-500/20",
                             avulsa_particular: "bg-purple-500/10 text-purple-400 border-purple-500/20",
                             aluguel: "bg-amber-500/10 text-amber-400 border-amber-500/20",
+                            ambos: "bg-emerald-500/10 text-emerald-500 border-emerald-500/20"
                           };
                           return (
                             <span className={`text-[9px] uppercase font-bold px-1.5 py-0.5 rounded-full border ${typeColors[t.class_type ?? "avulsa_grupo"]}`}>
@@ -888,7 +897,7 @@ function SlotForm({ date, onClose }: { date: string; onClose: () => void }) {
   const [f, setF] = useState({ 
     date, start_time: "08:00", end_time: "09:00", capacity: 6, location: "", notes: "", 
     min_level: "" as "" | Level,
-    class_type: "avulsa_grupo" as "avulsa_grupo" | "avulsa_particular" | "aluguel"
+    class_type: "ambos" as "avulsa_grupo" | "avulsa_particular" | "aluguel" | "ambos"
   });
   const [loading, setLoading] = useState(false);
   const submit = async () => {
@@ -922,6 +931,7 @@ function SlotForm({ date, onClose }: { date: string; onClose: () => void }) {
             <SelectContent>
               <SelectItem value="avulsa_grupo">Aula Avulsa em Grupo</SelectItem>
               <SelectItem value="avulsa_particular">Aula Avulsa Particular</SelectItem>
+              <SelectItem value="ambos">Grupo E Particular (Ambos)</SelectItem>
               <SelectItem value="aluguel">Aluguel</SelectItem>
             </SelectContent>
           </Select>
@@ -952,7 +962,7 @@ function SlotForm({ date, onClose }: { date: string; onClose: () => void }) {
 function PeriodForm({ date, onClose }: { date: string; onClose: () => void }) {
   const [f, setF] = useState({ 
     date, start_time: "07:00", end_time: "13:00", duration_min: 60, capacity: 6, location: "", notes: "",
-    class_type: "avulsa_grupo" as "avulsa_grupo" | "avulsa_particular" | "aluguel"
+    class_type: "ambos" as "avulsa_grupo" | "avulsa_particular" | "aluguel" | "ambos"
   });
   const [loading, setLoading] = useState(false);
   const preview = Math.max(0, Math.floor((timeToMin(f.end_time) - timeToMin(f.start_time)) / f.duration_min));
@@ -994,6 +1004,7 @@ function PeriodForm({ date, onClose }: { date: string; onClose: () => void }) {
             <SelectContent>
               <SelectItem value="avulsa_grupo">Aula Avulsa em Grupo</SelectItem>
               <SelectItem value="avulsa_particular">Aula Avulsa Particular</SelectItem>
+              <SelectItem value="ambos">Grupo E Particular (Ambos)</SelectItem>
               <SelectItem value="aluguel">Aluguel</SelectItem>
             </SelectContent>
           </Select>
@@ -1090,7 +1101,7 @@ function TemplateForm({ existing, onClose }: { existing?: Template; onClose: () 
     location: existing?.location ?? "",
     notes: existing?.notes ?? "",
     is_active: existing?.is_active ?? true,
-    class_type: existing?.class_type ?? ("avulsa_grupo" as "avulsa_grupo" | "avulsa_particular" | "aluguel"),
+    class_type: existing?.class_type ?? ("ambos" as "avulsa_grupo" | "avulsa_particular" | "aluguel" | "ambos"),
   });
   const [loading, setLoading] = useState(false);
   const preview = Math.max(0, Math.floor((timeToMin(f.end_time) - timeToMin(f.start_time)) / f.duration_min));
@@ -1141,6 +1152,7 @@ function TemplateForm({ existing, onClose }: { existing?: Template; onClose: () 
             <SelectContent>
               <SelectItem value="avulsa_grupo">Aula Avulsa em Grupo</SelectItem>
               <SelectItem value="avulsa_particular">Aula Avulsa Particular</SelectItem>
+              <SelectItem value="ambos">Grupo E Particular (Ambos)</SelectItem>
               <SelectItem value="aluguel">Aluguel</SelectItem>
             </SelectContent>
           </Select>
