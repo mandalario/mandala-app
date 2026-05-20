@@ -5,9 +5,13 @@ import { useAuth } from "@/hooks/useAuth";
 import { OceanBackground } from "@/components/OceanBackground";
 import { Button } from "@/components/ui/button";
 import { toast } from "sonner";
-import { ArrowLeft, Loader2, Waves, Wind, CloudOff, Calendar as Cal } from "lucide-react";
+import { ArrowLeft, Loader2, Waves, Wind, CloudOff, Calendar as Cal, ChevronDown, XCircle } from "lucide-react";
 import { useTranslation } from "@/i18n/LanguageContext";
 import { useBillingEnabled } from "@/hooks/useBillingEnabled";
+import { Calendar } from "@/components/ui/calendar";
+import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
+import { format } from "date-fns";
+import { ptBR } from "date-fns/locale";
 
 type Slot = { id: string; date: string; start_time: string; end_time: string; capacity: number; location: string | null; notes: string | null; is_open: boolean; class_type: "avulsa_grupo" | "avulsa_particular" | "aluguel" };
 type Cond = { date: string; condition: "good" | "medium" | "bad" | "flat"; notes: string | null };
@@ -39,7 +43,6 @@ export default function Schedule() {
   const [loading, setLoading] = useState(true);
   const [bookingId, setBookingId] = useState<string | null>(null);
   const [filterDate, setFilterDate] = useState<string>("");
-  const [showChoiceModal, setShowChoiceModal] = useState<Slot | null>(null);
 
   const today = new Date().toISOString().slice(0, 10);
 
@@ -91,9 +94,16 @@ export default function Schedule() {
 
   const myBooked = useMemo(() => new Set(bookings.map((b) => b.slot_id)), [bookings]);
 
-  const book = async (slot: Slot, chosenType?: "avulsa_grupo" | "avulsa_particular") => {
+  const calendarModifiers = useMemo(() => ({
+    good: conds.filter(c => c.condition === 'good').map(c => new Date(c.date + 'T12:00:00')),
+    medium: conds.filter(c => c.condition === 'medium').map(c => new Date(c.date + 'T12:00:00')),
+    bad: conds.filter(c => c.condition === 'bad').map(c => new Date(c.date + 'T12:00:00')),
+    flat: conds.filter(c => c.condition === 'flat').map(c => new Date(c.date + 'T12:00:00')),
+  }), [conds]);
+
+  const book = async (slot: Slot) => {
     if (billingEnabled) {
-      const type = chosenType || slot.class_type || "avulsa_grupo";
+      const type = slot.class_type || "avulsa_grupo";
       
       let userCredits = 0;
       let typeLabel = "Aula em Grupo";
@@ -116,16 +126,13 @@ export default function Schedule() {
     
     setBookingId(slot.id);
     const payload: any = { slot_id: slot.id, user_id: user!.id, status: "confirmed", is_accepted: null };
-    if (chosenType) {
-      payload.credit_used = chosenType;
-    }
+    payload.credit_used = slot.class_type || "avulsa_grupo";
 
     const { error } = await supabase.from("bookings").upsert(
       payload,
       { onConflict: "slot_id, user_id" }
     );
     setBookingId(null);
-    setShowChoiceModal(null);
     if (error) { toast.error(error.message); return; }
     toast.success(t("schedule.bookSuccess"));
     await refreshProfile();
@@ -133,11 +140,7 @@ export default function Schedule() {
   };
 
   const handleBookClick = (slot: Slot) => {
-    if (slot.class_type === "ambos") {
-      setShowChoiceModal(slot);
-    } else {
-      book(slot);
-    }
+    book(slot);
   };
 
   const unbook = async (slot: Slot) => {
@@ -171,27 +174,70 @@ export default function Schedule() {
         )}
       </header>
 
-      <div className="px-5 mb-4">
-        <div className="glass rounded-2xl p-3 flex items-center justify-between gap-3">
-          <div className="text-sm font-semibold flex items-center gap-2">
-            <Cal className="w-4 h-4 text-primary" />
-            {filterDate ? "Buscando data específica" : "Próximos 7 dias"}
-          </div>
-          <div className="flex items-center gap-2">
+      <div className="px-5 mb-6">
+        <div className="glass rounded-[32px] overflow-hidden border border-white/10 shadow-2xl">
+          <div className="p-5 pb-0 flex items-center justify-between">
+            <h2 className="text-[13px] font-bold flex items-center gap-2 text-white/90">
+              <Cal className="w-4 h-4 text-primary" />
+              {filterDate ? format(new Date(filterDate + "T12:00:00"), "MMMM yyyy", { locale: ptBR }) : "Calendário"}
+            </h2>
             {filterDate && (
-              <button 
+              <button
                 onClick={() => setFilterDate("")}
-                className="text-xs text-muted-foreground hover:text-foreground px-2 py-1"
+                className="text-[10px] font-bold text-primary hover:text-accent transition-colors bg-primary/10 px-3 py-1.5 rounded-xl uppercase tracking-wider"
               >
                 Limpar
               </button>
             )}
-            <input 
-              type="date" 
-              value={filterDate}
-              onChange={(e) => setFilterDate(e.target.value)}
-              className="bg-secondary/40 text-sm border-0 rounded-xl px-3 py-1.5 outline-none focus:ring-2 focus:ring-primary/50"
-            />
+          </div>
+
+          <Calendar
+            mode="single"
+            selected={filterDate ? new Date(filterDate + "T12:00:00") : undefined}
+            onSelect={(date) => setFilterDate(date ? format(date, "yyyy-MM-dd") : "")}
+            locale={ptBR}
+            className="w-full flex justify-center p-3"
+            modifiers={calendarModifiers}
+            modifiersClassNames={{
+              good: "relative after:absolute after:bottom-1 after:left-1/2 after:-translate-x-1/2 after:w-1 after:h-1 after:bg-success after:rounded-full",
+              medium: "relative after:absolute after:bottom-1 after:left-1/2 after:-translate-x-1/2 after:w-1 after:h-1 after:bg-warning after:rounded-full",
+              bad: "relative after:absolute after:bottom-1 after:left-1/2 after:-translate-x-1/2 after:w-1 after:h-1 after:bg-destructive after:rounded-full",
+              flat: "relative after:absolute after:bottom-1 after:left-1/2 after:-translate-x-1/2 after:w-1 after:h-1 after:bg-muted-foreground after:rounded-full",
+            }}
+            classNames={{
+              months: "w-full",
+              month: "w-full space-y-4",
+              caption: "flex justify-center pt-1 relative items-center mb-2",
+              caption_label: "text-sm font-bold text-white capitalize",
+              nav: "space-x-1 flex items-center",
+              nav_button: "h-8 w-8 bg-white/5 border-none hover:bg-white/10 text-white rounded-full transition-colors flex items-center justify-center",
+              table: "w-full border-collapse",
+              head_row: "flex justify-between mb-2 px-2",
+              head_cell: "text-muted-foreground w-9 font-medium text-[11px] lowercase",
+              row: "flex w-full justify-between mt-1 px-2",
+              cell: "h-9 w-9 text-center text-sm p-0 relative focus-within:z-20",
+              day: "h-9 w-9 p-0 font-medium text-white/80 aria-selected:opacity-100 hover:bg-white/5 rounded-xl transition-all",
+              day_selected: "bg-primary text-primary-foreground font-bold hover:bg-primary/90 rounded-xl shadow-[0_0_20px_rgba(var(--primary),0.4)]",
+              day_today: "text-primary font-bold border border-primary/20 rounded-xl",
+              day_outside: "text-white/20 opacity-40",
+            }}
+          />
+
+          <div className="p-5 border-t border-white/5 bg-black/20">
+            <div className="grid grid-cols-2 gap-x-4 gap-y-2.5">
+              <div className="flex items-center gap-2.5 text-[10px] text-muted-foreground font-medium">
+                <span className="w-2 h-2 rounded-full bg-success"></span> Mar bom
+              </div>
+              <div className="flex items-center gap-2.5 text-[10px] text-muted-foreground font-medium">
+                <span className="w-2 h-2 rounded-full bg-warning"></span> Mar médio
+              </div>
+              <div className="flex items-center gap-2.5 text-[10px] text-muted-foreground font-medium">
+                <span className="w-2 h-2 rounded-full bg-destructive"></span> Mar ruim
+              </div>
+              <div className="flex items-center gap-2.5 text-[10px] text-muted-foreground font-medium">
+                <span className="w-2 h-2 rounded-full bg-muted-foreground"></span> Sem ondas
+              </div>
+            </div>
           </div>
         </div>
       </div>
@@ -207,8 +253,8 @@ export default function Schedule() {
             return (
               <div key={date}>
                 <div className="flex items-center justify-between mb-2 px-1">
-                  <div className="text-sm font-semibold capitalize">
-                    {new Date(date + "T12:00:00").toLocaleDateString(locale, { weekday: "long", day: "2-digit", month: "short" })}
+                  <div className="text-[13px] font-bold capitalize text-white mb-2">
+                    {new Date(date + "T12:00:00").toLocaleDateString(locale, { weekday: "long", day: "2-digit", month: "short" })}.
                   </div>
                   {cond && (
                     <span className={`inline-flex items-center gap-1.5 text-xs px-2.5 py-1 rounded-full ${condColor[cond.condition]}`}>
@@ -217,7 +263,7 @@ export default function Schedule() {
                   )}
                 </div>
                 {cond?.notes && <div className="text-xs text-muted-foreground mb-2 px-1">{cond.notes}</div>}
-                <div className="space-y-2">
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
                   {ds.map((s) => {
                     const taken = counts[s.id] ?? 0;
                     const isMine = myBooked.has(s.id);
@@ -234,48 +280,69 @@ export default function Schedule() {
                       avulsa_grupo: "Grupo",
                       avulsa_particular: "Particular",
                       aluguel: "Aluguel",
-                      ambos: "Grupo/Particular",
                     };
                     const typeColors: Record<string, string> = {
                       avulsa_grupo: "bg-blue-500/10 text-blue-400 border-blue-500/20",
                       avulsa_particular: "bg-purple-500/10 text-purple-400 border-purple-500/20",
                       aluguel: "bg-amber-500/10 text-amber-400 border-amber-500/20",
-                      ambos: "bg-emerald-500/10 text-emerald-500 border-emerald-500/20",
                     };
+                    const currentType = (s.class_type as string) in typeLabels ? s.class_type : "avulsa_grupo";
 
                     return (
-                      <div key={s.id} className="glass-strong rounded-2xl p-4 flex items-center gap-4">
-                        <div className="flex-1">
-                          <div className="font-semibold flex items-center gap-1.5 flex-wrap text-base">
-                            {parseInt(s.start_time.slice(0, 2), 10)}h
-                            <span className={`text-[10px] uppercase font-bold px-2 py-0.5 rounded-full border ${typeColors[s.class_type ?? "avulsa_grupo"]}`}>
-                              {typeLabels[s.class_type ?? "avulsa_grupo"]}
-                            </span>
-                            {isConfirmed && (
-                              <span className="inline-flex items-center gap-1 text-[9px] uppercase font-bold px-1.5 py-0.5 rounded-full bg-success/15 text-success border border-success/30">
-                                ✓ Confirmada
+                      <div key={s.id} className="glass-strong rounded-[32px] p-5 flex flex-col justify-between min-h-[160px] border border-white/5 transition-all hover:scale-[1.02] active:scale-[0.98]">
+                        <div>
+                          <div className="flex items-start justify-between mb-3">
+                            <div className="flex flex-col">
+                              <span className="text-2xl font-black text-white leading-none">
+                                {parseInt(s.start_time.slice(0, 2), 10)}h
                               </span>
-                            )}
+                              <span className="text-[10px] text-muted-foreground font-medium mt-1">
+                                {s.location ?? t("schedule.locationTBD")}
+                              </span>
+                            </div>
+                            <div className="flex flex-col items-end gap-1.5">
+                              <span className={`text-[9px] uppercase font-bold tracking-wider px-2 py-0.5 rounded-full border ${typeColors[currentType]}`}>
+                                {typeLabels[currentType]}
+                              </span>
+                              {isConfirmed && (
+                                <span className="inline-flex items-center gap-1 text-[9px] uppercase font-bold px-1.5 py-0.5 rounded-full bg-success/15 text-success border border-success/30">
+                                  ✓ Confirmada
+                                </span>
+                              )}
+                            </div>
                           </div>
-                          <div className="text-xs text-muted-foreground">{s.location ?? t("schedule.locationTBD")} · {taken}/{s.capacity} {t("schedule.students")}</div>
-                          {cleanNotes && <div className="text-xs text-muted-foreground mt-1 italic">{cleanNotes}</div>}
+
+                          <div className="text-[11px] text-muted-foreground/80 font-medium">
+                            {taken}/{s.capacity} {t("schedule.students")}
+                          </div>
+                          {cleanNotes && <div className="text-[10px] text-muted-foreground/60 mt-2 italic line-clamp-2 leading-relaxed">{cleanNotes}</div>}
                         </div>
-                        {isMine ? (
-                          <div className="flex flex-col gap-2 items-end">
-                            <span className="text-[10px] uppercase tracking-widest px-3 py-1.5 rounded-xl bg-success/15 text-success font-bold">{t("schedule.booked")}</span>
-                            <button
-                              onClick={() => unbook(s)}
-                              disabled={bookingId === s.id}
-                              className="text-[11px] text-destructive hover:bg-destructive/10 px-2 py-1 rounded-md font-semibold transition-all disabled:opacity-50 flex items-center justify-center gap-1"
+
+                        <div className="mt-5">
+                          {isMine ? (
+                            <div className="flex items-center justify-between gap-2">
+                              <span className="text-[10px] uppercase tracking-widest px-3 py-2 rounded-xl bg-success/15 text-success font-extrabold flex-1 text-center">
+                                {t("schedule.booked")}
+                              </span>
+                              <button
+                                onClick={() => unbook(s)}
+                                disabled={bookingId === s.id}
+                                className="w-10 h-10 flex items-center justify-center text-destructive hover:bg-destructive/10 rounded-xl transition-all disabled:opacity-50"
+                                title="Desmarcar"
+                              >
+                                {bookingId === s.id ? <Loader2 className="w-4 h-4 animate-spin" /> : <XCircle className="w-4 h-4" />}
+                              </button>
+                            </div>
+                          ) : (
+                            <Button
+                              onClick={() => handleBookClick(s)}
+                              disabled={full || bookingId === s.id}
+                              className="w-full h-11 rounded-2xl bg-gradient-to-r from-primary to-accent text-primary-foreground font-extrabold text-xs shadow-lg shadow-primary/20 hover:shadow-primary/40 transition-all disabled:opacity-40"
                             >
-                              {bookingId === s.id ? <Loader2 className="w-3 h-3 animate-spin" /> : "Desmarcar"}
-                            </button>
-                          </div>
-                        ) : (
-                          <Button onClick={() => handleBookClick(s)} disabled={full || bookingId === s.id} className="rounded-xl bg-gradient-to-r from-primary to-accent text-primary-foreground font-semibold disabled:opacity-40">
-                            {bookingId === s.id ? <Loader2 className="w-4 h-4 animate-spin" /> : full ? t("schedule.full") : t("schedule.book")}
-                          </Button>
-                        )}
+                              {bookingId === s.id ? <Loader2 className="w-4 h-4 animate-spin" /> : full ? t("schedule.full") : "Agendar aula"}
+                            </Button>
+                          )}
+                        </div>
                       </div>
                     );
                   })}
@@ -286,44 +353,7 @@ export default function Schedule() {
         </div>
       )}
 
-      {showChoiceModal && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-background/80 backdrop-blur-sm">
-          <div className="bg-card border border-border shadow-lg rounded-3xl w-full max-w-sm p-6">
-            <h2 className="text-xl font-bold mb-2">Escolha o tipo de aula</h2>
-            <p className="text-sm text-muted-foreground mb-6">
-              Esta aula aceita ambas as modalidades. Como você deseja participar?
-            </p>
-            <div className="space-y-3">
-              <Button 
-                onClick={() => book(showChoiceModal, "avulsa_grupo")}
-                className="w-full bg-blue-500/20 text-blue-500 hover:bg-blue-500/30 font-semibold"
-                size="lg"
-                disabled={bookingId !== null}
-              >
-                {bookingId === showChoiceModal.id ? <Loader2 className="w-4 h-4 animate-spin mr-2" /> : null}
-                Usar Crédito de Grupo
-              </Button>
-              <Button 
-                onClick={() => book(showChoiceModal, "avulsa_particular")}
-                className="w-full bg-purple-500/20 text-purple-400 hover:bg-purple-500/30 font-semibold"
-                size="lg"
-                disabled={bookingId !== null}
-              >
-                {bookingId === showChoiceModal.id ? <Loader2 className="w-4 h-4 animate-spin mr-2" /> : null}
-                Usar Crédito Particular
-              </Button>
-              <Button 
-                onClick={() => setShowChoiceModal(null)}
-                variant="ghost"
-                className="w-full mt-2"
-                disabled={bookingId !== null}
-              >
-                Cancelar
-              </Button>
-            </div>
-          </div>
-        </div>
-      )}
+      {/* Removed Choice Modal */}
     </div>
   );
 }

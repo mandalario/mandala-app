@@ -138,11 +138,6 @@ export function SeaConditionCard() {
       <div className="bg-gradient-to-b from-[#1b5e8c]/80 to-[#0d3f63]/90 backdrop-blur-md p-5 text-white relative">
         <div className="flex justify-between items-center text-[10px] uppercase tracking-wider text-sky-200/70 font-semibold">
           <span>Condições Atuais</span>
-          {updatedAtFormatted && (
-            <span className="opacity-90 font-bold bg-sky-950/40 px-2.5 py-0.5 rounded-full border border-sky-300/10 text-[9px] tracking-normal">
-              Atualizado: {updatedAtFormatted}
-            </span>
-          )}
         </div>
         <h3 className="text-xl font-bold mt-1.5 text-white tracking-tight">{activeData.location}</h3>
         <p className="text-xs text-sky-100/80 mt-1 italic font-medium">{activeData.summary}</p>

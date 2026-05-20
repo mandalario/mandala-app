@@ -35,6 +35,7 @@ type Template = {
   duration_min: number; capacity: number; location: string | null;
   notes: string | null; is_active: boolean;
   class_type: "avulsa_grupo" | "avulsa_particular" | "aluguel";
+  alternate_type?: boolean;
 };
 
 const condLabel: Record<CondKey, string> = { good: "Mar bom", medium: "Mar médio", bad: "Mar ruim", flat: "Sem ondas" };
@@ -78,7 +79,7 @@ export default function AdminSchedule() {
     setLoading(true);
     const today = ymd(new Date());
     const [{ data: s }, { data: c }, { data: t }] = await Promise.all([
-      supabase.from("class_slots").select("*").gte("date", today).order("date").order("start_time"),
+      supabase.from("class_slots").select("*").gte("date", today).order("date").order("start_time").order("class_type"),
       supabase.from("surf_conditions").select("*").gte("date", today).order("date"),
       supabase.from("weekly_schedule_templates").select("*").order("weekday").order("start_time"),
     ]);
@@ -309,32 +310,30 @@ export default function AdminSchedule() {
       toast.error("Nenhum período recorrente ativo");
       return;
     }
-    const today = new Date();
-    today.setHours(12, 0, 0, 0);
-    let total = 0;
-    for (let i = 0; i < days; i++) {
-      const d = addDays(today, i);
-      const wd = d.getDay();
-      const dateStr = ymd(d);
-      const cond = condByDate[dateStr];
-      if (cond && (cond.condition === "bad" || cond.condition === "flat")) continue;
-      const dayTpls = templates.filter((t) => t.is_active && t.weekday === wd);
-      for (const t of dayTpls) {
-        const { data, error } = await supabase.rpc("generate_slots_from_period", {
-          _date: dateStr,
-          _start: t.start_time,
-          _end: t.end_time,
-          _duration_min: t.duration_min,
-          _capacity: t.capacity,
-          _location: t.location,
-          _notes: t.notes,
-          _class_type: t.class_type,
-        });
-        if (!error && typeof data === "number") total += data;
-      }
+
+    const message = days >= 365
+      ? "Deseja gerar a grade para o ANO INTEIRO? Isso seguirá a configuração de cada período (incluindo alternância entre Grupo/Particular)."
+      : `Deseja gerar a grade para os próximos ${days} dias?`;
+
+    if (!confirm(message)) return;
+
+    setLoading(true);
+    try {
+      const todayStr = ymd(new Date());
+      const { data, error } = await supabase.rpc("apply_active_templates_to_range", {
+        _start_date: todayStr,
+        _days: days,
+      });
+
+      if (error) throw error;
+
+      toast.success(`${data} hor${data === 1 ? "ário gerado" : "ários gerados"} para os próximos ${days} dias`);
+      load();
+    } catch (err: any) {
+      toast.error(err.message || "Erro ao gerar horários");
+    } finally {
+      setLoading(false);
     }
-    toast.success(`${total} hor${total === 1 ? "ário gerado" : "ários gerados"} para os próximos ${days} dias`);
-    load();
   };
 
   // Calendar modifiers
@@ -553,11 +552,20 @@ export default function AdminSchedule() {
                                   {s.min_level && <span className="text-[9px] uppercase px-2 py-0.5 rounded-full bg-accent/15 text-accent border border-accent/30">≥ {LEVEL_LABEL[s.min_level]}</span>}
                                   
                                   {(() => {
-                                    const typeLabels: Record<string, string> = { avulsa_grupo: "Grupo", avulsa_particular: "Particular", aluguel: "Aluguel", ambos: "Grupo e Particular" };
-                                    const typeColors: Record<string, string> = { avulsa_grupo: "bg-blue-500/10 text-blue-400 border-blue-500/20", avulsa_particular: "bg-purple-500/10 text-purple-400 border-purple-500/20", aluguel: "bg-amber-500/10 text-amber-400 border-amber-500/20", ambos: "bg-emerald-500/10 text-emerald-500 border-emerald-500/20" };
+                                    const typeLabels: Record<string, string> = {
+                                      avulsa_grupo: "Grupo",
+                                      avulsa_particular: "Particular",
+                                      aluguel: "Aluguel"
+                                    };
+                                    const typeColors: Record<string, string> = {
+                                      avulsa_grupo: "bg-blue-500/10 text-blue-400 border-blue-500/20",
+                                      avulsa_particular: "bg-purple-500/10 text-purple-400 border-purple-500/20",
+                                      aluguel: "bg-amber-500/10 text-amber-400 border-amber-500/20"
+                                    };
+                                    const currentType = (s.class_type as string) in typeLabels ? s.class_type : "avulsa_grupo";
                                     return (
-                                      <span className={`text-[9px] uppercase font-bold px-2 py-0.5 rounded-full border ${typeColors[s.class_type ?? "avulsa_grupo"]}`}>
-                                        {typeLabels[s.class_type ?? "avulsa_grupo"]}
+                                      <span className={`text-[10px] uppercase font-bold px-2 py-0.5 rounded-full border ${typeColors[currentType]}`}>
+                                        {typeLabels[currentType]}
                                       </span>
                                     );
                                   })()}
@@ -765,19 +773,20 @@ export default function AdminSchedule() {
                   Depois clique em <span className="font-semibold text-foreground">Aplicar</span> para gerar os horários nos próximos dias.
                 </p>
               </div>
-              <div className="flex flex-wrap gap-2">
-                <Button onClick={() => applyTemplates(14)} variant="secondary" className="rounded-xl bg-secondary/60 border-0">
-                  <Wand2 className="w-4 h-4 mr-1" /> Aplicar 14 dias
-                </Button>
-                <Button onClick={() => applyTemplates(30)} className="rounded-xl bg-gradient-to-r from-primary to-accent">
-                  <Wand2 className="w-4 h-4 mr-1" /> Aplicar 30 dias
-                </Button>
-                <Button onClick={() => setShowTemplate({})} className="rounded-xl bg-gradient-to-r from-primary to-accent">
+              <div className="flex flex-wrap gap-2 items-center">
+                <div className="flex bg-secondary/40 rounded-xl p-1 items-center mr-2">
+                  <span className="text-[10px] font-bold uppercase tracking-widest px-2 text-muted-foreground hidden sm:inline-block">Gerar Grade:</span>
+                  <Button onClick={() => applyTemplates(7)} variant="ghost" size="sm" className="h-8 rounded-lg text-xs" title="Gerar próxima semana">1 Sem</Button>
+                  <Button onClick={() => applyTemplates(14)} variant="ghost" size="sm" className="h-8 rounded-lg text-xs" title="Gerar próximas 2 semanas">2 Sem</Button>
+                  <Button onClick={() => applyTemplates(30)} variant="ghost" size="sm" className="h-8 rounded-lg text-xs" title="Gerar próximo mês">1 Mês</Button>
+                  <Button onClick={() => applyTemplates(365)} size="sm" className="h-8 rounded-lg text-xs bg-success/20 text-success hover:bg-success/30 ml-1" title="Gerar 365 dias">365 dias</Button>
+                </div>
+                <Button onClick={() => setShowTemplate({})} className="rounded-xl bg-gradient-to-r from-primary to-accent h-10">
                   <Plus className="w-4 h-4 mr-1" /> Novo
                 </Button>
                 <Button 
-                  variant="destructive" 
-                  className="rounded-xl"
+                  variant="destructive"
+                  className="rounded-xl h-10"
                   onClick={async () => {
                     if (confirm("ATENÇÃO: Deseja apagar TODOS os períodos recorrentes (templates)?")) {
                       const { error } = await supabase.from('weekly_schedule_templates').delete().neq('id', '00000000-0000-0000-0000-000000000000');
@@ -822,21 +831,21 @@ export default function AdminSchedule() {
                           const typeLabels: Record<string, string> = {
                             avulsa_grupo: "Grupo",
                             avulsa_particular: "Particular",
-                            aluguel: "Aluguel",
-                            ambos: "Grupo e Particular"
+                            aluguel: "Aluguel"
                           };
                           const typeColors: Record<string, string> = {
                             avulsa_grupo: "bg-blue-500/10 text-blue-400 border-blue-500/20",
                             avulsa_particular: "bg-purple-500/10 text-purple-400 border-purple-500/20",
-                            aluguel: "bg-amber-500/10 text-amber-400 border-amber-500/20",
-                            ambos: "bg-emerald-500/10 text-emerald-500 border-emerald-500/20"
+                            aluguel: "bg-amber-500/10 text-amber-400 border-amber-500/20"
                           };
+                          const currentType = (t.class_type as string) in typeLabels ? t.class_type : "avulsa_grupo";
                           return (
-                            <span className={`text-[9px] uppercase font-bold px-1.5 py-0.5 rounded-full border ${typeColors[t.class_type ?? "avulsa_grupo"]}`}>
-                              {typeLabels[t.class_type ?? "avulsa_grupo"]}
+                            <span className={`text-[10px] uppercase font-bold px-1.5 py-0.5 rounded-full border ${typeColors[currentType]}`}>
+                              {typeLabels[currentType]}
                             </span>
                           );
                         })()}
+
                       </div>
                       <div className="text-xs text-muted-foreground flex flex-wrap items-center gap-2 mt-1">
                         <span className="inline-flex items-center gap-1"><Clock className="w-3 h-3" /> {slotsCount} aulas/dia</span>
@@ -895,9 +904,9 @@ function Legend({ dot, label }: { dot: string; label: string }) {
 
 function SlotForm({ date, onClose }: { date: string; onClose: () => void }) {
   const [f, setF] = useState({ 
-    date, start_time: "08:00", end_time: "09:00", capacity: 6, location: "", notes: "", 
+    date, start_time: "08:00", end_time: "09:00", capacity: 6, location: "Arpoador, Rio de Janeiro", notes: "", 
     min_level: "" as "" | Level,
-    class_type: "ambos" as "avulsa_grupo" | "avulsa_particular" | "aluguel" | "ambos"
+    class_type: "avulsa_grupo" as "avulsa_grupo" | "avulsa_particular" | "aluguel"
   });
   const [loading, setLoading] = useState(false);
   const submit = async () => {
@@ -931,7 +940,6 @@ function SlotForm({ date, onClose }: { date: string; onClose: () => void }) {
             <SelectContent>
               <SelectItem value="avulsa_grupo">Aula Avulsa em Grupo</SelectItem>
               <SelectItem value="avulsa_particular">Aula Avulsa Particular</SelectItem>
-              <SelectItem value="ambos">Grupo E Particular (Ambos)</SelectItem>
               <SelectItem value="aluguel">Aluguel</SelectItem>
             </SelectContent>
           </Select>
@@ -961,8 +969,9 @@ function SlotForm({ date, onClose }: { date: string; onClose: () => void }) {
 
 function PeriodForm({ date, onClose }: { date: string; onClose: () => void }) {
   const [f, setF] = useState({ 
-    date, start_time: "07:00", end_time: "13:00", duration_min: 60, capacity: 6, location: "", notes: "",
-    class_type: "ambos" as "avulsa_grupo" | "avulsa_particular" | "aluguel" | "ambos"
+    date, start_time: "07:00", end_time: "13:00", duration_min: 60, capacity: 6, location: "Arpoador, Rio de Janeiro", notes: "",
+    class_type: "avulsa_grupo" as "avulsa_grupo" | "avulsa_particular" | "aluguel",
+    alternate_type: false,
   });
   const [loading, setLoading] = useState(false);
   const preview = Math.max(0, Math.floor((timeToMin(f.end_time) - timeToMin(f.start_time)) / f.duration_min));
@@ -978,6 +987,7 @@ function PeriodForm({ date, onClose }: { date: string; onClose: () => void }) {
       _location: f.location || null,
       _notes: f.notes || null,
       _class_type: f.class_type,
+      _alternate: f.alternate_type,
     });
     setLoading(false);
     if (error) return toast.error(error.message);
@@ -1004,11 +1014,11 @@ function PeriodForm({ date, onClose }: { date: string; onClose: () => void }) {
             <SelectContent>
               <SelectItem value="avulsa_grupo">Aula Avulsa em Grupo</SelectItem>
               <SelectItem value="avulsa_particular">Aula Avulsa Particular</SelectItem>
-              <SelectItem value="ambos">Grupo E Particular (Ambos)</SelectItem>
               <SelectItem value="aluguel">Aluguel</SelectItem>
             </SelectContent>
           </Select>
         </div>
+
         <div className="grid grid-cols-2 gap-2">
           <div><Label>Duração da aula (min)</Label><Input type="number" min={15} step={15} value={f.duration_min} onChange={(e) => setF({ ...f, duration_min: +e.target.value })} className="bg-input/60 border-0 h-11 rounded-xl mt-1" /></div>
           <div><Label>Vagas por aula</Label><Input type="number" min={1} value={f.capacity} onChange={(e) => setF({ ...f, capacity: +e.target.value })} className="bg-input/60 border-0 h-11 rounded-xl mt-1" /></div>
@@ -1098,18 +1108,18 @@ function TemplateForm({ existing, onClose }: { existing?: Template; onClose: () 
     end_time: existing?.end_time?.slice(0, 5) ?? "13:00",
     duration_min: existing?.duration_min ?? 60,
     capacity: existing?.capacity ?? 6,
-    location: existing?.location ?? "",
+    location: existing?.location ?? "Arpoador, Rio de Janeiro",
     notes: existing?.notes ?? "",
     is_active: existing?.is_active ?? true,
-    class_type: existing?.class_type ?? ("ambos" as "avulsa_grupo" | "avulsa_particular" | "aluguel" | "ambos"),
+    class_type: existing?.class_type ?? ("avulsa_grupo" as "avulsa_grupo" | "avulsa_particular" | "aluguel"),
+    alternate_type: existing?.alternate_type ?? false,
   });
   const [loading, setLoading] = useState(false);
   const preview = Math.max(0, Math.floor((timeToMin(f.end_time) - timeToMin(f.start_time)) / f.duration_min));
   const submit = async () => {
     if (preview < 1) { toast.error("Período inválido"); return; }
     setLoading(true);
-    const payload = {
-      weekday: f.weekday,
+    const basePayload = {
       start_time: f.start_time,
       end_time: f.end_time,
       duration_min: f.duration_min,
@@ -1118,14 +1128,23 @@ function TemplateForm({ existing, onClose }: { existing?: Template; onClose: () 
       notes: f.notes || null,
       is_active: f.is_active,
       class_type: f.class_type,
+      alternate_type: f.alternate_type,
     };
-    const q = existing
-      ? supabase.from("weekly_schedule_templates").update(payload).eq("id", existing.id)
-      : supabase.from("weekly_schedule_templates").insert(payload);
+    let q;
+    if (existing) {
+      q = supabase.from("weekly_schedule_templates").update({ ...basePayload, weekday: f.weekday }).eq("id", existing.id);
+    } else {
+      if (f.weekday === -1) {
+        const payloads = [0, 1, 2, 3, 4, 5, 6].map((w) => ({ ...basePayload, weekday: w }));
+        q = supabase.from("weekly_schedule_templates").insert(payloads);
+      } else {
+        q = supabase.from("weekly_schedule_templates").insert({ ...basePayload, weekday: f.weekday });
+      }
+    }
     const { error } = await q;
     setLoading(false);
     if (error) return toast.error(error.message);
-    toast.success(existing ? "Atualizado" : "Período criado");
+    toast.success(existing ? "Atualizado" : (f.weekday === -1 ? "Períodos criados para todos os dias" : "Período criado"));
     onClose();
   };
   return (
@@ -1137,6 +1156,7 @@ function TemplateForm({ existing, onClose }: { existing?: Template; onClose: () 
           <Select value={String(f.weekday)} onValueChange={(v) => setF({ ...f, weekday: +v })}>
             <SelectTrigger className="bg-input/60 border-0 h-11 rounded-xl mt-1"><SelectValue /></SelectTrigger>
             <SelectContent>
+              {!existing && <SelectItem value="-1">Todos os dias</SelectItem>}
               {WEEKDAYS_LONG.map((d, i) => <SelectItem key={i} value={String(i)}>{d}</SelectItem>)}
             </SelectContent>
           </Select>
@@ -1152,11 +1172,11 @@ function TemplateForm({ existing, onClose }: { existing?: Template; onClose: () 
             <SelectContent>
               <SelectItem value="avulsa_grupo">Aula Avulsa em Grupo</SelectItem>
               <SelectItem value="avulsa_particular">Aula Avulsa Particular</SelectItem>
-              <SelectItem value="ambos">Grupo E Particular (Ambos)</SelectItem>
               <SelectItem value="aluguel">Aluguel</SelectItem>
             </SelectContent>
           </Select>
         </div>
+
         <div className="grid grid-cols-2 gap-2">
           <div><Label>Duração (min)</Label><Input type="number" min={15} step={15} value={f.duration_min} onChange={(e) => setF({ ...f, duration_min: +e.target.value })} className="bg-input/60 border-0 h-11 rounded-xl mt-1" /></div>
           <div><Label>Vagas por aula</Label><Input type="number" min={1} value={f.capacity} onChange={(e) => setF({ ...f, capacity: +e.target.value })} className="bg-input/60 border-0 h-11 rounded-xl mt-1" /></div>
@@ -1187,7 +1207,7 @@ function EditSlotForm({ slot, onClose }: { slot: Slot; onClose: () => void }) {
     start_time: slot.start_time.slice(0, 5),
     end_time: slot.end_time.slice(0, 5),
     capacity: slot.capacity,
-    location: slot.location ?? "",
+    location: slot.location ?? "Arpoador, Rio de Janeiro",
     notes: slot.notes ?? "",
     min_level: (slot.min_level ?? "") as "" | Level,
     is_open: slot.is_open,

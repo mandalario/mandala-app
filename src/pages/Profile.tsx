@@ -22,7 +22,7 @@ export default function Profile() {
   const [form, setForm] = useState({
     full_name: "", phone: "", height_cm: "" as string, weight_kg: "" as string,
     age: "" as string, stance: "desconhecido", surf_level: "iniciante",
-    has_own_board: false, can_swim: false, board_size: "",
+    has_own_board: false, can_swim: false, board_size: "", board_type: "",
     emergency_contact_name: "", emergency_contact_phone: "",
     medical_conditions: "", experience_notes: "",
   });
@@ -37,6 +37,25 @@ export default function Profile() {
     (async () => {
       const { data } = await supabase.from("profiles").select("*").eq("id", user.id).maybeSingle();
       if (data) {
+        const types = ["Longboard soft", "Longboard fibra", "Fun board", "Mid Length", "Evolution", "Shortboard"];
+        let parsedType = "";
+        let parsedSize = data.board_size ?? "";
+        
+        for (const t of types) {
+          if (parsedSize.startsWith(t)) {
+            parsedType = t;
+            let rem = parsedSize.slice(t.length).trim();
+            if (rem.startsWith("(") && rem.endsWith(")")) {
+              parsedSize = rem.slice(1, -1).trim();
+            } else if (rem.startsWith("-")) {
+              parsedSize = rem.slice(1).trim();
+            } else {
+              parsedSize = rem;
+            }
+            break;
+          }
+        }
+
         setForm({
           full_name: data.full_name ?? "",
           phone: data.phone ?? "",
@@ -47,7 +66,8 @@ export default function Profile() {
           surf_level: data.surf_level ?? "iniciante",
           has_own_board: !!data.has_own_board,
           can_swim: !!data.can_swim,
-          board_size: data.board_size ?? "",
+          board_size: parsedSize,
+          board_type: parsedType,
           emergency_contact_name: data.emergency_contact_name ?? "",
           emergency_contact_phone: data.emergency_contact_phone ?? "",
           medical_conditions: data.medical_conditions ?? "",
@@ -60,6 +80,11 @@ export default function Profile() {
   const save = async () => {
     if (!user) return;
     setSaving(true);
+
+    const combinedBoard = form.board_type && form.board_size 
+      ? `${form.board_type} (${form.board_size})`
+      : form.board_type || form.board_size || null;
+
     const payload: any = {
       full_name: form.full_name || null,
       phone: form.phone || null,
@@ -69,7 +94,7 @@ export default function Profile() {
       stance: form.stance,
       has_own_board: form.has_own_board,
       can_swim: form.can_swim,
-      board_size: form.board_size || null,
+      board_size: combinedBoard,
       emergency_contact_name: form.emergency_contact_name || null,
       emergency_contact_phone: form.emergency_contact_phone || null,
       medical_conditions: form.medical_conditions || null,
@@ -201,19 +226,28 @@ export default function Profile() {
             <ToggleRow label={t("profile.fields.canSwim")} value={form.can_swim} disabled onChange={(v) => setForm({ ...form, can_swim: v })} />
           </div>
           {form.has_own_board && (
-            <Field label={t("profile.fields.boardSize")}>
-              <Select value={form.board_size} onValueChange={(v) => setForm({ ...form, board_size: v })}>
-                <SelectTrigger><SelectValue placeholder="Selecione a prancha" /></SelectTrigger>
-                <SelectContent>
-                  <SelectItem value="Longboard soft">Longboard soft</SelectItem>
-                  <SelectItem value="Longboard fibra">Longboard fibra</SelectItem>
-                  <SelectItem value="Fun board">Fun board</SelectItem>
-                  <SelectItem value="Mid Length">Mid Length</SelectItem>
-                  <SelectItem value="Evolution">Evolution</SelectItem>
-                  <SelectItem value="Shortboard">Shortboard</SelectItem>
-                </SelectContent>
-              </Select>
-            </Field>
+            <div className="grid grid-cols-2 gap-3">
+              <Field label="Tipo da prancha">
+                <Select value={form.board_type} onValueChange={(v) => setForm({ ...form, board_type: v })}>
+                  <SelectTrigger><SelectValue placeholder="Selecione o tipo" /></SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="Longboard soft">Longboard soft</SelectItem>
+                    <SelectItem value="Longboard fibra">Longboard fibra</SelectItem>
+                    <SelectItem value="Fun board">Fun board</SelectItem>
+                    <SelectItem value="Mid Length">Mid Length</SelectItem>
+                    <SelectItem value="Evolution">Evolution</SelectItem>
+                    <SelectItem value="Shortboard">Shortboard</SelectItem>
+                  </SelectContent>
+                </Select>
+              </Field>
+              <Field label={t("profile.fields.boardSize")}>
+                <Input 
+                  value={form.board_size} 
+                  onChange={(e) => setForm({ ...form, board_size: e.target.value })} 
+                  placeholder={`Ex: 6'2" ou 9'0"`} 
+                />
+              </Field>
+            </div>
           )}
         </Block>
 

@@ -831,6 +831,7 @@ export type Database = {
       }
       weekly_schedule_templates: {
         Row: {
+          alternate_type: boolean
           capacity: number
           class_type: Database["public"]["Enums"]["class_type"]
           created_at: string
@@ -845,6 +846,7 @@ export type Database = {
           weekday: number
         }
         Insert: {
+          alternate_type?: boolean
           capacity?: number
           class_type?: Database["public"]["Enums"]["class_type"]
           created_at?: string
@@ -859,6 +861,7 @@ export type Database = {
           weekday: number
         }
         Update: {
+          alternate_type?: boolean
           capacity?: number
           class_type?: Database["public"]["Enums"]["class_type"]
           created_at?: string
@@ -879,6 +882,14 @@ export type Database = {
       [_ in never]: never
     }
     Functions: {
+      apply_active_templates_to_range: {
+        Args: {
+          _start_date: string
+          _days: number
+          _bypass_auth?: boolean
+        }
+        Returns: number
+      }
       generate_slots_from_period: {
         Args: {
           _capacity: number
@@ -888,6 +899,9 @@ export type Database = {
           _location: string
           _notes: string
           _start: string
+          _class_type?: Database["public"]["Enums"]["class_type"]
+          _create_both?: boolean
+          _bypass_auth?: boolean
         }
         Returns: number
       }

@@ -44,21 +44,40 @@ export default function Onboarding() {
   const [step, setStep] = useState<"terms" | "form">("terms");
   const [checkingLegal, setCheckingLegal] = useState(true);
   const [loading, setLoading] = useState(false);
+
+  const parsedBoard = (() => {
+    const raw = profile?.board_size ?? "";
+    const types = ["Longboard soft", "Longboard fibra", "Fun board", "Mid Length", "Evolution", "Shortboard"];
+    for (const t of types) {
+      if (raw.startsWith(t)) {
+        let rem = raw.slice(t.length).trim();
+        if (rem.startsWith("(") && rem.endsWith(")")) {
+          rem = rem.slice(1, -1).trim();
+        } else if (rem.startsWith("-")) {
+          rem = rem.slice(1).trim();
+        }
+        return { type: t, size: rem };
+      }
+    }
+    return { type: "", size: raw };
+  })();
+
   const [form, setForm] = useState({
     full_name: profile?.full_name ?? "",
-    phone: "",
-    age: "",
-    weight_kg: "",
-    height_cm: "",
-    surf_level: "iniciante" as "iniciante" | "intermediario" | "avancado",
-    stance: "desconhecido" as "regular" | "goofy" | "desconhecido",
-    can_swim: false,
-    has_own_board: false,
-    board_size: "",
-    experience_notes: "",
-    medical_conditions: "",
-    emergency_contact_name: "",
-    emergency_contact_phone: "",
+    phone: profile?.phone ?? "",
+    age: profile?.age?.toString() ?? "",
+    weight_kg: profile?.weight_kg?.toString() ?? "",
+    height_cm: profile?.height_cm?.toString() ?? "",
+    surf_level: (profile?.surf_level ?? "iniciante") as "iniciante" | "intermediario" | "avancado",
+    stance: (profile?.stance ?? "desconhecido") as "regular" | "goofy" | "desconhecido",
+    can_swim: !!profile?.can_swim,
+    has_own_board: !!profile?.has_own_board,
+    board_type: parsedBoard.type,
+    board_size: parsedBoard.size,
+    experience_notes: profile?.experience_notes ?? "",
+    medical_conditions: profile?.medical_conditions ?? "",
+    emergency_contact_name: profile?.emergency_contact_name ?? "",
+    emergency_contact_phone: profile?.emergency_contact_phone ?? "",
   });
 
   // Verifica termos
@@ -117,7 +136,17 @@ export default function Onboarding() {
       toast.error("É obrigatório saber nadar para se cadastrar.");
       return;
     }
-    const parsed = schema.safeParse(form);
+
+    const combinedBoard = form.board_type && form.board_size 
+      ? `${form.board_type} (${form.board_size})`
+      : form.board_type || form.board_size || "";
+
+    const dataToValidate = {
+      ...form,
+      board_size: combinedBoard
+    };
+
+    const parsed = schema.safeParse(dataToValidate);
     if (!parsed.success) {
       toast.error(parsed.error.issues[0].message);
       return;
@@ -244,21 +273,31 @@ export default function Onboarding() {
               <ToggleRow label="Tenho prancha própria" description="Caso contrário, providenciamos uma" checked={form.has_own_board} onChange={(v) => setForm({ ...form, has_own_board: v })} />
 
               {form.has_own_board && (
-                <Field label="Tamanho da prancha">
-                  <Select value={form.board_size} onValueChange={(v) => setForm({ ...form, board_size: v })}>
-                    <SelectTrigger className="bg-input/60 border-0 h-11 rounded-xl">
-                      <SelectValue placeholder="Selecione a prancha" />
-                    </SelectTrigger>
-                    <SelectContent>
-                      <SelectItem value="Longboard soft">Longboard soft</SelectItem>
-                      <SelectItem value="Longboard fibra">Longboard fibra</SelectItem>
-                      <SelectItem value="Fun board">Fun board</SelectItem>
-                      <SelectItem value="Mid Length">Mid Length</SelectItem>
-                      <SelectItem value="Evolution">Evolution</SelectItem>
-                      <SelectItem value="Shortboard">Shortboard</SelectItem>
-                    </SelectContent>
-                  </Select>
-                </Field>
+                <div className="grid md:grid-cols-2 gap-3">
+                  <Field label="Tipo da prancha">
+                    <Select value={form.board_type} onValueChange={(v) => setForm({ ...form, board_type: v })}>
+                      <SelectTrigger className="bg-input/60 border-0 h-11 rounded-xl">
+                        <SelectValue placeholder="Selecione o tipo" />
+                      </SelectTrigger>
+                      <SelectContent>
+                        <SelectItem value="Longboard soft">Longboard soft</SelectItem>
+                        <SelectItem value="Longboard fibra">Longboard fibra</SelectItem>
+                        <SelectItem value="Fun board">Fun board</SelectItem>
+                        <SelectItem value="Mid Length">Mid Length</SelectItem>
+                        <SelectItem value="Evolution">Evolution</SelectItem>
+                        <SelectItem value="Shortboard">Shortboard</SelectItem>
+                      </SelectContent>
+                    </Select>
+                  </Field>
+                  <Field label="Tamanho da prancha">
+                    <Input 
+                      value={form.board_size} 
+                      onChange={(e) => setForm({ ...form, board_size: e.target.value })} 
+                      placeholder={`Ex: 6'2" ou 9'0"`} 
+                      className="bg-input/60 border-0 h-11 rounded-xl" 
+                    />
+                  </Field>
+                </div>
               )}
 
               <Field label="Experiência prévia (opcional)">

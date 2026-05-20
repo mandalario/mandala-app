@@ -9,7 +9,14 @@ import { ArrowLeft, Loader2, QrCode, Copy, CheckCircle2, Hourglass, XCircle, Ale
 import { useTranslation } from "@/i18n/LanguageContext";
 import { useBillingEnabled } from "@/hooks/useBillingEnabled";
 
-type Pkg = { id: string; name: string; description: string | null; credits: number; price_cents: number };
+type Pkg = {
+  id: string;
+  name: string;
+  description: string | null;
+  credits: number;
+  price_cents: number;
+  class_type: "avulsa_grupo" | "avulsa_particular" | "aluguel";
+};
 type Pay = { id: string; credits: number; amount_cents: number; status: string; created_at: string; admin_notes: string | null };
 
 const fmt = (c: number) => `R$ ${(c / 100).toFixed(2).replace(".", ",")}`;
@@ -65,49 +72,60 @@ export default function Packages() {
         <PixCheckout pkg={selected} onBack={() => { setSelected(null); load(); }} t={t} />
       ) : (
         <>
-          <section className="px-5 space-y-3">
-            {pkgs.map((p) => {
-              const nameKey = `packages.catalog.${p.name}.name`;
-              const descKey = `packages.catalog.${p.name}.description`;
-              const tn = t(nameKey);
-              const dn = tn === nameKey ? p.name : tn;
-              const td = p.description ? t(descKey) : "";
-              const dd = !p.description ? "" : td === descKey ? p.description : td;
-              return (
-                <button key={p.id} onClick={() => setSelected(p)} className="w-full text-left glass-strong rounded-2xl p-5 hover:bg-secondary/30 transition-colors active:scale-[0.99]">
-                  <div className="flex items-start justify-between gap-4">
+          <section className="px-5">
+            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
+              {pkgs.map((p) => {
+                const nameKey = `packages.catalog.${p.name}.name`;
+                const descKey = `packages.catalog.${p.name}.description`;
+                const tn = t(nameKey);
+                const dn = tn === nameKey ? p.name : tn;
+                const td = p.description ? t(descKey) : "";
+                const dd = !p.description ? "" : td === descKey ? p.description : td;
+
+                const typeLabels: Record<string, string> = {
+                  avulsa_grupo: "Grupo",
+                  avulsa_particular: "Particular",
+                  aluguel: "Aluguel",
+                };
+                const typeColors: Record<string, string> = {
+                  avulsa_grupo: "bg-blue-500/10 text-blue-400 border border-blue-500/20",
+                  avulsa_particular: "bg-purple-500/10 text-purple-400 border border-purple-500/20",
+                  aluguel: "bg-amber-500/10 text-amber-400 border border-amber-500/20",
+                };
+
+                return (
+                  <div key={p.id} className="glass-strong rounded-[32px] p-6 flex flex-col justify-between min-h-[240px] border border-white/5 transition-all hover:scale-[1.02] active:scale-[0.98]">
                     <div>
-                      <div className="flex items-center gap-1.5 flex-wrap">
-                        <span className="text-xs uppercase tracking-widest text-primary/80">{p.credits} {t("packages.creditsLabel")}</span>
-                        {(() => {
-                          const typeLabels: Record<string, string> = {
-                            avulsa_grupo: "Grupo",
-                            avulsa_particular: "Particular",
-                            aluguel: "Aluguel",
-                          };
-                          const typeColors: Record<string, string> = {
-                            avulsa_grupo: "bg-blue-500/10 text-blue-400 border border-blue-500/20",
-                            avulsa_particular: "bg-purple-500/10 text-purple-400 border border-purple-500/20",
-                            aluguel: "bg-amber-500/10 text-amber-400 border border-amber-500/20",
-                          };
-                          return (
-                            <span className={`text-[9px] uppercase font-bold px-1.5 py-0.5 rounded-full border ${typeColors[p.class_type ?? "avulsa_grupo"]}`}>
-                              {typeLabels[p.class_type ?? "avulsa_grupo"]}
-                            </span>
-                          );
-                        })()}
+                      <div className="flex items-center gap-2 flex-wrap mb-2">
+                        <span className="text-[10px] uppercase font-bold tracking-widest text-primary/80">
+                          {p.credits} {t("packages.creditsLabel")}
+                        </span>
+                        <span className={`text-[9px] uppercase font-bold px-2 py-0.5 rounded-full border ${typeColors[p.class_type ?? "avulsa_grupo"]}`}>
+                          {typeLabels[p.class_type ?? "avulsa_grupo"]}
+                        </span>
                       </div>
-                      <div className="font-bold text-lg mt-0.5">{dn}</div>
-                      {dd && <div className="text-sm text-muted-foreground mt-1">{dd}</div>}
+                      <div className="font-bold text-xl text-white mb-2">{dn}</div>
+                      {dd && <div className="text-xs text-muted-foreground/80 leading-relaxed line-clamp-3">{dd}</div>}
                     </div>
-                    <div className="text-right">
-                      <div className="text-2xl font-bold text-gradient">{fmt(p.price_cents)}</div>
-                      <div className="text-xs text-muted-foreground mt-0.5">{fmt(Math.round(p.price_cents / p.credits))}{t("packages.perClass")}</div>
+
+                    <div className="mt-6 flex flex-col gap-4">
+                      <div className="flex items-baseline justify-between">
+                        <div className="text-2xl font-black text-gradient">{fmt(p.price_cents)}</div>
+                        <div className="text-[10px] text-muted-foreground font-medium">
+                          {fmt(Math.round(p.price_cents / p.credits))} /aula
+                        </div>
+                      </div>
+                      <Button
+                        onClick={() => setSelected(p)}
+                        className="w-full h-11 rounded-2xl bg-gradient-to-r from-primary to-accent text-primary-foreground font-bold text-xs shadow-lg shadow-primary/20 hover:shadow-primary/40"
+                      >
+                        Comprar agora
+                      </Button>
                     </div>
                   </div>
-                </button>
-              );
-            })}
+                );
+              })}
+            </div>
           </section>
 
           <section className="px-5 mt-8">
