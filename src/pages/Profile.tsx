@@ -11,6 +11,9 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { toast } from "sonner";
 import { ArrowLeft, Camera, Loader2, LogOut, User as UserIcon } from "lucide-react";
 import { useTranslation } from "@/i18n/LanguageContext";
+import { SetPasswordForm } from "@/components/SetPasswordForm";
+import { ExperienceNotesField } from "@/components/ExperienceNotesField";
+import { userHasPasswordLogin } from "@/lib/auth";
 
 export default function Profile() {
   const { user, profile, refreshProfile, signOut, loading } = useAuth();
@@ -19,6 +22,7 @@ export default function Profile() {
   const fileRef = useRef<HTMLInputElement>(null);
   const [saving, setSaving] = useState(false);
   const [uploading, setUploading] = useState(false);
+  const [hasPasswordLogin, setHasPasswordLogin] = useState(false);
   const [form, setForm] = useState({
     full_name: "", phone: "", height_cm: "" as string, weight_kg: "" as string,
     age: "" as string, stance: "desconhecido", surf_level: "iniciante",
@@ -31,6 +35,10 @@ export default function Profile() {
     if (loading) return;
     if (!user) { navigate("/auth", { replace: true }); return; }
   }, [user, loading, navigate]);
+
+  useEffect(() => {
+    if (user) setHasPasswordLogin(userHasPasswordLogin(user));
+  }, [user]);
 
   useEffect(() => {
     if (!user) return;
@@ -188,6 +196,13 @@ export default function Profile() {
       </section>
 
       <section className="px-5 mt-8 space-y-5">
+        {user && !hasPasswordLogin && (
+          <Block title={t("profile.blocks.access")}>
+            <p className="text-sm text-muted-foreground">{t("setPassword.profileHint")}</p>
+            <SetPasswordForm onSuccess={() => setHasPasswordLogin(true)} />
+          </Block>
+        )}
+
         <Block title={t("profile.blocks.personal")}>
           <Field label={t("profile.fields.fullName")}><Input value={form.full_name} onChange={(e) => setForm({ ...form, full_name: e.target.value })} /></Field>
           <div className="grid grid-cols-2 gap-3">
@@ -261,7 +276,10 @@ export default function Profile() {
 
         <Block title={t("profile.blocks.about")}>
           <Field label={t("profile.fields.notes")}>
-            <Textarea rows={3} value={form.experience_notes} onChange={(e) => setForm({ ...form, experience_notes: e.target.value })} />
+            <ExperienceNotesField
+              value={form.experience_notes}
+              onChange={(experience_notes) => setForm({ ...form, experience_notes })}
+            />
           </Field>
         </Block>
 

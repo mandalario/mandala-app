@@ -8,6 +8,7 @@ import { LanguageProvider } from "@/i18n/LanguageContext";
 import { useLocation } from "react-router-dom";
 import { BottomNav } from "@/components/BottomNav";
 import { PushNotificationManager } from "@/components/PushNotificationManager";
+import { SetPasswordPrompt } from "@/components/SetPasswordPrompt";
 import Index from "./pages/Index.tsx";
 import Auth from "./pages/Auth.tsx";
 import Onboarding from "./pages/Onboarding.tsx";
@@ -59,6 +60,7 @@ const App = () => (
         <BrowserRouter>
           <AuthProvider>
             <PushNotificationManager />
+            <SetPasswordPrompt />
             <Routes>
               <Route path="/" element={<Index />} />
               <Route path="/auth" element={<Auth />} />

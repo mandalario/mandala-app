@@ -8,6 +8,8 @@ import { Switch } from "@/components/ui/switch";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { toast } from "sonner";
 import { CheckCircle2, XCircle, Search, Loader2, X, Plus, Save, User, Phone, Mail, Heart, Activity, Trash2 } from "lucide-react";
+import { BoardFields } from "@/components/BoardFields";
+import { formatBoardField, parseBoardField } from "@/lib/board";
 
 type Student = {
   id: string; email: string; full_name: string | null; phone: string | null;
@@ -147,7 +149,10 @@ const Overlay = ({ children, onClose, title, subtitle, badge }: any) => (
 
 /* ---------------- Edit student ---------------- */
 function StudentSheet({ student, onClose, onSaved }: { student: Student; onClose: () => void; onSaved: () => void }) {
+  const initialBoard = parseBoardField(student.board_size);
   const [f, setF] = useState<Student>(student);
+  const [boardType, setBoardType] = useState(initialBoard.type);
+  const [boardSize, setBoardSize] = useState(initialBoard.size);
   const [saving, setSaving] = useState(false);
   const set = (k: keyof Student, v: any) => setF((p) => ({ ...p, [k]: v }));
 
@@ -176,7 +181,7 @@ function StudentSheet({ student, onClose, onSaved }: { student: Student; onClose
       stance: f.stance as any,
       can_swim: f.can_swim,
       has_own_board: f.has_own_board,
-      board_size: f.board_size,
+      board_size: f.has_own_board ? formatBoardField(boardType, boardSize) : null,
       experience_notes: f.experience_notes,
       medical_conditions: f.medical_conditions,
       emergency_contact_name: f.emergency_contact_name,
@@ -259,9 +264,16 @@ function StudentSheet({ student, onClose, onSaved }: { student: Student; onClose
             </SelectContent>
           </Select>
         </Field>
-        <Field label="Tamanho da prancha"><Input value={f.board_size ?? ""} onChange={(e) => set("board_size", e.target.value)} /></Field>
         <Toggle label="Sabe nadar" value={true} disabled onChange={() => {}} />
         <Toggle label="Prancha própria" value={!!f.has_own_board} onChange={(v) => set("has_own_board", v)} />
+        {f.has_own_board && (
+          <BoardFields
+            boardType={boardType}
+            boardSize={boardSize}
+            onTypeChange={setBoardType}
+            onSizeChange={setBoardSize}
+          />
+        )}
         <Field label="Notas de evolução" full>
           <Textarea rows={4} value={f.experience_notes ?? ""} onChange={(e) => set("experience_notes", e.target.value)} placeholder="Manobras dominadas, pontos a melhorar, progressão..." />
         </Field>
@@ -307,7 +319,8 @@ function CreateStudentSheet({ onClose, onCreated }: { onClose: () => void; onCre
     email: "", password: "", full_name: "", phone: "",
     age: "", weight_kg: "", height_cm: "",
     surf_level: "iniciante", stance: "desconhecido",
-    can_swim: true, has_own_board: false, board_size: "",
+    can_swim: true, has_own_board: false,
+    board_type: "", board_size: "",
     experience_notes: "",
   });
   const set = (k: string, v: any) => setF((p) => ({ ...p, [k]: v }));
@@ -330,7 +343,7 @@ function CreateStudentSheet({ onClose, onCreated }: { onClose: () => void; onCre
           stance: f.stance,
           can_swim: f.can_swim,
           has_own_board: f.has_own_board,
-          board_size: f.board_size || null,
+          board_size: f.has_own_board ? formatBoardField(f.board_type, f.board_size) : null,
           experience_notes: f.experience_notes || null,
         },
       },
@@ -392,9 +405,16 @@ function CreateStudentSheet({ onClose, onCreated }: { onClose: () => void; onCre
             </SelectContent>
           </Select>
         </Field>
-        <Field label="Tamanho prancha"><Input value={f.board_size} onChange={(e) => set("board_size", e.target.value)} /></Field>
         <Toggle label="Sabe nadar" value={true} disabled onChange={() => {}} />
         <Toggle label="Prancha própria" value={f.has_own_board} onChange={(v) => set("has_own_board", v)} />
+        {f.has_own_board && (
+          <BoardFields
+            boardType={f.board_type}
+            boardSize={f.board_size}
+            onTypeChange={(v) => set("board_type", v)}
+            onSizeChange={(v) => set("board_size", v)}
+          />
+        )}
         <Field label="Notas iniciais" full>
           <Textarea rows={3} value={f.experience_notes} onChange={(e) => set("experience_notes", e.target.value)} />
         </Field>

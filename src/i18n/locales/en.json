@@ -50,6 +50,23 @@
       "signup": "Account created! Complete your profile."
     }
   },
+  "setPassword": {
+    "promptTitle": "Create a password",
+    "promptDescription": "You signed in with Google. Set a password so you can also sign in with email and password without Google.",
+    "profileHint": "Set a password to sign in with your email without using Google.",
+    "emailHint": "Use your account email:",
+    "password": "New password",
+    "confirm": "Confirm password",
+    "submit": "Save password",
+    "later": "Not now",
+    "success": "Password saved! You can now sign in with email and password.",
+    "errors": {
+      "mismatch": "Passwords do not match.",
+      "short": "Password must be at least 6 characters.",
+      "sameAsOld": "Choose a different password.",
+      "generic": "Could not save password: "
+    }
+  },
   "register": {
     "title": "Create account"
   },
@@ -65,6 +82,14 @@
     "noCredits": "You have no credits. Top up.",
     "bookSuccess": "Class booked! 1 credit used.",
     "locationTBD": "Location TBD",
+    "classTypePrompt": "Which classes do you want to see?",
+    "filterGroup": "Group class",
+    "filterGroupHint": "All group classes this week",
+    "filterPrivate": "Private",
+    "filterPrivateHint": "All private classes this week",
+    "filterRental": "Rental",
+    "filterRentalHint": "All rentals this week",
+    "selectType": "Choose a class type above to see available times.",
     "conditions": {
       "good": "Good surf",
       "medium": "Average surf",
@@ -151,6 +176,7 @@
     "photoUpdated": "Photo updated",
     "save": "Save changes",
     "blocks": {
+      "access": "Account access",
       "personal": "Personal info",
       "surf": "Surf",
       "emergency": "Emergency & health",
@@ -181,6 +207,21 @@
       "regular": "Regular",
       "goofy": "Goofy",
       "unknown": "Don't know"
+    },
+    "experienceOptions": {
+      "toggleShow": "Show experience options",
+      "toggleHide": "Hide options",
+      "hint": "Tap the option that fits you best",
+      "scrollPrev": "See previous options",
+      "scrollNext": "See more options",
+      "placeholder": "Or write in your own words…",
+      "neverSurfed": "Never surfed",
+      "beginner": "Beginner",
+      "alreadySurfed": "Already surfed",
+      "fewTimes": "Surfed a few times",
+      "stoodUp": "Already stood up on a wave",
+      "bodyboard": "Bodyboard before",
+      "otherBoardSports": "Other board sports"
     }
   },
   "notifications": {

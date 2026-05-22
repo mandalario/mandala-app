@@ -50,6 +50,23 @@
       "signup": "¡Cuenta creada! Completa tu ficha técnica."
     }
   },
+  "setPassword": {
+    "promptTitle": "Crear contraseña de acceso",
+    "promptDescription": "Entraste con Google. Define una contraseña para también poder entrar con email y contraseña, sin usar Google.",
+    "profileHint": "Registra una contraseña para entrar con tu email sin usar Google.",
+    "emailHint": "Usa el email de tu cuenta:",
+    "password": "Nueva contraseña",
+    "confirm": "Confirmar contraseña",
+    "submit": "Guardar contraseña",
+    "later": "Ahora no",
+    "success": "¡Contraseña guardada! Ya puedes entrar con email y contraseña.",
+    "errors": {
+      "mismatch": "Las contraseñas no coinciden.",
+      "short": "La contraseña debe tener al menos 6 caracteres.",
+      "sameAsOld": "Elige una contraseña diferente.",
+      "generic": "No se pudo guardar la contraseña: "
+    }
+  },
   "register": {
     "title": "Crear cuenta"
   },
@@ -65,6 +82,14 @@
     "noCredits": "No tienes créditos. Recarga.",
     "bookSuccess": "¡Clase agendada! 1 crédito utilizado.",
     "locationTBD": "Lugar por definir",
+    "classTypePrompt": "¿Qué clase deseas ver?",
+    "filterGroup": "Clase en grupo",
+    "filterGroupHint": "Todas las clases en grupo de esta semana",
+    "filterPrivate": "Particular",
+    "filterPrivateHint": "Todas las clases particulares de esta semana",
+    "filterRental": "Alquiler",
+    "filterRentalHint": "Todos los alquileres de esta semana",
+    "selectType": "Elige un tipo de clase arriba para ver los horarios disponibles.",
     "conditions": {
       "good": "Mar bueno",
       "medium": "Mar regular",
@@ -151,6 +176,7 @@
     "photoUpdated": "Foto actualizada",
     "save": "Guardar cambios",
     "blocks": {
+      "access": "Acceso a la cuenta",
       "personal": "Datos personales",
       "surf": "Surf",
       "emergency": "Emergencia & salud",
@@ -181,6 +207,21 @@
       "regular": "Regular",
       "goofy": "Goofy",
       "unknown": "No sé"
+    },
+    "experienceOptions": {
+      "toggleShow": "Ver opciones de experiencia",
+      "toggleHide": "Ocultar opciones",
+      "hint": "Toca la opción que más te identifique",
+      "scrollPrev": "Ver opciones anteriores",
+      "scrollNext": "Ver más opciones",
+      "placeholder": "O escribe con tus palabras…",
+      "neverSurfed": "Nunca surfeó",
+      "beginner": "Principiante",
+      "alreadySurfed": "Ya surfeó",
+      "fewTimes": "Surfeó algunas veces",
+      "stoodUp": "Ya se paró en una ola",
+      "bodyboard": "Bodyboard antes",
+      "otherBoardSports": "Otros deportes de tabla"
     }
   },
   "notifications": {

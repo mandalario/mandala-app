@@ -13,6 +13,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { Switch } from "@/components/ui/switch";
 import { toast } from "sonner";
 import { Waves, Loader2, ArrowRight, ArrowLeft } from "lucide-react";
+import { ExperienceNotesField } from "@/components/ExperienceNotesField";
 
 const schema = z.object({
   full_name: z.string().trim().min(2).max(100),
@@ -301,7 +302,12 @@ export default function Onboarding() {
               )}
 
               <Field label="Experiência prévia (opcional)">
-                <Textarea value={form.experience_notes} onChange={(e) => setForm({ ...form, experience_notes: e.target.value })} className="bg-input/60 border-0 rounded-xl min-h-20" />
+                <ExperienceNotesField
+                  value={form.experience_notes}
+                  onChange={(experience_notes) => setForm({ ...form, experience_notes })}
+                  rows={3}
+                  className="bg-input/60 border-0 rounded-xl min-h-20"
+                />
               </Field>
             </Section>
 

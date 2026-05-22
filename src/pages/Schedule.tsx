@@ -5,17 +5,18 @@ import { useAuth } from "@/hooks/useAuth";
 import { OceanBackground } from "@/components/OceanBackground";
 import { Button } from "@/components/ui/button";
 import { toast } from "sonner";
-import { ArrowLeft, Loader2, Waves, Wind, CloudOff, Calendar as Cal, ChevronDown, XCircle } from "lucide-react";
+import { ArrowLeft, Loader2, Waves, Wind, CloudOff, Calendar as Cal, Users, User, Package, XCircle } from "lucide-react";
 import { useTranslation } from "@/i18n/LanguageContext";
 import { useBillingEnabled } from "@/hooks/useBillingEnabled";
 import { Calendar } from "@/components/ui/calendar";
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
 import { format } from "date-fns";
-import { ptBR } from "date-fns/locale";
+import { ptBR, es, enUS } from "date-fns/locale";
 
 type Slot = { id: string; date: string; start_time: string; end_time: string; capacity: number; location: string | null; notes: string | null; is_open: boolean; class_type: "avulsa_grupo" | "avulsa_particular" | "aluguel" };
 type Cond = { date: string; condition: "good" | "medium" | "bad" | "flat"; notes: string | null };
 type Booking = { slot_id: string; status: string };
+type ClassTypeFilter = "avulsa_grupo" | "avulsa_particular" | "aluguel";
 
 const condColor = {
   good: "text-success bg-success/15",
@@ -34,8 +35,6 @@ export default function Schedule() {
   const { user, profile, refreshProfile } = useAuth();
   const { t, language } = useTranslation();
   const billingEnabled = useBillingEnabled();
-  const localeMap: Record<string, string> = { pt: "pt-BR", en: "en-US", es: "es-ES" };
-  const locale = localeMap[language] ?? "en-US";
   const [slots, setSlots] = useState<Slot[]>([]);
   const [conds, setConds] = useState<Cond[]>([]);
   const [bookings, setBookings] = useState<Booking[]>([]);
@@ -43,13 +42,42 @@ export default function Schedule() {
   const [loading, setLoading] = useState(true);
   const [bookingId, setBookingId] = useState<string | null>(null);
   const [filterDate, setFilterDate] = useState<string>("");
+  const [classTypeFilter, setClassTypeFilter] = useState<ClassTypeFilter | null>(null);
 
   const today = new Date().toISOString().slice(0, 10);
 
-  const load = async () => {
+  const dateFnsLocale = language === "pt" ? ptBR : language === "es" ? es : enUS;
+
+  const formatFullDate = (dateStr: string) => {
+    const date = new Date(dateStr + "T12:00:00");
+    if (language === "en") return format(date, "MMMM d, yyyy", { locale: dateFnsLocale });
+    return format(date, "d 'de' MMMM 'de' yyyy", { locale: dateFnsLocale });
+  };
+
+  const selectClassFilter = (type: ClassTypeFilter) => {
+    setClassTypeFilter(type);
+    setFilterDate("");
+  };
+
+  const loadConditions = async () => {
+    const { data: c } = await supabase
+      .from("surf_conditions")
+      .select("date, condition, notes")
+      .gte("date", today);
+    setConds((c ?? []) as Cond[]);
+  };
+
+  const loadSlots = async () => {
+    if (!user || !classTypeFilter) return;
     setLoading(true);
-    let q = supabase.from("class_slots").select("*").eq("is_open", true).order("date").order("start_time");
-    
+    let q = supabase
+      .from("class_slots")
+      .select("*")
+      .eq("is_open", true)
+      .eq("class_type", classTypeFilter)
+      .order("date")
+      .order("start_time");
+
     if (filterDate) {
       q = q.eq("date", filterDate);
     } else {
@@ -58,27 +86,36 @@ export default function Schedule() {
       q = q.gte("date", today).lte("date", d.toISOString().slice(0, 10));
     }
 
-    const [{ data: s }, { data: c }, { data: b }] = await Promise.all([
+    const [{ data: s }, { data: b }] = await Promise.all([
       q,
-      supabase.from("surf_conditions").select("date, condition, notes").gte("date", filterDate || today),
-      supabase.from("bookings").select("slot_id, status").eq("user_id", user!.id).neq("status", "cancelled"),
+      supabase.from("bookings").select("slot_id, status").eq("user_id", user.id).neq("status", "cancelled"),
     ]);
     setSlots((s ?? []) as Slot[]);
-    setConds((c ?? []) as Cond[]);
     setBookings((b ?? []) as Booking[]);
 
-    // contar bookings por slot
     if (s && s.length) {
-      const ids = s.map((x: any) => x.id);
+      const ids = s.map((x: { id: string }) => x.id);
       const { data: allB } = await supabase.from("bookings").select("slot_id").in("slot_id", ids).eq("status", "confirmed");
       const map: Record<string, number> = {};
-      (allB ?? []).forEach((row: any) => { map[row.slot_id] = (map[row.slot_id] ?? 0) + 1; });
+      (allB ?? []).forEach((row: { slot_id: string }) => { map[row.slot_id] = (map[row.slot_id] ?? 0) + 1; });
       setCounts(map);
+    } else {
+      setCounts({});
     }
     setLoading(false);
   };
 
-  useEffect(() => { if (user) load(); }, [user, filterDate]);
+  useEffect(() => { if (user) loadConditions(); }, [user]);
+  useEffect(() => {
+    if (!user || !classTypeFilter) {
+      setSlots([]);
+      setBookings([]);
+      setCounts({});
+      setLoading(false);
+      return;
+    }
+    loadSlots();
+  }, [user, filterDate, classTypeFilter]);
 
   const condByDate = useMemo(() => {
     const m: Record<string, Cond> = {};
@@ -136,7 +173,7 @@ export default function Schedule() {
     if (error) { toast.error(error.message); return; }
     toast.success(t("schedule.bookSuccess"));
     await refreshProfile();
-    load();
+    loadSlots();
   };
 
   const handleBookClick = (slot: Slot) => {
@@ -151,7 +188,7 @@ export default function Schedule() {
     if (error) { toast.error(error.message); return; }
     toast.success("Aula desmarcada com sucesso! Crédito devolvido.");
     await refreshProfile();
-    load();
+    loadSlots();
   };
 
   return (
@@ -242,7 +279,58 @@ export default function Schedule() {
         </div>
       </div>
 
-      {loading ? (
+      <div className="px-5 mb-5 max-w-md mx-auto">
+        <p className="text-[11px] uppercase tracking-widest text-muted-foreground mb-2 px-1">
+          {t("schedule.classTypePrompt")}
+        </p>
+        <div className="grid grid-cols-3 gap-2">
+          <button
+            type="button"
+            onClick={() => selectClassFilter("avulsa_grupo")}
+            className={`glass rounded-2xl p-3 flex flex-col items-center gap-1.5 border transition-all ${
+              classTypeFilter === "avulsa_grupo"
+                ? "border-primary/50 bg-primary/10 shadow-[0_0_20px_rgba(var(--primary),0.15)]"
+                : "border-white/5 hover:border-white/15"
+            }`}
+          >
+            <Users className={`w-5 h-5 ${classTypeFilter === "avulsa_grupo" ? "text-primary" : "text-muted-foreground"}`} />
+            <span className="text-[11px] font-bold">{t("schedule.filterGroup")}</span>
+          </button>
+          <button
+            type="button"
+            onClick={() => selectClassFilter("avulsa_particular")}
+            className={`glass rounded-2xl p-3 flex flex-col items-center gap-1.5 border transition-all ${
+              classTypeFilter === "avulsa_particular"
+                ? "border-purple-400/50 bg-purple-500/10 shadow-[0_0_20px_rgba(168,85,247,0.15)]"
+                : "border-white/5 hover:border-white/15"
+            }`}
+          >
+            <User className={`w-5 h-5 ${classTypeFilter === "avulsa_particular" ? "text-purple-400" : "text-muted-foreground"}`} />
+            <span className="text-[11px] font-bold">{t("schedule.filterPrivate")}</span>
+          </button>
+          <button
+            type="button"
+            onClick={() => selectClassFilter("aluguel")}
+            className={`glass rounded-2xl p-3 flex flex-col items-center gap-1.5 border transition-all ${
+              classTypeFilter === "aluguel"
+                ? "border-amber-400/50 bg-amber-500/10 shadow-[0_0_20px_rgba(245,158,11,0.15)]"
+                : "border-white/5 hover:border-white/15"
+            }`}
+          >
+            <Package className={`w-5 h-5 ${classTypeFilter === "aluguel" ? "text-amber-400" : "text-muted-foreground"}`} />
+            <span className="text-[11px] font-bold">{t("schedule.filterRental")}</span>
+          </button>
+        </div>
+      </div>
+
+      {!classTypeFilter ? (
+        <div className="px-5">
+          <div className="glass rounded-2xl p-12 text-center text-muted-foreground">
+            <Cal className="w-8 h-8 mx-auto mb-2 opacity-50" />
+            {t("schedule.selectType")}
+          </div>
+        </div>
+      ) : loading ? (
         <div className="px-5"><div className="glass rounded-2xl p-8 text-center"><Loader2 className="w-5 h-5 animate-spin mx-auto" /></div></div>
       ) : Object.keys(grouped).length === 0 ? (
         <div className="px-5"><div className="glass rounded-2xl p-12 text-center text-muted-foreground"><Cal className="w-8 h-8 mx-auto mb-2 opacity-50" />{t("schedule.empty")}</div></div>
@@ -254,7 +342,7 @@ export default function Schedule() {
               <div key={date}>
                 <div className="flex items-center justify-between mb-2 px-1">
                   <div className="text-[13px] font-bold capitalize text-white mb-2">
-                    {new Date(date + "T12:00:00").toLocaleDateString(locale, { weekday: "long", day: "2-digit", month: "short" })}.
+                    {formatFullDate(date)}
                   </div>
                   {cond && (
                     <span className={`inline-flex items-center gap-1.5 text-xs px-2.5 py-1 rounded-full ${condColor[cond.condition]}`}>
@@ -353,7 +441,6 @@ export default function Schedule() {
         </div>
       )}
 
-      {/* Removed Choice Modal */}
     </div>
   );
 }
