@@ -6,6 +6,7 @@ import { OceanBackground } from "@/components/OceanBackground";
 import { NotificationsBell } from "@/components/NotificationsBell";
 import { CreditsBadge } from "@/components/CreditsBadge";
 import { HomeBanners } from "@/components/HomeBanners";
+import { HomePartners } from "@/components/HomePartners";
 import { DailyQuote } from "@/components/DailyQuote";
 import { SeaConditionCard } from "@/components/SeaConditionCard";
 import { Waves, Calendar, CreditCard, MessageCircle, Video, User as UserIcon } from "lucide-react";
@@ -110,6 +111,10 @@ export default function StudentHome() {
 
       <section className="px-5 mt-6">
         <HomeBanners />
+      </section>
+
+      <section className="px-5 mt-6">
+        <HomePartners />
       </section>
 
       <section className="px-5 mt-6 grid grid-cols-2 gap-3">

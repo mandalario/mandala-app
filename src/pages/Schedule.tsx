@@ -174,7 +174,7 @@ export default function Schedule() {
         )}
       </header>
 
-      <div className="px-5 mb-6">
+      <div className="px-5 mb-6 max-w-md mx-auto">
         <div className="glass rounded-[32px] overflow-hidden border border-white/10 shadow-2xl">
           <div className="p-5 pb-0 flex items-center justify-between">
             <h2 className="text-[13px] font-bold flex items-center gap-2 text-white/90">
@@ -196,27 +196,27 @@ export default function Schedule() {
             selected={filterDate ? new Date(filterDate + "T12:00:00") : undefined}
             onSelect={(date) => setFilterDate(date ? format(date, "yyyy-MM-dd") : "")}
             locale={ptBR}
-            className="w-full flex justify-center p-3"
+            className="w-full flex justify-center p-2"
             modifiers={calendarModifiers}
             modifiersClassNames={{
-              good: "relative after:absolute after:bottom-1 after:left-1/2 after:-translate-x-1/2 after:w-1 after:h-1 after:bg-success after:rounded-full",
-              medium: "relative after:absolute after:bottom-1 after:left-1/2 after:-translate-x-1/2 after:w-1 after:h-1 after:bg-warning after:rounded-full",
-              bad: "relative after:absolute after:bottom-1 after:left-1/2 after:-translate-x-1/2 after:w-1 after:h-1 after:bg-destructive after:rounded-full",
-              flat: "relative after:absolute after:bottom-1 after:left-1/2 after:-translate-x-1/2 after:w-1 after:h-1 after:bg-muted-foreground after:rounded-full",
+              good: "relative after:absolute after:bottom-0.5 after:left-1/2 after:-translate-x-1/2 after:w-1 after:h-1 after:bg-success after:rounded-full",
+              medium: "relative after:absolute after:bottom-0.5 after:left-1/2 after:-translate-x-1/2 after:w-1 after:h-1 after:bg-warning after:rounded-full",
+              bad: "relative after:absolute after:bottom-0.5 after:left-1/2 after:-translate-x-1/2 after:w-1 after:h-1 after:bg-destructive after:rounded-full",
+              flat: "relative after:absolute after:bottom-0.5 after:left-1/2 after:-translate-x-1/2 after:w-1 after:h-1 after:bg-muted-foreground after:rounded-full",
             }}
             classNames={{
               months: "w-full",
-              month: "w-full space-y-4",
-              caption: "flex justify-center pt-1 relative items-center mb-2",
+              month: "w-full space-y-2",
+              caption: "flex justify-center pt-1 relative items-center mb-1",
               caption_label: "text-sm font-bold text-white capitalize",
               nav: "space-x-1 flex items-center",
-              nav_button: "h-8 w-8 bg-white/5 border-none hover:bg-white/10 text-white rounded-full transition-colors flex items-center justify-center",
+              nav_button: "h-7 w-7 bg-white/5 border-none hover:bg-white/10 text-white rounded-full transition-colors flex items-center justify-center",
               table: "w-full border-collapse",
-              head_row: "flex justify-between mb-2 px-2",
-              head_cell: "text-muted-foreground w-9 font-medium text-[11px] lowercase",
-              row: "flex w-full justify-between mt-1 px-2",
-              cell: "h-9 w-9 text-center text-sm p-0 relative focus-within:z-20",
-              day: "h-9 w-9 p-0 font-medium text-white/80 aria-selected:opacity-100 hover:bg-white/5 rounded-xl transition-all",
+              head_row: "flex justify-between mb-1 px-2",
+              head_cell: "text-muted-foreground w-8 font-medium text-[11px] lowercase",
+              row: "flex w-full justify-between mt-0.5 px-2",
+              cell: "h-8 w-8 text-center text-sm p-0 relative focus-within:z-20",
+              day: "h-8 w-8 p-0 font-medium text-white/80 aria-selected:opacity-100 hover:bg-white/5 rounded-xl transition-all",
               day_selected: "bg-primary text-primary-foreground font-bold hover:bg-primary/90 rounded-xl shadow-[0_0_20px_rgba(var(--primary),0.4)]",
               day_today: "text-primary font-bold border border-primary/20 rounded-xl",
               day_outside: "text-white/20 opacity-40",
