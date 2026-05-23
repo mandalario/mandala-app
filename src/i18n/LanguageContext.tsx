@@ -1,4 +1,4 @@
-import { createContext, useCallback, useEffect, useMemo, useState, ReactNode } from "react";
+import { createContext, useCallback, useContext, useEffect, useMemo, useState, ReactNode } from "react";
 import pt from "./locales/pt.json";
 import en from "./locales/en.json";
 import es from "./locales/es.json";
@@ -147,4 +147,13 @@ export function LanguageProvider({ children }: { children: ReactNode }) {
   );
 }
 
-export { useLanguage, useTranslation } from "./useLanguage";
+export function useLanguage() {
+  const ctx = useContext(LanguageContext);
+  if (!ctx) throw new Error("useLanguage must be used within LanguageProvider");
+  return ctx;
+}
+
+export function useTranslation() {
+  const { t, language, setLanguage } = useLanguage();
+  return { t, language, setLanguage };
+}

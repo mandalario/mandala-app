@@ -13,6 +13,7 @@ import { ArrowLeft, Camera, Loader2, LogOut, User as UserIcon } from "lucide-rea
 import { useTranslation } from "@/i18n/LanguageContext";
 import { SetPasswordForm } from "@/components/SetPasswordForm";
 import { ExperienceNotesField } from "@/components/ExperienceNotesField";
+import { stripDecimalSeparators } from "@/lib/utils";
 import { userHasPasswordLogin } from "@/lib/auth";
 import { boardTypeLabel } from "@/i18n/boardTypes";
 import { BOARD_TYPES } from "@/lib/board";
@@ -209,7 +210,14 @@ export default function Profile() {
           <div className="grid grid-cols-2 gap-3">
             <Field label={t("profile.fields.phone")}><Input value={form.phone} onChange={(e) => setForm({ ...form, phone: e.target.value })} /></Field>
             <Field label={t("profile.fields.age")}><Input type="number" value={form.age} onChange={(e) => setForm({ ...form, age: e.target.value })} /></Field>
-            <Field label={t("profile.fields.height")}><Input type="number" value={form.height_cm} onChange={(e) => setForm({ ...form, height_cm: e.target.value })} /></Field>
+            <Field label={t("profile.fields.height")}>
+              <Input
+                type="text"
+                inputMode="numeric"
+                value={form.height_cm}
+                onChange={(e) => setForm({ ...form, height_cm: stripDecimalSeparators(e.target.value) })}
+              />
+            </Field>
             <Field label={t("profile.fields.weight")}><Input type="number" value={form.weight_kg} onChange={(e) => setForm({ ...form, weight_kg: e.target.value })} /></Field>
           </div>
         </Block>

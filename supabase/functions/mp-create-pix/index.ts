@@ -1,5 +1,6 @@
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2.95.0";
 import { corsHeaders } from "https://esm.sh/@supabase/supabase-js@2.95.0/cors";
+import { sanitizePixQrCode } from "../_shared/pixQrCode.ts";
 
 Deno.serve(async (req) => {
   if (req.method === "OPTIONS") return new Response("ok", { headers: corsHeaders });
@@ -102,7 +103,8 @@ Deno.serve(async (req) => {
     }
 
     const tx = mpData?.point_of_interaction?.transaction_data;
-    const qrCode = tx?.qr_code ?? null;
+    const qrCodeRaw = tx?.qr_code ?? null;
+    const qrCode = qrCodeRaw ? sanitizePixQrCode(qrCodeRaw) : null;
     const qrCodeBase64 = tx?.qr_code_base64 ?? null;
 
     const { data: payment, error: insErr } = await admin

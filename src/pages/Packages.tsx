@@ -1,4 +1,5 @@
 import { useEffect, useRef, useState } from "react";
+import QRCode from "qrcode";
 import { Link, useNavigate } from "react-router-dom";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/hooks/useAuth";
@@ -9,6 +10,7 @@ import { ArrowLeft, Loader2, QrCode, Copy, CheckCircle2, Hourglass, XCircle, Ale
 import { useTranslation } from "@/i18n/LanguageContext";
 import { packageCatalogText } from "@/i18n/studentContent";
 import { useBillingEnabled } from "@/hooks/useBillingEnabled";
+import { sanitizePixQrCode } from "@/lib/pixQrCode";
 
 type Pkg = {
   id: string;
@@ -160,6 +162,7 @@ function PixCheckout({ pkg, onBack, t }: { pkg: Pkg; onBack: () => void; t: (k: 
   const [creating, setCreating] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [pix, setPix] = useState<{ paymentId: string; qrCode: string | null; qrCodeBase64: string | null } | null>(null);
+  const [qrImageUrl, setQrImageUrl] = useState<string | null>(null);
   const [status, setStatus] = useState<"pending" | "approved" | "rejected">("pending");
   const [applePayLoading, setApplePayLoading] = useState(false);
   const pollRef = useRef<number | null>(null);
@@ -167,6 +170,24 @@ function PixCheckout({ pkg, onBack, t }: { pkg: Pkg; onBack: () => void; t: (k: 
   const hasNativeBridge = typeof window !== "undefined" && !!(window as any).ReactNativeWebView;
 
   const displayName = packageCatalogText(pkg.name, "name", t, pkg.name);
+
+  useEffect(() => {
+    if (!pix?.qrCode) {
+      setQrImageUrl(null);
+      return;
+    }
+    let cancelled = false;
+    QRCode.toDataURL(pix.qrCode, { width: 280, margin: 1, errorCorrectionLevel: "M" })
+      .then((url) => {
+        if (!cancelled) setQrImageUrl(url);
+      })
+      .catch(() => {
+        if (!cancelled) setQrImageUrl(null);
+      });
+    return () => {
+      cancelled = true;
+    };
+  }, [pix?.qrCode]);
 
   const create = async () => {
     setCreating(true);
@@ -194,9 +215,10 @@ function PixCheckout({ pkg, onBack, t }: { pkg: Pkg; onBack: () => void; t: (k: 
       setError((data as any).error);
       return;
     }
+    const rawQr = (data as any).qr_code as string | null;
     setPix({
       paymentId: (data as any).payment_id,
-      qrCode: (data as any).qr_code,
+      qrCode: rawQr ? sanitizePixQrCode(rawQr) : null,
       qrCodeBase64: (data as any).qr_code_base64,
     });
   };
@@ -295,7 +317,7 @@ function PixCheckout({ pkg, onBack, t }: { pkg: Pkg; onBack: () => void; t: (k: 
 
   const copy = () => {
     if (!pix?.qrCode) return;
-    navigator.clipboard.writeText(pix.qrCode);
+    navigator.clipboard.writeText(sanitizePixQrCode(pix.qrCode));
     toast.success(t("packages.pixCopied"));
   };
 
@@ -351,9 +373,13 @@ function PixCheckout({ pkg, onBack, t }: { pkg: Pkg; onBack: () => void; t: (k: 
               <QrCode className="w-4 h-4" /><span className="text-xs uppercase tracking-widest">Pix</span>
             </div>
 
-            {pix.qrCodeBase64 ? (
+            {(qrImageUrl || pix.qrCodeBase64) ? (
               <div className="bg-white rounded-xl p-4 flex justify-center">
-                <img src={`data:image/png;base64,${pix.qrCodeBase64}`} alt="QR Code Pix" className="w-56 h-56" />
+                <img
+                  src={qrImageUrl ?? `data:image/png;base64,${pix.qrCodeBase64}`}
+                  alt="QR Code Pix"
+                  className="w-56 h-56"
+                />
               </div>
             ) : null}
 

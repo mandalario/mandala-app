@@ -17,6 +17,7 @@ import { ExperienceNotesField } from "@/components/ExperienceNotesField";
 import { useTranslation } from "@/i18n/LanguageContext";
 import { boardTypeLabel } from "@/i18n/boardTypes";
 import { BOARD_TYPES } from "@/lib/board";
+import { stripDecimalSeparators } from "@/lib/utils";
 
 const schema = z.object({
   full_name: z.string().trim().min(2).max(100),
@@ -246,7 +247,14 @@ export default function Onboarding() {
                   <Input type="number" step="0.1" value={form.weight_kg} onChange={(e) => setForm({ ...form, weight_kg: e.target.value })} required className="bg-input/60 border-0 h-11 rounded-xl" />
                 </Field>
                 <Field label={t("profile.fields.height")}>
-                  <Input type="number" value={form.height_cm} onChange={(e) => setForm({ ...form, height_cm: e.target.value })} required className="bg-input/60 border-0 h-11 rounded-xl" />
+                  <Input
+                    type="text"
+                    inputMode="numeric"
+                    value={form.height_cm}
+                    onChange={(e) => setForm({ ...form, height_cm: stripDecimalSeparators(e.target.value) })}
+                    required
+                    className="bg-input/60 border-0 h-11 rounded-xl"
+                  />
                 </Field>
               </div>
             </Section>
