@@ -92,25 +92,33 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
 
     let profileData: Profile | null = existingProfile;
 
-    // 2) Só cria um perfil novo se confirmado que não existe. Usa upsert com
-    // ignoreDuplicates para nunca sobrescrever dados existentes (ex.: perfil
-    // já tem profile_completed=true mas SELECT falhou temporariamente).
+    // 2) Só cria perfil em conta recém-criada (corrida com handle_new_user).
+    // Contas antigas sem perfil foram excluídas — não recriar cadastro pendente.
     if (!profileData) {
-      const { error: upsertError } = await supabase
-        .from("profiles")
-        .upsert(getProfilePayload(currentUser), {
-          onConflict: "id",
-          ignoreDuplicates: true,
-        });
+      const createdAt = new Date(currentUser.created_at).getTime();
+      const isNewAccount = Date.now() - createdAt < 120_000;
 
-      if (upsertError) {
-        console.error("[useAuth] upsert profile error:", upsertError);
+      if (isNewAccount) {
+        const { error: upsertError } = await supabase
+          .from("profiles")
+          .upsert(getProfilePayload(currentUser), {
+            onConflict: "id",
+            ignoreDuplicates: true,
+          });
+
+        if (upsertError) {
+          console.error("[useAuth] upsert profile error:", upsertError);
+        }
+
+        const { data: refetched } = await fetchProfile();
+        profileData = (refetched as Profile | null) ?? null;
+      } else {
+        console.warn("[useAuth] profile missing for existing user — signing out");
+        await supabase.auth.signOut();
+        setProfile(null);
+        setIsAdmin(false);
+        return;
       }
-
-      // Sempre re-busca o estado canônico — se a linha já existia, queremos os
-      // dados reais (profile_completed=true, etc.), não o payload novo.
-      const { data: refetched } = await fetchProfile();
-      profileData = (refetched as Profile | null) ?? null;
     }
 
     setProfile(profileData);

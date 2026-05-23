@@ -1,6 +1,8 @@
 import { Input } from "@/components/ui/input";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { BOARD_TYPES } from "@/lib/board";
+import { boardTypeLabel } from "@/i18n/boardTypes";
+import { useTranslation } from "@/i18n/LanguageContext";
 
 type BoardFieldsProps = {
   boardType: string;
@@ -17,31 +19,33 @@ export function BoardFields({
   boardSize,
   onTypeChange,
   onSizeChange,
-  typeLabel = "Tipo de prancha",
-  sizeLabel = "Tamanho da prancha",
-  sizePlaceholder = `Ex: 6'2" ou 9'0"`,
+  typeLabel,
+  sizeLabel,
+  sizePlaceholder,
 }: BoardFieldsProps) {
+  const { t } = useTranslation();
+
   return (
     <>
-      <Field label={typeLabel}>
+      <Field label={typeLabel ?? t("board.type")}>
         <Select value={boardType} onValueChange={onTypeChange}>
           <SelectTrigger>
-            <SelectValue placeholder="Selecione o tipo" />
+            <SelectValue placeholder={t("board.selectType")} />
           </SelectTrigger>
           <SelectContent>
-            {BOARD_TYPES.map((t) => (
-              <SelectItem key={t} value={t}>
-                {t}
+            {BOARD_TYPES.map((value) => (
+              <SelectItem key={value} value={value}>
+                {boardTypeLabel(value, t)}
               </SelectItem>
             ))}
           </SelectContent>
         </Select>
       </Field>
-      <Field label={sizeLabel}>
+      <Field label={sizeLabel ?? t("board.size")}>
         <Input
           value={boardSize}
           onChange={(e) => onSizeChange(e.target.value)}
-          placeholder={sizePlaceholder}
+          placeholder={sizePlaceholder ?? t("board.sizePlaceholder")}
         />
       </Field>
     </>

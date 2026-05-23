@@ -11,7 +11,7 @@ import { useBillingEnabled } from "@/hooks/useBillingEnabled";
 import { Calendar } from "@/components/ui/calendar";
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
 import { format } from "date-fns";
-import { ptBR, es, enUS } from "date-fns/locale";
+import { dateFnsLocaleFor } from "@/i18n/dateLocale";
 
 type Slot = { id: string; date: string; start_time: string; end_time: string; capacity: number; location: string | null; notes: string | null; is_open: boolean; class_type: "avulsa_grupo" | "avulsa_particular" | "aluguel" };
 type Cond = { date: string; condition: "good" | "medium" | "bad" | "flat"; notes: string | null };
@@ -46,7 +46,7 @@ export default function Schedule() {
 
   const today = new Date().toISOString().slice(0, 10);
 
-  const dateFnsLocale = language === "pt" ? ptBR : language === "es" ? es : enUS;
+  const dateFnsLocale = dateFnsLocaleFor(language);
 
   const formatFullDate = (dateStr: string) => {
     const date = new Date(dateStr + "T12:00:00");
@@ -216,7 +216,7 @@ export default function Schedule() {
           <div className="p-5 pb-0 flex items-center justify-between">
             <h2 className="text-[13px] font-bold flex items-center gap-2 text-white/90">
               <Cal className="w-4 h-4 text-primary" />
-              {filterDate ? format(new Date(filterDate + "T12:00:00"), "MMMM yyyy", { locale: ptBR }) : "Calendário"}
+              {filterDate ? format(new Date(filterDate + "T12:00:00"), "MMMM yyyy", { locale: dateFnsLocale }) : "Calendário"}
             </h2>
             {filterDate && (
               <button
@@ -232,7 +232,7 @@ export default function Schedule() {
             mode="single"
             selected={filterDate ? new Date(filterDate + "T12:00:00") : undefined}
             onSelect={(date) => setFilterDate(date ? format(date, "yyyy-MM-dd") : "")}
-            locale={ptBR}
+            locale={dateFnsLocale}
             className="w-full flex justify-center p-2"
             modifiers={calendarModifiers}
             modifiersClassNames={{

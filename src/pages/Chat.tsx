@@ -6,11 +6,15 @@ import { OceanBackground } from "@/components/OceanBackground";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
 import { ArrowLeft, Send, Loader2, Megaphone } from "lucide-react";
+import { useTranslation } from "@/i18n/LanguageContext";
+import { intlLocaleFor } from "@/i18n/dateLocale";
 
 type Msg = { id: string; conversation_user: string; sender_id: string; body: string; created_at: string; kind?: string | null };
 
 export default function Chat() {
   const { user, isAdmin } = useAuth();
+  const { t, language } = useTranslation();
+  const timeLocale = intlLocaleFor(language);
   const [params] = useSearchParams();
   // Para admin, conversation_user vem da query string. Para aluno, é o próprio user.id
   const convUser = isAdmin ? params.get("u") : user?.id;
@@ -33,9 +37,9 @@ export default function Chat() {
 
       if (isAdmin) {
         const { data: prof } = await supabase.from("profiles").select("full_name, email").eq("id", convUser).maybeSingle();
-        setOtherName(prof?.full_name ?? prof?.email ?? "Aluno");
+        setOtherName(prof?.full_name ?? prof?.email ?? t("common.student"));
       } else {
-        setOtherName("Instrutor");
+        setOtherName(t("common.instructor"));
       }
     })();
 
@@ -65,7 +69,7 @@ export default function Chat() {
     return (
       <div className="relative min-h-screen flex items-center justify-center">
         <OceanBackground />
-        <div className="glass-strong rounded-2xl p-8 text-center">Nenhuma conversa selecionada.</div>
+        <div className="glass-strong rounded-2xl p-8 text-center">{t("chat.noConversation")}</div>
       </div>
     );
   }
@@ -76,7 +80,7 @@ export default function Chat() {
       <header className="px-5 pt-6 pb-4 flex items-center gap-3">
         <Link to={isAdmin ? "/admin/chat" : "/"} className="w-10 h-10 rounded-full glass flex items-center justify-center"><ArrowLeft className="w-4 h-4" /></Link>
         <div>
-          <p className="text-xs uppercase tracking-widest text-primary/80">Chat</p>
+          <p className="text-xs uppercase tracking-widest text-primary/80">{t("chat.eyebrow")}</p>
           <h1 className="text-xl font-bold">{otherName}</h1>
         </div>
       </header>
@@ -85,7 +89,7 @@ export default function Chat() {
         {loading ? (
           <div className="text-center py-12"><Loader2 className="w-5 h-5 animate-spin mx-auto" /></div>
         ) : msgs.length === 0 ? (
-          <div className="text-center py-12 text-muted-foreground text-sm">Comece a conversa.</div>
+          <div className="text-center py-12 text-muted-foreground text-sm">{t("chat.empty")}</div>
         ) : (
           msgs.map((m) => {
             const mine = m.sender_id === user!.id;
@@ -94,11 +98,11 @@ export default function Chat() {
                 <div key={m.id} className="flex justify-center">
                   <div className="max-w-[90%] px-4 py-3 rounded-2xl border border-primary/40 bg-primary/10 text-sm">
                     <div className="flex items-center gap-1.5 text-[10px] uppercase tracking-widest text-primary mb-1">
-                      <Megaphone className="w-3 h-3" /> Aviso do instrutor
+                      <Megaphone className="w-3 h-3" /> {t("chat.instructorNotice")}
                     </div>
                     <div className="whitespace-pre-line break-words">{m.body}</div>
                     <div className="text-[10px] mt-1 text-muted-foreground">
-                      {new Date(m.created_at).toLocaleTimeString("pt-BR", { hour: "2-digit", minute: "2-digit" })}
+                      {new Date(m.created_at).toLocaleTimeString(timeLocale, { hour: "2-digit", minute: "2-digit" })}
                     </div>
                   </div>
                 </div>
@@ -121,7 +125,7 @@ export default function Chat() {
 
       <div className="p-3 sticky bottom-0 glass-strong">
         <div className="flex gap-2">
-          <Input value={text} onChange={(e) => setText(e.target.value)} onKeyDown={(e) => e.key === "Enter" && send()} placeholder="Mensagem..." className="bg-input/60 border-0 h-12 rounded-xl" />
+          <Input value={text} onChange={(e) => setText(e.target.value)} onKeyDown={(e) => e.key === "Enter" && send()} placeholder={t("chat.messagePlaceholder")} className="bg-input/60 border-0 h-12 rounded-xl" />
           <Button onClick={send} disabled={sending || !text.trim()} className="h-12 w-12 rounded-xl bg-gradient-to-r from-primary to-accent p-0">
             <Send className="w-4 h-4" />
           </Button>

@@ -7,7 +7,207 @@
     "next": "Próximo",
     "logout": "Sair",
     "profile": "Perfil",
-    "language": "Idioma"
+    "language": "Idioma",
+    "errorPrefix": "Erro: ",
+    "saveErrorPrefix": "Erro ao salvar: ",
+    "clear": "Limpar",
+    "refresh": "Atualizar",
+    "signOut": "Sair",
+    "student": "Aluno",
+    "instructor": "Instrutor",
+    "version": "Versão {{version}}",
+    "updatedAt": "Atualizado em {{date}}"
+  },
+  "brand": {
+    "name": "Mandala Rio",
+    "tagline": "Surf School"
+  },
+  "board": {
+    "type": "Tipo da prancha",
+    "size": "Tamanho da prancha",
+    "selectType": "Selecione o tipo",
+    "sizePlaceholder": "Ex: 6'2\" ou 9'0\"",
+    "types": {
+      "longboardSoft": "Longboard soft",
+      "longboardFibra": "Longboard fibra",
+      "funBoard": "Fun board",
+      "midLength": "Mid Length",
+      "evolution": "Evolution",
+      "shortboard": "Shortboard"
+    }
+  },
+  "onboarding": {
+    "backToLogin": "Voltar para login",
+    "steps": {
+      "terms": "Termos",
+      "form": "Ficha"
+    },
+    "termsStep": {
+      "title": "Antes de começar",
+      "subtitle": "Leia os termos até o fim para liberar a próxima etapa."
+    },
+    "formStep": {
+      "title": "Sua ficha técnica",
+      "subtitle": "Para o instrutor te conhecer melhor antes da primeira aula."
+    },
+    "sections": {
+      "personal": "Dados pessoais",
+      "surf": "Sobre seu surf",
+      "health": "Saúde & emergência"
+    },
+    "fields": {
+      "phoneWhatsapp": "Telefone (WhatsApp)",
+      "phonePlaceholder": "(11) 99999-9999",
+      "experienceOptional": "Experiência prévia (opcional)",
+      "medicalOptional": "Condições médicas (opcional)",
+      "emergencyContact": "Contato de emergência",
+      "emergencyPhone": "Telefone do contato"
+    },
+    "canSwim": {
+      "label": "Sei nadar (Obrigatório)",
+      "description": "Obrigatório para sua segurança no mar"
+    },
+    "ownBoard": {
+      "label": "Tenho prancha própria",
+      "description": "Caso contrário, providenciamos uma"
+    },
+    "stances": {
+      "regularLong": "Regular (pé esquerdo na frente)",
+      "goofyLong": "Goofy (pé direito na frente)",
+      "unknownLong": "Não sei ainda"
+    },
+    "submit": "Enviar ficha",
+    "errors": {
+      "swimRequired": "É obrigatório saber nadar para se cadastrar."
+    },
+    "success": {
+      "submitted": "Ficha enviada! Aguarde aprovação do admin."
+    }
+  },
+  "pendingApproval": {
+    "rejectedTitle": "Cadastro não aprovado",
+    "pendingTitle": "Quase lá",
+    "rejectedBody": "Seu cadastro foi recusado pelo instrutor. Entre em contato para mais informações.",
+    "pendingBody": "Sua ficha foi enviada e está aguardando aprovação do instrutor. Você receberá acesso assim que for liberado."
+  },
+  "notFound": {
+    "title": "404",
+    "message": "Página não encontrada",
+    "home": "Voltar ao início"
+  },
+  "chat": {
+    "eyebrow": "Chat",
+    "noConversation": "Nenhuma conversa selecionada.",
+    "empty": "Comece a conversa.",
+    "instructorNotice": "Aviso do instrutor",
+    "messagePlaceholder": "Mensagem...",
+    "sendError": "Erro ao enviar"
+  },
+  "legal": {
+    "termsTitle": "Termos de Uso",
+    "privacyTitle": "Política de Privacidade",
+    "notAvailable": "{{title}} ainda não disponível.",
+    "logoAlt": "Mandala Rio"
+  },
+  "termsGate": {
+    "empty": "Nenhum termo cadastrado. Avise o admin.",
+    "scrollHint": "role até o fim para liberar o aceite",
+    "agree": "Li e concordo integralmente com os",
+    "termsLink": "Termos de Uso",
+    "accept": "Aceitar e continuar"
+  },
+  "privacyGate": {
+    "empty": "Nenhuma política de privacidade cadastrada. Avise o admin.",
+    "scrollHint": "role até o fim para liberar o aceite",
+    "agree": "Li e concordo integralmente com a",
+    "policyLink": "Política de Privacidade",
+    "accept": "Aceitar e continuar"
+  },
+  "seaCondition": {
+    "loading": "Carregando painel de condições do mar...",
+    "title": "Condições Atuais",
+    "today": "Hoje",
+    "weekdays": {
+      "sun": "Dom",
+      "mon": "Seg",
+      "tue": "Ter",
+      "wed": "Qua",
+      "thu": "Qui",
+      "fri": "Sex",
+      "sat": "Sáb"
+    },
+    "status": {
+      "excellent": "Excelente",
+      "good": "Bom",
+      "medium": "Médio",
+      "bad": "Ruim",
+      "flat": "Sem Ondas"
+    },
+    "defaults": {
+      "spot": "Barra da Tijuca, Rio de Janeiro, Brasil",
+      "summary": "Céu limpo, mar liso. Ideal para iniciantes.",
+      "levels": "Todos os Níveis"
+    },
+    "metrics": {
+      "waves": "Ondas",
+      "period": "Período",
+      "waveDir": "Dir. Onda",
+      "windDir": "Direção do vento",
+      "water": "Água",
+      "tide": "Maré",
+      "idealFor": "Ideal para:"
+    }
+  },
+  "banners": {
+    "defaultAlt": "Banner",
+    "prev": "Anterior",
+    "next": "Próximo",
+    "slide": "Slide {{n}}"
+  },
+  "forecast": {
+    "noProvider": "Nenhum provedor de previsão ativo. Configure no painel admin.",
+    "title": "Previsão WindGuru",
+    "noData": "Sem dados.",
+    "marine7days": "Previsão Marine — 7 dias",
+    "missingToken": "Configure o segredo WINDGURU_API_KEY para ativar a API.",
+    "configureIn": "Configure em",
+    "forecastPage": "Previsão do mar",
+    "windguruApi": "WindGuru API"
+  },
+  "studentHome": {
+    "packagesHistory": "Pacotes e Histórico",
+    "confirmed": "✓ Confirmada",
+    "profileAria": "Perfil",
+    "quoteOfDay": "Frase do dia",
+    "creditsBadge": "Créditos"
+  },
+  "studentContent": {
+    "quotes": {
+      "Alongar antes da sessão ajuda no desempenho e reduz o risco de lesões.": {
+        "en": "Stretching before your session helps performance and reduces injury risk.",
+        "es": "Estirar antes de la sesión mejora el rendimiento y reduce el riesgo de lesiones."
+      }
+    },
+    "seaSummary": {
+      "Céu limpo e mar glass": {
+        "en": "Clear sky and glassy sea",
+        "es": "Cielo despejado y mar en calma"
+      },
+      "Céu limpo, mar liso. Ideal para iniciantes.": {
+        "en": "Clear sky, smooth sea. Great for beginners.",
+        "es": "Cielo despejado, mar liso. Ideal para principiantes."
+      }
+    },
+    "seaIdealFor": {
+      "Todos os Níveis": {
+        "en": "All levels",
+        "es": "Todos los niveles"
+      },
+      "Ideal para iniciantes": {
+        "en": "Ideal for beginners",
+        "es": "Ideal para principiantes"
+      }
+    }
   },
   "languages": {
     "pt": "Português",
@@ -20,7 +220,10 @@
     "confirm": "Continuar"
   },
   "credits": {
-    "yourCredits": "Comprar Créditos"
+    "yourCredits": "Comprar Créditos",
+    "groupShort": "Grupo:",
+    "privateShort": "Particular:",
+    "rentalShort": "Aluguel:"
   },
   "login": {
     "title": "Entrar",
@@ -48,6 +251,15 @@
     },
     "success": {
       "signup": "Cadastro realizado! Complete sua ficha técnica."
+    },
+    "or": "ou",
+    "google": "Continuar com Google",
+    "googleError": "Erro ao entrar com Google: ",
+    "validation": {
+      "shortName": "Nome muito curto",
+      "invalidEmail": "Email inválido",
+      "minPassword": "Mínimo 6 caracteres",
+      "passwordRequired": "Senha obrigatória"
     }
   },
   "setPassword": {
@@ -90,6 +302,25 @@
     "filterRental": "Aluguel",
     "filterRentalHint": "Todos os aluguéis desta semana",
     "selectType": "Escolha um tipo de aula acima para ver os horários disponíveis.",
+    "calendar": "Calendário",
+    "cancelConfirm": "Tem certeza que deseja desmarcar esta aula? Seu crédito será devolvido.",
+    "cancelSuccess": "Aula desmarcada com sucesso! Crédito devolvido.",
+    "unbook": "Desmarcar",
+    "bookClass": "Agendar aula",
+    "confirmed": "✓ Confirmada",
+    "noCreditsForType": "Você não tem créditos de {{type}}. Recarregue em Comprar Créditos.",
+    "creditsShort": {
+      "group": "Grupo:",
+      "private": "Particular:",
+      "rental": "Aluguel:"
+    },
+    "classTypes": {
+      "group": "Grupo",
+      "groupLong": "Aula em Grupo",
+      "private": "Particular",
+      "privateLong": "Aula Particular",
+      "rental": "Aluguel"
+    },
     "conditions": {
       "good": "Mar bom",
       "medium": "Mar médio",
@@ -132,6 +363,7 @@
     "attachFirst": "Anexe o comprovante",
     "uploadError": "Erro no upload: ",
     "submitSuccess": "Comprovante enviado! Aguarde aprovação.",
+    "buyNow": "Comprar agora",
     "catalog": {
       "Aula Avulsa": {
         "name": "Aula Avulsa",
@@ -144,8 +376,50 @@
       "Pacote 10 Aulas": {
         "name": "Pacote 10 Aulas",
         "description": "Melhor custo-benefício"
+      },
+      "Aula Avulsa em Grupo": {
+        "name": "Aula Avulsa em Grupo",
+        "description": "1 aula para experimentar"
+      },
+      "Pacote 5 Aulas em Grupo": {
+        "name": "Pacote 5 Aulas em Grupo",
+        "description": "Ideal para quem deseja evoluir no surf!"
+      },
+      "Aula Avulsa Particular": {
+        "name": "Aula Avulsa Particular",
+        "description": "Aula individual com o instrutor"
+      },
+      "Pacote 5 Aulas Particulares": {
+        "name": "Pacote 5 Aulas Particulares",
+        "description": "Ideal para quem deseja ter consistência e evolução mais rápida!"
+      },
+      "Aluguel de Prancha 1 hora": {
+        "name": "Aluguel de Prancha 1 hora",
+        "description": "Aluguel de prancha"
+      },
+      "Aluguel de Prancha 2 horas": {
+        "name": "Aluguel de Prancha 2 horas",
+        "description": "Ideal para surfista que estejam na fissura de surfar!"
+      },
+      "Aluguel de Prancha o dia Todo!": {
+        "name": "Aluguel de Prancha o dia Todo!",
+        "description": "Ideal pra quem deseja ficar o dia todo na praia!"
       }
-    }
+    },
+    "pixError": "Erro ao gerar Pix",
+    "applePayAppOnly": "Apple Pay disponível apenas no app",
+    "applePayProcessing": "Processando Apple Pay...",
+    "pay": "Pay",
+    "generatingPix": "Gerando Pix...",
+    "tryAgain": "Tentar novamente",
+    "back": "Voltar",
+    "pix": "Pix",
+    "pixCopyPaste": "Pix Copia e Cola",
+    "pixQr": "QR Code Pix",
+    "pixRetry": "Tente novamente ou escolha outro pacote.",
+    "typeGroup": "Grupo",
+    "typePrivate": "Particular",
+    "typeRental": "Aluguel"
   },
   "dashboard": {
     "welcome": "Bem-vindo",
@@ -166,12 +440,22 @@
     "nextClasses": "Próximas aulas",
     "noClasses": "Nenhuma aula agendada ainda.",
     "locationTBD": "Local a definir",
-    "partnersTitle": "Parceiros & Benefícios"
+    "partnersTitle": "Parceiros & Benefícios",
+    "lessonHistory": {
+      "title": "Histórico de aulas",
+      "empty": "Nenhuma aula com crédito utilizado ainda.",
+      "creditUsed": "Crédito"
+    }
   },
   "profile": {
     "title": "Meu perfil",
     "credit": "crédito",
-    "credits": "créditos",
+    "credits": {
+      "title": "Meus Créditos",
+      "group": "Grupo",
+      "private": "Particular",
+      "rental": "Aluguel"
+    },
     "updated": "Perfil atualizado",
     "photoUpdated": "Foto atualizada",
     "save": "Salvar alterações",
@@ -252,5 +536,453 @@
     "buy": "Comprar",
     "chat": "Chat",
     "profile": "Perfil"
+  },
+  "admin": {
+    "layout": {
+      "dashboard": "Dashboard",
+      "students": "Alunos",
+      "schedule": "Agenda & Mar",
+      "forecast": "Previsão",
+      "billing": "Cobrança",
+      "packages": "Pacotes",
+      "content": "Conteúdo",
+      "posts": "Posts",
+      "chat": "Chat",
+      "notifications": "Notificações",
+      "terms": "Termos",
+      "privacy": "Privacidade",
+      "access": "Admins",
+      "logoAlt": "Mandala Rio"
+    },
+    "shared": {
+      "active": "Ativo",
+      "inactive": "Inativo",
+      "edit": "Editar",
+      "new": "Novo",
+      "remove": "Remover",
+      "saved": "Salvo",
+      "noName": "Sem nome",
+      "student": "Aluno",
+      "locationTBD": "Local a definir",
+      "creditOne": "crédito",
+      "creditsMany": "créditos",
+      "confirmRemove": "Remover?",
+      "apply": "Aplicar",
+      "deactivate": "Desativar",
+      "activate": "Ativar",
+      "published": "Publicado",
+      "draft": "Rascunho",
+      "version": "Versão",
+      "title": "Título",
+      "content": "Conteúdo",
+      "description": "Descrição",
+      "name": "Nome",
+      "price": "Preço (R$)",
+      "credits": "Créditos",
+      "creditType": "Tipo de Crédito",
+      "groupClass": "Aula Avulsa em Grupo",
+      "privateClass": "Aula Avulsa Particular",
+      "rental": "Aluguel",
+      "levelMin": "Nível mínimo",
+      "levelOptional": "Nível mínimo (opcional)",
+      "allLevels": "Todos os níveis",
+      "fromBeginner": "A partir de Iniciante",
+      "fromIntermediate": "A partir de Intermediário",
+      "advancedOnly": "Apenas Avançado",
+      "geBeginner": "≥ Iniciante",
+      "geIntermediate": "≥ Intermediário",
+      "geAdvanced": "≥ Avançado",
+      "noRestriction": "Sem restrição",
+      "date": "Data",
+      "start": "Início",
+      "end": "Fim",
+      "capacity": "Vagas",
+      "location": "Local",
+      "notes": "Observação",
+      "slotType": "Tipo de Horário",
+      "open": "Aberto",
+      "closed": "Fechado",
+      "create": "Criar",
+      "site": "site",
+      "upload": "Upload",
+      "publicLink": "Link público",
+      "makeActive": "Tornar ativa",
+      "newVersion": "Nova versão",
+      "approval": {
+        "pending": "pendente",
+        "approved": "aprovado",
+        "rejected": "rejeitado"
+      }
+    },
+    "dashboard": {
+      "eyebrow": "Visão geral",
+      "title": "Dashboard",
+      "students": "Alunos",
+      "active": "Ativos",
+      "pending": "Pendentes",
+      "payPending": "Pgto. pendente",
+      "classesToday": "Aulas hoje",
+      "monthRevenue": "Mês (R$)",
+      "bookings7d": "Agendamentos · 7 dias",
+      "total": "no total",
+      "todayClasses": "Aulas de hoje",
+      "noClassesToday": "Nenhuma aula agendada hoje.",
+      "approveStudents": "Aprovar alunos",
+      "validatePayments": "Validar pagamentos",
+      "configureSchedule": "Configurar mar e agenda",
+      "pendingCount": "{{count}} pendente(s)",
+      "waitingCount": "{{count}} aguardando",
+      "configureDesc": "Defina dias e condições"
+    },
+    "students": {
+      "eyebrow": "Gestão",
+      "title": "Alunos",
+      "newStudent": "Novo aluno",
+      "filters": {
+        "pending": "Pendentes",
+        "approved": "Aprovados",
+        "rejected": "Rejeitados",
+        "all": "Todos"
+      },
+      "search": "Buscar...",
+      "none": "Nenhum aluno encontrado.",
+      "creditsGPA": "Créditos (G/P/A)",
+      "creditGroup": "Créd. Grupo",
+      "creditPrivate": "Créd. Particular",
+      "creditRental": "Créd. Aluguel",
+      "personalData": "Dados pessoais",
+      "fullName": "Nome completo",
+      "phone": "Telefone",
+      "age": "Idade",
+      "weight": "Peso (kg)",
+      "height": "Altura (cm)",
+      "surfEvolution": "Surf & evolução",
+      "level": "Nível",
+      "stance": "Base (stance)",
+      "canSwim": "Sabe nadar",
+      "ownBoard": "Prancha própria",
+      "evolutionNotes": "Notas de evolução",
+      "evolutionPlaceholder": "Manobras dominadas, pontos a melhorar, progressão...",
+      "healthEmergency": "Saúde & emergência",
+      "medical": "Condições médicas",
+      "emergencyName": "Contato de emergência",
+      "emergencyPhone": "Telefone de emergência",
+      "delete": "Excluir",
+      "reject": "Rejeitar",
+      "approve": "Aprovar",
+      "saveChanges": "Salvar alterações",
+      "deleteConfirm": "Tem certeza que deseja excluir este aluno permanentemente?",
+      "deleteError": "Erro ao excluir: ",
+      "deleteInvalid": "Erro ao excluir: resposta inválida do servidor",
+      "deleted": "Aluno excluído com sucesso",
+      "updated": "Dados atualizados",
+      "approved": "Aluno aprovado",
+      "rejected": "Aluno rejeitado",
+      "notifApprovedTitle": "Cadastro aprovado!",
+      "notifApprovedBody": "Você já pode agendar aulas.",
+      "notifRejectedTitle": "Cadastro recusado",
+      "notifRejectedBody": "Entre em contato com o instrutor.",
+      "createTitle": "Novo aluno",
+      "createSubtitle": "Crie a conta e pré-preencha o cadastro",
+      "accessSection": "Acesso",
+      "passwordMin": "Senha (mín. 8)",
+      "initialNotes": "Notas iniciais",
+      "createBtn": "Criar aluno",
+      "createSuccess": "Aluno criado e aprovado",
+      "requiredFields": "Email, senha e nome são obrigatórios",
+      "passwordLen": "A senha deve ter ao menos 8 caracteres"
+    },
+    "schedule": {
+      "eyebrow": "Configuração",
+      "title": "Agenda & Mar",
+      "subtitle": "Configure períodos recorrentes ou gerencie dia a dia.",
+      "refreshTitle": "Atualizar dados",
+      "refreshed": "Agenda atualizada!",
+      "tabCalendar": "Calendário",
+      "tabTemplates": "Períodos semanais",
+      "selectedDay": "Dia selecionado",
+      "seaUndefined": "Mar não definido",
+      "editSea": "Editar mar",
+      "setSea": "Definir mar",
+      "generatePeriod": "Gerar período",
+      "oneOffSlot": "Horário avulso",
+      "editWholeDay": "Editar dia inteiro",
+      "slots": "Horários",
+      "slotsCount": "Horários ({{count}})",
+      "selectAll": "Selecionar todos",
+      "deselectAll": "Desmarcar todos",
+      "selected": "{{count}} selecionado(s)",
+      "openBulk": "Abrir",
+      "closeBulk": "Fechar",
+      "noSlotsDay": "Nenhum horário neste dia.",
+      "booked": "{{taken}}/{{capacity}} agendados",
+      "confirmSlot": "Confirmar",
+      "cancelSlot": "Cancelar",
+      "restore": "Restaurar",
+      "confirmed": "✓ Confirmada",
+      "cancelled": "⚠️ Cancelada",
+      "toConfirm": "⏳ A Confirmar",
+      "pendingBooking": "⏳ Pendente",
+      "accepted": "✓ Aceito",
+      "accept": "Aceitar",
+      "refuse": "Recusar",
+      "unbook": "Desmarcar",
+      "groupStudents": "Alunos em Grupo",
+      "privateStudents": "Alunos Particular",
+      "manageStudents": "Gerenciar Alunos Inscritos",
+      "noStudents": "Nenhum aluno inscrito",
+      "reason": "Motivo:",
+      "blockedDay": "Dia bloqueado: alunos não podem agendar e os agendados foram cancelados com crédito devolvido.",
+      "removeSlotConfirm": "Remover este horário? Agendamentos existentes serão cancelados.",
+      "slotRemoved": "Horário removido",
+      "restricted": "Restrito a ≥ {{level}}",
+      "restrictionRemoved": "Restrição removida",
+      "classConfirmed": "Aula confirmada!",
+      "confirmClassError": "Erro ao confirmar aula",
+      "statusRestored": "Status da aula restaurado!",
+      "restoreError": "Erro ao restaurar status da aula",
+      "studentAccepted": "{{name}} aceito com sucesso!",
+      "acceptError": "Erro ao aceitar aluno",
+      "unbookConfirm": "Tem certeza que deseja desmarcar o agendamento de {{name}} para esta aula? O crédito dele será devolvido.",
+      "unbookAdminNote": "Desmarcado pelo administrador",
+      "studentUnbooked": "{{name}} desmarcado com sucesso!",
+      "unbookError": "Erro ao desmarcar aluno",
+      "bulkRemoveConfirm": "Remover {{count}} horário(s)? Agendamentos serão cancelados.",
+      "bulkRemoved": "{{count}} horário(s) removido(s)",
+      "bulkOpen": "{{count}} horário(s) aberto(s)",
+      "bulkClosed": "{{count}} horário(s) fechado(s)",
+      "selectOneSlot": "Selecione ao menos um horário",
+      "removeTemplateConfirm": "Remover este período recorrente?",
+      "noActiveTemplate": "Nenhum período recorrente ativo",
+      "generateYearConfirm": "Deseja gerar a grade para o ANO INTEIRO? Isso seguirá a configuração de cada período (incluindo alternância entre Grupo/Particular).",
+      "generateDaysConfirm": "Deseja gerar a grade para os próximos {{days}} dias?",
+      "slotsGenerated": "{{count}} horário(s) gerado(s) para os próximos {{days}} dias",
+      "slotGeneratedOne": "{{count}} horário gerado para os próximos {{days}} dias",
+      "generateError": "Erro ao gerar horários",
+      "recurring": "Períodos recorrentes",
+      "recurringHelp": "Defina períodos por dia da semana (ex: toda terça das 7h às 10h, aulas de 60min). Depois clique em Aplicar para gerar os horários nos próximos dias.",
+      "generateGrid": "Gerar Grade:",
+      "week1": "1 Sem",
+      "week2": "2 Sem",
+      "month1": "1 Mês",
+      "days365": "365 dias",
+      "deleteAllTemplates": "Apagar Todos",
+      "deleteAllTemplatesConfirm": "ATENÇÃO: Deseja apagar TODOS os períodos recorrentes (templates)?",
+      "templatesDeleted": "Todos os templates foram apagados!",
+      "noTemplates": "Nenhum período recorrente ainda.",
+      "createFirst": "Criar primeiro",
+      "classesPerDay": "{{count}} aulas/dia",
+      "spots": "{{count}} vagas",
+      "allWeekdays": "Todos os dias",
+      "oneOffTitle": "Horário avulso",
+      "slotCreated": "Horário criado",
+      "generatePeriodTitle": "Gerar período",
+      "generatePeriodHelp": "Cria automaticamente os horários do período divididos pela duração.",
+      "invalidPeriod": "Período inválido",
+      "slotsCreated": "{{count}} horário(s) criado(s)",
+      "slotCreatedOne": "{{count}} horário criado",
+      "seaCondition": "Condição do mar",
+      "conditionSaved": "Condição salva",
+      "levelDayRestriction": "Restrição de nível (todo o dia)",
+      "levelDayHint": "Aplica a todos os horários do dia. Pode ser sobrescrita por slot.",
+      "blockWarning": "Ao salvar, todos os horários do dia serão fechados. Aulas já agendadas serão canceladas e os créditos devolvidos automaticamente.",
+      "waveNotesPlaceholder": "Tamanho da onda, vento...",
+      "editTemplate": "Editar período",
+      "newTemplate": "Novo período semanal",
+      "templateUpdated": "Atualizado",
+      "templatesAllDays": "Períodos criados para todos os dias",
+      "templateCreated": "Período criado",
+      "templateActiveHint": "Será considerado ao aplicar templates",
+      "previewClasses": "Prévia:",
+      "previewDay": "{{count}} aula(s) por dia.",
+      "previewPeriod": "{{count}} aula(s) serão criadas.",
+      "editSlot": "Editar horário",
+      "slotUpdated": "Horário atualizado",
+      "openForBooking": "Aberto para agendamento",
+      "bulkEdit": "Editar em massa",
+      "bulkEditHelp": "Atualizando {{count}} horário(s). Marque os campos que deseja alterar.",
+      "markOneField": "Marque ao menos um campo para atualizar",
+      "bulkUpdated": "{{count}} horário(s) atualizado(s)",
+      "applyToSlots": "Aplicar a {{count}} horário(s)",
+      "spotsPerClass": "Vagas por aula",
+      "durationMin": "Duração da aula (min)",
+      "duration": "Duração (min)",
+      "weekday": "Dia da semana",
+      "cancelClassTitle": "Cancelar Aula",
+      "cancelClassHelp": "Ao cancelar, esta aula será fechada. Todos os alunos agendados serão desmarcados e seus créditos serão devolvidos automaticamente, além de receberem uma notificação com o motivo.",
+      "cancelReason": "Motivo do Cancelamento",
+      "cancelReasonPlaceholder": "Ex: Chuva forte com raios, Instrutor doente...",
+      "cancelReasonRequired": "Por favor, digite o motivo do cancelamento",
+      "confirmCancel": "Confirmar Cancelamento",
+      "classCancelled": "Aula cancelada e alunos notificados com sucesso!",
+      "cancelClassError": "Erro ao cancelar aula",
+      "notifAcceptedTitle": "Agendamento Aceito!",
+      "notifAcceptedBody": "Seu agendamento para a aula de {{date}} às {{time}} foi aceito pelo instrutor. Bons treinos!",
+      "notifRemovedTitle": "Agendamento Removido",
+      "notifRemovedBody": "Seu agendamento para a aula de {{date}} às {{time}} foi desmarcado pelo instrutor. Seu crédito foi devolvido.",
+      "notifClassCancelledTitle": "Aula Cancelada",
+      "notifClassCancelledBody": "A aula do dia {{date}} às {{time}} foi cancelada. Motivo: {{reason}}. Seu crédito foi devolvido.",
+      "acceptEnrollment": "Aceitar Inscrição",
+      "refuseEnrollment": "Recusar Inscrição",
+      "unbookStudent": "Desmarcar Aluno",
+      "locationPlaceholder": "Ex: Praia Mole",
+      "defaultLocation": "Arpoador, Rio de Janeiro"
+    },
+    "forecast": {
+      "title": "Previsão do mar",
+      "providers": "Provedores de previsão",
+      "newProvider": "Novo provedor",
+      "noProviders": "Nenhum provedor cadastrado.",
+      "type": "Tipo",
+      "internalName": "Nome (interno)",
+      "spotId": "Spot ID",
+      "stationId": "Station ID",
+      "latitude": "Latitude",
+      "longitude": "Longitude",
+      "activateNow": "Ativar agora",
+      "removeProviderConfirm": "Remover provedor?",
+      "weekForecast": "Previsão da Semana",
+      "weekUpdated": "Painel de condições da semana atualizado!",
+      "locationField": "Localização",
+      "summaryField": "Resumo / Céu e Mar",
+      "idealFor": "Ideal para",
+      "windguruWidget": "Widget WindGuru embutido",
+      "windguruApi": "API WindGuru (requer chave)",
+      "openMeteo": "Open-Meteo Marine (grátis)"
+    },
+    "billing": {
+      "eyebrow": "Financeiro",
+      "title": "Cobrança",
+      "mpIntegration": "Integração Mercado Pago",
+      "mpDesc": "Configure credenciais para Pix automático e Apple Pay no app.",
+      "billingMode": "Modo de cobrança",
+      "manualMode": "Manual (comprovante)",
+      "mpMode": "Mercado Pago (Pix + Apple Pay)",
+      "sandbox": "Sandbox (teste)",
+      "production": "Produção (real)",
+      "publicKey": "Public Key",
+      "accessToken": "Access Token",
+      "webhookSecret": "Webhook Secret (opcional)",
+      "saveCredentials": "Salvar credenciais",
+      "webhookUrl": "URL do Webhook",
+      "copyUrl": "Copiar URL",
+      "urlCopied": "URL copiada",
+      "history": "Histórico",
+      "noPayments": "Nenhum pagamento ainda.",
+      "creditsShort": "créd.",
+      "manual": "Manual",
+      "webhookLogs": "Logs do Webhook",
+      "modeEnabled": "Modo cobrança ativado",
+      "credentialsSaved": "Credenciais salvas",
+      "mpNotConfigured": "Mercado Pago não configurado — modo manual ativo."
+    },
+    "packages": {
+      "eyebrow": "Catálogo",
+      "title": "Pacotes de créditos",
+      "removeConfirm": "Remover pacote?",
+      "editPackage": "Editar pacote",
+      "newPackage": "Novo pacote"
+    },
+    "content": {
+      "title": "Conteúdo & Parceiros",
+      "tabs": {
+        "banners": "Banners",
+        "partners": "Parceiros",
+        "quotes": "Frases do dia"
+      },
+      "newPartner": "Novo parceiro",
+      "newBanner": "Novo banner",
+      "newQuote": "Nova frase",
+      "learnMore": "Saiba mais",
+      "quote": "Frase",
+      "rotating": "rotativa",
+      "removePartner": "Remover parceiro?",
+      "removeBanner": "Remover banner?",
+      "removeQuote": "Remover frase?",
+      "noPartners": "Nenhum parceiro.",
+      "noBanners": "Nenhum banner.",
+      "noQuotes": "Nenhuma frase."
+    },
+    "posts": {
+      "title": "Posts & vídeos",
+      "removeConfirm": "Remover post?",
+      "newPost": "Novo post",
+      "editPost": "Editar post",
+      "thumbnail": "Thumbnail",
+      "videoUrl": "URL do vídeo"
+    },
+    "terms": {
+      "defaultTitle": "Termos de Uso"
+    },
+    "privacy": {
+      "defaultTitle": "Política de Privacidade"
+    },
+    "notifications": {
+      "title": "Enviar notificações",
+      "push": "Push (app)",
+      "inApp": "In-app",
+      "recipient": "Destinatário",
+      "allUsers": "Todos os usuários",
+      "titleField": "Título",
+      "bodyField": "Mensagem",
+      "sendPush": "Enviar push",
+      "sending": "Enviando...",
+      "kind": "Tipo",
+      "kinds": {
+        "info": "Informativo",
+        "class": "Aula",
+        "payment": "Pagamento",
+        "approval": "Aprovação",
+        "alert": "Alerta"
+      },
+      "selectAll": "Selecionar todos",
+      "deselectAll": "Desmarcar todos",
+      "testTitle": "Teste Mandala Rio",
+      "testBody": "Esta é uma notificação de teste!"
+    },
+    "chat": {
+      "title": "Conversas",
+      "search": "Buscar nome ou email…",
+      "tabConversations": "Conversas",
+      "tabStudents": "Alunos",
+      "selectConversation": "Selecione uma conversa",
+      "notice": "Aviso",
+      "broadcastPlaceholder": "Escreva o aviso…",
+      "broadcastSearch": "Buscar…",
+      "sendError": "Erro ao enviar"
+    },
+    "access": {
+      "title": "Administradores",
+      "subtitle": "Conceda ou remova poder de admin de outras contas.",
+      "grant": "Conceder admin",
+      "emailPlaceholder": "email@exemplo.com",
+      "grantBtn": "Conceder",
+      "grantHint": "O usuário precisa já ter uma conta cadastrada (ter feito login ao menos uma vez).",
+      "current": "Admins atuais ({{count}})",
+      "none": "Nenhum admin cadastrado.",
+      "you": "Você",
+      "loadError": "Erro ao carregar admins: ",
+      "notFound": "Nenhuma conta encontrada com esse e-mail. O usuário precisa ter feito login pelo menos uma vez.",
+      "alreadyAdmin": "Esta conta já é admin.",
+      "grantError": "Erro ao conceder admin: ",
+      "granted": "{{email}} agora é admin.",
+      "selfRevoke": "Você não pode remover seu próprio acesso de admin.",
+      "revokeConfirm": "Remover acesso de admin de {{email}}?",
+      "revokeError": "Erro ao remover: ",
+      "revoked": "Acesso de admin removido."
+    },
+    "dashboardLegacy": {
+      "instructor": "Instrutor",
+      "totalStudents": "Total alunos",
+      "registrationRequests": "Solicitações de cadastro",
+      "pendingSuffix": "pendente(s)",
+      "noPending": "Nenhuma solicitação pendente.",
+      "noPhone": "sem tel",
+      "years": "anos",
+      "cannotSwim": "não nada",
+      "schedulePlaceholder": "Agenda & condições do mar",
+      "billingPlaceholder": "Créditos & comprovantes Pix",
+      "nextIteration": "(próxima iteração)"
+    }
   }
 }

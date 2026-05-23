@@ -1,3 +1,5 @@
+import { useTranslation } from "@/i18n/LanguageContext";
+
 type Props = {
   size?: "sm" | "md" | "lg";
   align?: "center" | "left";
@@ -11,12 +13,13 @@ const sizes = {
 };
 
 export const Brand = ({ size = "md", align = "center", className = "" }: Props) => {
+  const { t } = useTranslation();
   const s = sizes[size];
   return (
     <div className={`leading-none ${align === "center" ? "text-center" : "text-left"} ${className}`}>
-      <h1 className={`font-bold tracking-tight text-white ${s.main}`}>Mandala Rio</h1>
+      <h1 className={`font-bold tracking-tight text-white ${s.main}`}>{t("brand.name")}</h1>
       <p className={`uppercase tracking-[0.35em] mt-1.5 font-medium text-sky-300 ${s.sub}`}>
-        Surf School
+        {t("brand.tagline")}
       </p>
     </div>
   );

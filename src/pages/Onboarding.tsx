@@ -14,6 +14,9 @@ import { Switch } from "@/components/ui/switch";
 import { toast } from "sonner";
 import { Waves, Loader2, ArrowRight, ArrowLeft } from "lucide-react";
 import { ExperienceNotesField } from "@/components/ExperienceNotesField";
+import { useTranslation } from "@/i18n/LanguageContext";
+import { boardTypeLabel } from "@/i18n/boardTypes";
+import { BOARD_TYPES } from "@/lib/board";
 
 const schema = z.object({
   full_name: z.string().trim().min(2).max(100),
@@ -23,9 +26,7 @@ const schema = z.object({
   height_cm: z.coerce.number().min(80).max(230),
   surf_level: z.enum(["iniciante", "intermediario", "avancado"]),
   stance: z.enum(["regular", "goofy", "desconhecido"]),
-  can_swim: z.boolean().refine((val) => val === true, {
-    message: "É obrigatório saber nadar para se cadastrar.",
-  }),
+  can_swim: z.boolean(),
   has_own_board: z.boolean(),
   board_size: z.string().trim().max(50).optional().or(z.literal("")),
   experience_notes: z.string().trim().max(500).optional().or(z.literal("")),
@@ -37,6 +38,7 @@ const schema = z.object({
 export default function Onboarding() {
   const navigate = useNavigate();
   const { user, profile, refreshProfile } = useAuth();
+  const { t } = useTranslation();
 
   const handleBackToAuth = async () => {
     await supabase.auth.signOut();
@@ -48,16 +50,15 @@ export default function Onboarding() {
 
   const parsedBoard = (() => {
     const raw = profile?.board_size ?? "";
-    const types = ["Longboard soft", "Longboard fibra", "Fun board", "Mid Length", "Evolution", "Shortboard"];
-    for (const t of types) {
-      if (raw.startsWith(t)) {
-        let rem = raw.slice(t.length).trim();
+    for (const bt of BOARD_TYPES) {
+      if (raw.startsWith(bt)) {
+        let rem = raw.slice(bt.length).trim();
         if (rem.startsWith("(") && rem.endsWith(")")) {
           rem = rem.slice(1, -1).trim();
         } else if (rem.startsWith("-")) {
           rem = rem.slice(1).trim();
         }
-        return { type: t, size: rem };
+        return { type: bt, size: rem };
       }
     }
     return { type: "", size: raw };
@@ -134,7 +135,7 @@ export default function Onboarding() {
     e.preventDefault();
     if (!user) return;
     if (!form.can_swim) {
-      toast.error("É obrigatório saber nadar para se cadastrar.");
+      toast.error(t("onboarding.errors.swimRequired"));
       return;
     }
 
@@ -150,6 +151,10 @@ export default function Onboarding() {
     const parsed = schema.safeParse(dataToValidate);
     if (!parsed.success) {
       toast.error(parsed.error.issues[0].message);
+      return;
+    }
+    if (!parsed.data.can_swim) {
+      toast.error(t("onboarding.errors.swimRequired"));
       return;
     }
     setLoading(true);
@@ -168,17 +173,17 @@ export default function Onboarding() {
     setLoading(false);
 
     if (error) {
-      toast.error("Erro ao salvar: " + error.message);
+      toast.error(t("common.saveErrorPrefix") + error.message);
       return;
     }
-    toast.success("Ficha enviada! Aguarde aprovação do admin.");
+    toast.success(t("onboarding.success.submitted"));
     await refreshProfile();
     navigate("/", { replace: true });
   };
 
   const stepLabels: Record<typeof step, { title: string; subtitle: string }> = {
-    terms: { title: "Antes de começar", subtitle: "Leia os termos até o fim para liberar a próxima etapa." },
-    form: { title: "Sua ficha técnica", subtitle: "Para o instrutor te conhecer melhor antes da primeira aula." },
+    terms: { title: t("onboarding.termsStep.title"), subtitle: t("onboarding.termsStep.subtitle") },
+    form: { title: t("onboarding.formStep.title"), subtitle: t("onboarding.formStep.subtitle") },
   };
 
   return (
@@ -195,7 +200,7 @@ export default function Onboarding() {
             className="text-muted-foreground hover:text-foreground"
           >
             <ArrowLeft className="w-4 h-4 mr-2" />
-            Voltar para login
+            {t("onboarding.backToLogin")}
           </Button>
         </div>
 
@@ -213,9 +218,9 @@ export default function Onboarding() {
 
         {/* Stepper */}
         <div className="flex items-center justify-center gap-2 mb-6">
-          <Dot active={step === "terms"} done={step !== "terms"} label="Termos" />
+          <Dot active={step === "terms"} done={step !== "terms"} label={t("onboarding.steps.terms")} />
           <div className="h-px w-8 bg-white/10" />
-          <Dot active={step === "form"} done={false} label="Ficha" />
+          <Dot active={step === "form"} done={false} label={t("onboarding.steps.form")} />
         </div>
 
         {checkingLegal ? (
@@ -226,82 +231,79 @@ export default function Onboarding() {
           <TermsGate onAccepted={() => setStep("form")} />
         ) : (
           <form onSubmit={handleSubmit} className="glass-strong rounded-3xl p-6 md:p-8 space-y-6 shadow-elevated">
-            <Section title="Dados pessoais">
-              <Field label="Nome completo">
+            <Section title={t("onboarding.sections.personal")}>
+              <Field label={t("profile.fields.fullName")}>
                 <Input value={form.full_name} onChange={(e) => setForm({ ...form, full_name: e.target.value })} required className="bg-input/60 border-0 h-11 rounded-xl" />
               </Field>
-              <Field label="Telefone (WhatsApp)">
-                <Input value={form.phone} onChange={(e) => setForm({ ...form, phone: e.target.value })} placeholder="(11) 99999-9999" required className="bg-input/60 border-0 h-11 rounded-xl" />
+              <Field label={t("onboarding.fields.phoneWhatsapp")}>
+                <Input value={form.phone} onChange={(e) => setForm({ ...form, phone: e.target.value })} placeholder={t("onboarding.fields.phonePlaceholder")} required className="bg-input/60 border-0 h-11 rounded-xl" />
               </Field>
               <div className="grid grid-cols-3 gap-3">
-                <Field label="Idade">
+                <Field label={t("profile.fields.age")}>
                   <Input type="number" value={form.age} onChange={(e) => setForm({ ...form, age: e.target.value })} required className="bg-input/60 border-0 h-11 rounded-xl" />
                 </Field>
-                <Field label="Peso (kg)">
+                <Field label={t("profile.fields.weight")}>
                   <Input type="number" step="0.1" value={form.weight_kg} onChange={(e) => setForm({ ...form, weight_kg: e.target.value })} required className="bg-input/60 border-0 h-11 rounded-xl" />
                 </Field>
-                <Field label="Altura (cm)">
+                <Field label={t("profile.fields.height")}>
                   <Input type="number" value={form.height_cm} onChange={(e) => setForm({ ...form, height_cm: e.target.value })} required className="bg-input/60 border-0 h-11 rounded-xl" />
                 </Field>
               </div>
             </Section>
 
-            <Section title="Sobre seu surf">
+            <Section title={t("onboarding.sections.surf")}>
               <div className="grid md:grid-cols-2 gap-3">
-                <Field label="Nível">
+                <Field label={t("profile.fields.level")}>
                   <Select value={form.surf_level} onValueChange={(v) => setForm({ ...form, surf_level: v as typeof form.surf_level })}>
                     <SelectTrigger className="bg-input/60 border-0 h-11 rounded-xl"><SelectValue /></SelectTrigger>
                     <SelectContent>
-                      <SelectItem value="iniciante">Iniciante</SelectItem>
-                      <SelectItem value="intermediario">Intermediário</SelectItem>
-                      <SelectItem value="avancado">Avançado</SelectItem>
+                      <SelectItem value="iniciante">{t("profile.levels.beginner")}</SelectItem>
+                      <SelectItem value="intermediario">{t("profile.levels.intermediate")}</SelectItem>
+                      <SelectItem value="avancado">{t("profile.levels.advanced")}</SelectItem>
                     </SelectContent>
                   </Select>
                 </Field>
-                <Field label="Base">
+                <Field label={t("profile.fields.stance")}>
                   <Select value={form.stance} onValueChange={(v) => setForm({ ...form, stance: v as typeof form.stance })}>
                     <SelectTrigger className="bg-input/60 border-0 h-11 rounded-xl"><SelectValue /></SelectTrigger>
                     <SelectContent>
-                      <SelectItem value="regular">Regular (pé esquerdo na frente)</SelectItem>
-                      <SelectItem value="goofy">Goofy (pé direito na frente)</SelectItem>
-                      <SelectItem value="desconhecido">Não sei ainda</SelectItem>
+                      <SelectItem value="regular">{t("onboarding.stances.regularLong")}</SelectItem>
+                      <SelectItem value="goofy">{t("onboarding.stances.goofyLong")}</SelectItem>
+                      <SelectItem value="desconhecido">{t("onboarding.stances.unknownLong")}</SelectItem>
                     </SelectContent>
                   </Select>
                 </Field>
               </div>
 
-              <ToggleRow label="Sei nadar (Obrigatório)" description="Obrigatório para sua segurança no mar" checked={form.can_swim} onChange={(v) => setForm({ ...form, can_swim: v })} />
-              <ToggleRow label="Tenho prancha própria" description="Caso contrário, providenciamos uma" checked={form.has_own_board} onChange={(v) => setForm({ ...form, has_own_board: v })} />
+              <ToggleRow label={t("onboarding.canSwim.label")} description={t("onboarding.canSwim.description")} checked={form.can_swim} onChange={(v) => setForm({ ...form, can_swim: v })} />
+              <ToggleRow label={t("onboarding.ownBoard.label")} description={t("onboarding.ownBoard.description")} checked={form.has_own_board} onChange={(v) => setForm({ ...form, has_own_board: v })} />
 
               {form.has_own_board && (
                 <div className="grid md:grid-cols-2 gap-3">
-                  <Field label="Tipo da prancha">
+                  <Field label={t("board.type")}>
                     <Select value={form.board_type} onValueChange={(v) => setForm({ ...form, board_type: v })}>
                       <SelectTrigger className="bg-input/60 border-0 h-11 rounded-xl">
-                        <SelectValue placeholder="Selecione o tipo" />
+                        <SelectValue placeholder={t("board.selectType")} />
                       </SelectTrigger>
                       <SelectContent>
-                        <SelectItem value="Longboard soft">Longboard soft</SelectItem>
-                        <SelectItem value="Longboard fibra">Longboard fibra</SelectItem>
-                        <SelectItem value="Fun board">Fun board</SelectItem>
-                        <SelectItem value="Mid Length">Mid Length</SelectItem>
-                        <SelectItem value="Evolution">Evolution</SelectItem>
-                        <SelectItem value="Shortboard">Shortboard</SelectItem>
+                        {BOARD_TYPES.map((value) => (
+                          <SelectItem key={value} value={value}>{boardTypeLabel(value, t)}</SelectItem>
+                        ))}
                       </SelectContent>
                     </Select>
                   </Field>
-                  <Field label="Tamanho da prancha">
+                  <Field label={t("board.size")}>
                     <Input 
                       value={form.board_size} 
                       onChange={(e) => setForm({ ...form, board_size: e.target.value })} 
-                      placeholder={`Ex: 6'2" ou 9'0"`} 
+                      placeholder={t("board.sizePlaceholder")} 
                       className="bg-input/60 border-0 h-11 rounded-xl" 
                     />
                   </Field>
                 </div>
               )}
 
-              <Field label="Experiência prévia (opcional)">
+              <Field label={t("onboarding.fields.experienceOptional")}>
                 <ExperienceNotesField
                   value={form.experience_notes}
                   onChange={(experience_notes) => setForm({ ...form, experience_notes })}
@@ -311,15 +313,15 @@ export default function Onboarding() {
               </Field>
             </Section>
 
-            <Section title="Saúde & emergência">
-              <Field label="Condições médicas (opcional)">
+            <Section title={t("onboarding.sections.health")}>
+              <Field label={t("onboarding.fields.medicalOptional")}>
                 <Textarea value={form.medical_conditions} onChange={(e) => setForm({ ...form, medical_conditions: e.target.value })} className="bg-input/60 border-0 rounded-xl min-h-20" />
               </Field>
               <div className="grid md:grid-cols-2 gap-3">
-                <Field label="Contato de emergência">
+                <Field label={t("onboarding.fields.emergencyContact")}>
                   <Input value={form.emergency_contact_name} onChange={(e) => setForm({ ...form, emergency_contact_name: e.target.value })} required className="bg-input/60 border-0 h-11 rounded-xl" />
                 </Field>
-                <Field label="Telefone do contato">
+                <Field label={t("onboarding.fields.emergencyPhone")}>
                   <Input value={form.emergency_contact_phone} onChange={(e) => setForm({ ...form, emergency_contact_phone: e.target.value })} required className="bg-input/60 border-0 h-11 rounded-xl" />
                 </Field>
               </div>
@@ -327,7 +329,7 @@ export default function Onboarding() {
 
             <Button type="submit" disabled={loading} className="w-full h-12 rounded-xl bg-gradient-to-r from-primary to-accent text-primary-foreground font-semibold">
               {loading ? <Loader2 className="w-5 h-5 animate-spin" /> : (
-                <span className="inline-flex items-center gap-2">Enviar ficha <ArrowRight className="w-4 h-4" /></span>
+                <span className="inline-flex items-center gap-2">{t("onboarding.submit")} <ArrowRight className="w-4 h-4" /></span>
               )}
             </Button>
           </form>

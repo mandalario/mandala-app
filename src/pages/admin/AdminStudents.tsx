@@ -9,6 +9,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { toast } from "sonner";
 import { CheckCircle2, XCircle, Search, Loader2, X, Plus, Save, User, Phone, Mail, Heart, Activity, Trash2 } from "lucide-react";
 import { BoardFields } from "@/components/BoardFields";
+import { LessonHistory } from "@/components/LessonHistory";
 import { formatBoardField, parseBoardField } from "@/lib/board";
 
 type Student = {
@@ -105,7 +106,21 @@ export default function AdminStudents() {
         </div>
       )}
 
-      {open && <StudentSheet student={open} onClose={() => setOpen(null)} onSaved={() => { setOpen(null); load(); }} />}
+      {open && (
+        <StudentSheet
+          student={open}
+          onClose={() => setOpen(null)}
+          onSaved={() => {
+            setOpen(null);
+            load();
+          }}
+          onDeleted={(id) => {
+            setOpen(null);
+            setList((prev) => prev.filter((s) => s.id !== id));
+            load();
+          }}
+        />
+      )}
       {creating && <CreateStudentSheet onClose={() => setCreating(false)} onCreated={() => { setCreating(false); load(); }} />}
     </div>
   );
@@ -148,7 +163,17 @@ const Overlay = ({ children, onClose, title, subtitle, badge }: any) => (
 );
 
 /* ---------------- Edit student ---------------- */
-function StudentSheet({ student, onClose, onSaved }: { student: Student; onClose: () => void; onSaved: () => void }) {
+function StudentSheet({
+  student,
+  onClose,
+  onSaved,
+  onDeleted,
+}: {
+  student: Student;
+  onClose: () => void;
+  onSaved: () => void;
+  onDeleted: (id: string) => void;
+}) {
   const initialBoard = parseBoardField(student.board_size);
   const [f, setF] = useState<Student>(student);
   const [boardType, setBoardType] = useState(initialBoard.type);
@@ -199,14 +224,33 @@ function StudentSheet({ student, onClose, onSaved }: { student: Student; onClose
   const deleteStudent = async () => {
     if (!window.confirm("Tem certeza que deseja excluir este aluno permanentemente?")) return;
     setSaving(true);
-    const { error } = await supabase.from("profiles").delete().eq("id", student.id);
+    const { data, error } = await supabase.functions.invoke("admin-delete-student", {
+      body: { user_id: student.id },
+    });
     setSaving(false);
     if (error) {
-      toast.error("Erro ao excluir: " + error.message);
-    } else {
-      toast.success("Aluno excluído com sucesso");
-      onSaved();
+      let msg = error.message;
+      try {
+        if (error.context) {
+          const body = await error.context.json();
+          msg = body?.error || msg;
+        }
+      } catch {
+        /* use default */
+      }
+      toast.error("Erro ao excluir: " + msg);
+      return;
     }
+    if (data?.error) {
+      toast.error("Erro ao excluir: " + data.error);
+      return;
+    }
+    if (!data?.ok) {
+      toast.error("Erro ao excluir: resposta inválida do servidor");
+      return;
+    }
+    toast.success("Aluno excluído com sucesso");
+    onDeleted(student.id);
   };
 
   const initial = (f.full_name ?? f.email)[0]?.toUpperCase();
@@ -286,6 +330,8 @@ function StudentSheet({ student, onClose, onSaved }: { student: Student; onClose
         <Field label="Contato de emergência"><Input value={f.emergency_contact_name ?? ""} onChange={(e) => set("emergency_contact_name", e.target.value)} /></Field>
         <Field label="Telefone de emergência"><Input value={f.emergency_contact_phone ?? ""} onChange={(e) => set("emergency_contact_phone", e.target.value)} /></Field>
       </Section>
+
+      <LessonHistory userId={student.id} />
 
       {/* Sticky actions */}
       <div className="sticky bottom-0 -mx-5 md:-mx-6 px-5 md:px-6 py-4 bg-background/80 backdrop-blur-xl border-t border-border/40 flex flex-col-reverse sm:flex-row gap-2">

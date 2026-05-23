@@ -5,20 +5,20 @@ import { OceanBackground } from "@/components/OceanBackground";
 import { Button } from "@/components/ui/button";
 import { supabase } from "@/integrations/supabase/client";
 import { Hourglass, LogOut, RefreshCw, XCircle } from "lucide-react";
+import { useTranslation } from "@/i18n/LanguageContext";
 
 export default function PendingApproval() {
   const { user, profile, signOut, refreshProfile } = useAuth();
+  const { t } = useTranslation();
   const navigate = useNavigate();
   const rejected = profile?.approval_status === "rejected";
 
-  // Redirect when approved
   useEffect(() => {
     if (profile?.approval_status === "approved" && profile?.profile_completed) {
       navigate("/", { replace: true });
     }
   }, [profile?.approval_status, profile?.profile_completed, navigate]);
 
-  // Realtime: react when admin approves
   useEffect(() => {
     if (!user) return;
     const channel = supabase
@@ -30,11 +30,19 @@ export default function PendingApproval() {
           refreshProfile();
         }
       )
+      .on(
+        "postgres_changes",
+        { event: "DELETE", schema: "public", table: "profiles", filter: `id=eq.${user.id}` },
+        async () => {
+          await signOut();
+          navigate("/auth", { replace: true });
+        }
+      )
       .subscribe();
     return () => {
       supabase.removeChannel(channel);
     };
-  }, [user, refreshProfile]);
+  }, [user, refreshProfile, signOut, navigate]);
 
   const handleRefresh = () => {
     window.location.reload();
@@ -49,12 +57,10 @@ export default function PendingApproval() {
             {rejected ? <XCircle className="w-10 h-10 text-destructive" /> : <Hourglass className="w-10 h-10 text-primary" />}
           </div>
           <h1 className="text-3xl font-bold mb-3">
-            {rejected ? "Cadastro não aprovado" : "Quase lá"}
+            {rejected ? t("pendingApproval.rejectedTitle") : t("pendingApproval.pendingTitle")}
           </h1>
           <p className="text-muted-foreground mb-8">
-            {rejected
-              ? "Seu cadastro foi recusado pelo instrutor. Entre em contato para mais informações."
-              : "Sua ficha foi enviada e está aguardando aprovação do instrutor. Você receberá acesso assim que for liberado."}
+            {rejected ? t("pendingApproval.rejectedBody") : t("pendingApproval.pendingBody")}
           </p>
           <div className="flex gap-2">
             <Button
@@ -62,7 +68,7 @@ export default function PendingApproval() {
               onClick={handleRefresh}
               className="flex-1 h-11 rounded-xl bg-secondary/60 border-0"
             >
-              <RefreshCw className="w-4 h-4 mr-2" /> Atualizar
+              <RefreshCw className="w-4 h-4 mr-2" /> {t("common.refresh")}
             </Button>
             <Button
               variant="ghost"
@@ -72,7 +78,7 @@ export default function PendingApproval() {
               }}
               className="flex-1 h-11 rounded-xl"
             >
-              <LogOut className="w-4 h-4 mr-2" /> Sair
+              <LogOut className="w-4 h-4 mr-2" /> {t("common.signOut")}
             </Button>
           </div>
         </div>

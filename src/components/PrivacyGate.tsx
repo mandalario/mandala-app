@@ -5,6 +5,7 @@ import { Button } from "@/components/ui/button";
 import { Checkbox } from "@/components/ui/checkbox";
 import { toast } from "sonner";
 import { ShieldCheck, ArrowDown, Check, Loader2 } from "lucide-react";
+import { useTranslation } from "@/i18n/LanguageContext";
 
 type PrivacyDoc = { id: string; version: string; title: string; content: string };
 
@@ -14,6 +15,7 @@ type Props = {
 
 export const PrivacyGate = ({ onAccepted }: Props) => {
   const { user } = useAuth();
+  const { t } = useTranslation();
   const [doc, setDoc] = useState<PrivacyDoc | null>(null);
   const [loading, setLoading] = useState(true);
   const [submitting, setSubmitting] = useState(false);
@@ -50,7 +52,7 @@ export const PrivacyGate = ({ onAccepted }: Props) => {
       .insert({ user_id: user.id, privacy_id: doc.id });
     setSubmitting(false);
     if (error && !error.message.includes("duplicate")) {
-      toast.error("Erro: " + error.message);
+      toast.error(t("common.errorPrefix") + error.message);
       return;
     }
     onAccepted();
@@ -67,7 +69,7 @@ export const PrivacyGate = ({ onAccepted }: Props) => {
   if (!doc) {
     return (
       <div className="glass-strong rounded-3xl p-8 text-center text-muted-foreground">
-        Nenhuma política de privacidade cadastrada. Avise o admin.
+        {t("privacyGate.empty")}
       </div>
     );
   }
@@ -80,7 +82,7 @@ export const PrivacyGate = ({ onAccepted }: Props) => {
         </div>
         <div>
           <h2 className="font-bold">{doc.title}</h2>
-          <p className="text-xs text-muted-foreground">Versão {doc.version}</p>
+          <p className="text-xs text-muted-foreground">{t("common.version", { version: doc.version })}</p>
         </div>
       </div>
 
@@ -94,7 +96,7 @@ export const PrivacyGate = ({ onAccepted }: Props) => {
 
       {!reachedBottom && (
         <div className="px-6 pt-2 flex items-center justify-center gap-2 text-xs text-primary animate-pulse">
-          <ArrowDown className="w-3 h-3" /> role até o fim para liberar o aceite
+          <ArrowDown className="w-3 h-3" /> {t("privacyGate.scrollHint")}
         </div>
       )}
 
@@ -107,7 +109,7 @@ export const PrivacyGate = ({ onAccepted }: Props) => {
             className="mt-0.5"
           />
           <span className="text-sm">
-            Li e concordo integralmente com a <span className="text-primary font-medium">Política de Privacidade</span>.
+            {t("privacyGate.agree")} <span className="text-primary font-medium">{t("privacyGate.policyLink")}</span>.
           </span>
         </label>
 
@@ -117,7 +119,7 @@ export const PrivacyGate = ({ onAccepted }: Props) => {
           className="w-full h-12 rounded-xl bg-gradient-to-r from-primary to-accent text-primary-foreground font-semibold disabled:opacity-40"
         >
           {submitting ? <Loader2 className="w-5 h-5 animate-spin" /> : (
-            <span className="inline-flex items-center gap-2"><Check className="w-4 h-4" /> Aceitar e continuar</span>
+            <span className="inline-flex items-center gap-2"><Check className="w-4 h-4" /> {t("privacyGate.accept")}</span>
           )}
         </Button>
       </div>

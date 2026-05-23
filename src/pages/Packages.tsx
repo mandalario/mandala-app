@@ -7,6 +7,7 @@ import { Button } from "@/components/ui/button";
 import { toast } from "sonner";
 import { ArrowLeft, Loader2, QrCode, Copy, CheckCircle2, Hourglass, XCircle, AlertCircle, RefreshCw, Sparkles, Apple } from "lucide-react";
 import { useTranslation } from "@/i18n/LanguageContext";
+import { packageCatalogText } from "@/i18n/studentContent";
 import { useBillingEnabled } from "@/hooks/useBillingEnabled";
 
 type Pkg = {
@@ -75,17 +76,13 @@ export default function Packages() {
           <section className="px-5">
             <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
               {pkgs.map((p) => {
-                const nameKey = `packages.catalog.${p.name}.name`;
-                const descKey = `packages.catalog.${p.name}.description`;
-                const tn = t(nameKey);
-                const dn = tn === nameKey ? p.name : tn;
-                const td = p.description ? t(descKey) : "";
-                const dd = !p.description ? "" : td === descKey ? p.description : td;
+                const dn = packageCatalogText(p.name, "name", t, p.name);
+                const dd = packageCatalogText(p.name, "description", t, p.description);
 
                 const typeLabels: Record<string, string> = {
-                  avulsa_grupo: "Grupo",
-                  avulsa_particular: "Particular",
-                  aluguel: "Aluguel",
+                  avulsa_grupo: t("packages.typeGroup"),
+                  avulsa_particular: t("packages.typePrivate"),
+                  aluguel: t("packages.typeRental"),
                 };
                 const typeColors: Record<string, string> = {
                   avulsa_grupo: "bg-blue-500/10 text-blue-400 border border-blue-500/20",
@@ -112,14 +109,14 @@ export default function Packages() {
                       <div className="flex items-baseline justify-between">
                         <div className="text-2xl font-black text-gradient">{fmt(p.price_cents)}</div>
                         <div className="text-[10px] text-muted-foreground font-medium">
-                          {fmt(Math.round(p.price_cents / p.credits))} /aula
+                          {fmt(Math.round(p.price_cents / p.credits))} {t("packages.perClass")}
                         </div>
                       </div>
                       <Button
                         onClick={() => setSelected(p)}
                         className="w-full h-11 rounded-2xl bg-gradient-to-r from-primary to-accent text-primary-foreground font-bold text-xs shadow-lg shadow-primary/20 hover:shadow-primary/40"
                       >
-                        Comprar agora
+                        {t("packages.buyNow")}
                       </Button>
                     </div>
                   </div>
@@ -169,9 +166,7 @@ function PixCheckout({ pkg, onBack, t }: { pkg: Pkg; onBack: () => void; t: (k: 
 
   const hasNativeBridge = typeof window !== "undefined" && !!(window as any).ReactNativeWebView;
 
-  const nameKey = `packages.catalog.${pkg.name}.name`;
-  const tn = t(nameKey);
-  const displayName = tn === nameKey ? pkg.name : tn;
+  const displayName = packageCatalogText(pkg.name, "name", t, pkg.name);
 
   const create = async () => {
     setCreating(true);

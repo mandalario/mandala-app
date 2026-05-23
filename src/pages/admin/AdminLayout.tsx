@@ -6,25 +6,27 @@ import { Brand } from "@/components/Brand";
 import { NotificationsBell } from "@/components/NotificationsBell";
 import { LayoutDashboard, Users, CalendarDays, ScrollText, Video, MessageCircle, LogOut, Package, Wind, Image as ImageIcon, DollarSign, ShieldCheck, Bell, KeyRound, Loader2 } from "lucide-react";
 import logoMandala from "@/assets/logo-mandala.png";
-
-const nav = [
-  { to: "/admin", label: "Dashboard", icon: LayoutDashboard, end: true },
-  { to: "/admin/students", label: "Alunos", icon: Users },
-  { to: "/admin/schedule", label: "Agenda & Mar", icon: CalendarDays },
-  { to: "/admin/forecast", label: "Previsão", icon: Wind },
-  { to: "/admin/billing", label: "Cobrança", icon: DollarSign },
-  { to: "/admin/packages", label: "Pacotes", icon: Package },
-  { to: "/admin/content", label: "Conteúdo", icon: ImageIcon },
-  { to: "/admin/posts", label: "Posts", icon: Video },
-  { to: "/admin/chat", label: "Chat", icon: MessageCircle },
-  { to: "/admin/notifications", label: "Notificações", icon: Bell },
-  { to: "/admin/terms", label: "Termos", icon: ScrollText },
-  { to: "/admin/privacy", label: "Privacidade", icon: ShieldCheck },
-  { to: "/admin/access", label: "Admins", icon: KeyRound },
-];
+import { useTranslation } from "@/i18n/LanguageContext";
 
 export default function AdminLayout() {
+  const { t } = useTranslation();
   const { profile, signOut, isAdmin, loading, user } = useAuth();
+
+  const nav = [
+    { to: "/admin", label: t("admin.layout.dashboard"), icon: LayoutDashboard, end: true },
+    { to: "/admin/students", label: t("admin.layout.students"), icon: Users },
+    { to: "/admin/schedule", label: t("admin.layout.schedule"), icon: CalendarDays },
+    { to: "/admin/forecast", label: t("admin.layout.forecast"), icon: Wind },
+    { to: "/admin/billing", label: t("admin.layout.billing"), icon: DollarSign },
+    { to: "/admin/packages", label: t("admin.layout.packages"), icon: Package },
+    { to: "/admin/content", label: t("admin.layout.content"), icon: ImageIcon },
+    { to: "/admin/posts", label: t("admin.layout.posts"), icon: Video },
+    { to: "/admin/chat", label: t("admin.layout.chat"), icon: MessageCircle },
+    { to: "/admin/notifications", label: t("admin.layout.notifications"), icon: Bell },
+    { to: "/admin/terms", label: t("admin.layout.terms"), icon: ScrollText },
+    { to: "/admin/privacy", label: t("admin.layout.privacy"), icon: ShieldCheck },
+    { to: "/admin/access", label: t("admin.layout.access"), icon: KeyRound },
+  ];
   const navigate = useNavigate();
 
   useEffect(() => {
@@ -54,7 +56,7 @@ export default function AdminLayout() {
         <div className="glass-strong rounded-3xl flex-1 flex flex-col p-4">
           <div className="flex items-center gap-3 px-2 py-3 mb-2">
             <div className="w-11 h-11 rounded-2xl bg-white flex items-center justify-center glow-primary shrink-0 p-1">
-              <img src={logoMandala} alt="Mandala Rio" className="w-full h-full object-contain" />
+              <img src={logoMandala} alt={t("admin.layout.logoAlt")} className="w-full h-full object-contain" />
             </div>
             <Brand size="sm" align="left" />
           </div>
@@ -75,7 +77,7 @@ export default function AdminLayout() {
           <div className="mt-2 flex items-center gap-2 px-2">
             <NotificationsBell />
             <button onClick={signOut} className="flex-1 flex items-center gap-3 px-3 py-2.5 rounded-xl text-sm text-foreground/70 hover:bg-secondary/40">
-              <LogOut className="w-4 h-4" /> Sair
+              <LogOut className="w-4 h-4" /> {t("common.signOut")}
             </button>
           </div>
           <div className="text-[10px] text-muted-foreground px-3 mt-2">{profile?.email}</div>

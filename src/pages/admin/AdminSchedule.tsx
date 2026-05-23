@@ -9,9 +9,10 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { Switch } from "@/components/ui/switch";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { toast } from "sonner";
-import { ptBR } from "date-fns/locale";
-import { format, addDays } from "date-fns";
+import { format } from "date-fns";
 import { cn } from "@/lib/utils";
+import { useTranslation } from "@/i18n/LanguageContext";
+import { dateFnsLocaleFor } from "@/i18n/dateLocale";
 import {
   Plus, Trash2, Loader2, Waves, Wind, CloudOff, Clock, MapPin, Users,
   CalendarDays, Sparkles, Repeat, Wand2, Lock, Pencil, ChevronDown, ChevronUp, CheckSquare, Square, X, RefreshCw
@@ -20,7 +21,7 @@ import { Modal } from "./AdminStudents";
 import { ForecastWidget } from "@/components/ForecastWidget";
 
 type Level = "iniciante" | "intermediario" | "avancado";
-const LEVEL_LABEL: Record<Level, string> = { iniciante: "Iniciante", intermediario: "Intermediário", avancado: "Avançado" };
+type ClassType = "avulsa_grupo" | "avulsa_particular" | "aluguel";
 
 type Slot = {
   id: string; date: string; start_time: string; end_time: string;
@@ -38,7 +39,6 @@ type Template = {
   alternate_type?: boolean;
 };
 
-const condLabel: Record<CondKey, string> = { good: "Mar bom", medium: "Mar médio", bad: "Mar ruim", flat: "Sem ondas" };
 const condIcon: Record<CondKey, JSX.Element> = {
   good: <Waves className="w-3.5 h-3.5" />,
   medium: <Wind className="w-3.5 h-3.5" />,
@@ -59,6 +59,8 @@ const ymd = (d: Date) => format(d, "yyyy-MM-dd");
 type BookingRow = { id: string; slot_id: string; user_id: string; status: string; is_accepted: boolean | null; profiles: { full_name: string | null; email: string; avatar_url: string | null } | null };
 
 export default function AdminSchedule() {
+  const { language } = useTranslation();
+  const dateFnsLocale = dateFnsLocaleFor(language);
   const [slots, setSlots] = useState<Slot[]>([]);
   const [conds, setConds] = useState<Cond[]>([]);
   const [templates, setTemplates] = useState<Template[]>([]);
@@ -381,7 +383,7 @@ export default function AdminSchedule() {
                   mode="single"
                   selected={selectedDate}
                   onSelect={(d) => d && setSelectedDate(d)}
-                  locale={ptBR}
+                  locale={dateFnsLocale}
                   showOutsideDays
                   weekStartsOn={0}
                   modifiers={{
@@ -419,7 +421,7 @@ export default function AdminSchedule() {
                       <div>
                         <div className="text-xs uppercase tracking-widest text-primary/80">Dia selecionado</div>
                         <div className="font-bold capitalize text-lg">
-                          {format(selectedDate, "EEEE, dd 'de' MMMM", { locale: ptBR })}
+                          {format(selectedDate, "EEEE, dd 'de' MMMM", { locale: dateFnsLocale })}
                         </div>
                       </div>
                     </div>

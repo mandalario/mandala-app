@@ -9,9 +9,11 @@ import { HomeBanners } from "@/components/HomeBanners";
 import { HomePartners } from "@/components/HomePartners";
 import { DailyQuote } from "@/components/DailyQuote";
 import { SeaConditionCard } from "@/components/SeaConditionCard";
+import { LessonHistory } from "@/components/LessonHistory";
 import { Waves, Calendar, CreditCard, MessageCircle, Video, User as UserIcon } from "lucide-react";
 import logoMandala from "@/assets/logo-mandala.png";
 import { useTranslation } from "@/i18n/LanguageContext";
+import { intlLocaleFor } from "@/i18n/dateLocale";
 import { LanguageSwitcher } from "@/components/LanguageSwitcher";
 import { useBillingEnabled } from "@/hooks/useBillingEnabled";
 
@@ -20,7 +22,8 @@ type NextBooking = { id: string; status: string; class_slots: { date: string; st
 export default function StudentHome() {
   const { user, profile } = useAuth();
   const navigate = useNavigate();
-  const { t } = useTranslation();
+  const { t, language } = useTranslation();
+  const intlLocale = intlLocaleFor(language);
   const billingEnabled = useBillingEnabled();
   const [next, setNext] = useState<NextBooking[]>([]);
   const [unread, setUnread] = useState(0);
@@ -81,22 +84,24 @@ export default function StudentHome() {
             <p className="text-[9px] uppercase tracking-[0.3em] text-sky-300/90">{t("dashboard.schoolTagline")}</p>
           </div>
         </div>
-        <div className="flex items-center gap-2 shrink-0">
-          <CreditsBadge 
-            credits={profile?.credits ?? 0} 
+        <div className="flex flex-col items-end gap-2 shrink-0">
+          <div className="flex items-center gap-2">
+            <LanguageSwitcher compact />
+            <NotificationsBell />
+            <Link to="/profile" className="w-10 h-10 rounded-full glass flex items-center justify-center overflow-hidden shrink-0 ring-2 ring-primary/20" aria-label={t("studentHome.profileAria")}>
+              {profile?.avatar_url ? (
+                <img src={profile.avatar_url} alt="" className="w-full h-full object-cover" />
+              ) : (
+                <UserIcon className="w-5 h-5 text-primary" />
+              )}
+            </Link>
+          </div>
+          <CreditsBadge
+            credits={profile?.credits ?? 0}
             creditsGrupo={profile?.credits_grupo}
             creditsParticular={profile?.credits_particular}
             creditsAluguel={profile?.credits_aluguel}
           />
-          <LanguageSwitcher compact />
-          <NotificationsBell />
-          <Link to="/profile" className="w-10 h-10 rounded-full glass flex items-center justify-center overflow-hidden shrink-0 ring-2 ring-primary/20" aria-label="Perfil">
-            {profile?.avatar_url ? (
-              <img src={profile.avatar_url} alt="" className="w-full h-full object-cover" />
-            ) : (
-              <UserIcon className="w-5 h-5 text-primary" />
-            )}
-          </Link>
         </div>
       </div>
 
@@ -130,8 +135,8 @@ export default function StudentHome() {
         <ActionTile
           to="/packages"
           icon={<CreditCard className="w-5 h-5" />}
-          label={t("packages.title") || "Comprar Créditos"}
-          sub="Pacotes e Histórico"
+          label={t("packages.title")}
+          sub={t("studentHome.packagesHistory")}
         />
       </section>
 
@@ -154,15 +159,15 @@ export default function StudentHome() {
               return (
                 <div key={b.id} className="glass rounded-2xl p-4 flex items-center gap-3">
                   <div className="w-12 h-12 rounded-xl bg-primary/15 text-primary flex flex-col items-center justify-center text-xs font-bold">
-                    <span>{new Date(b.class_slots!.date + "T12:00:00").toLocaleDateString("pt-BR", { day: "2-digit" })}</span>
-                    <span className="uppercase">{new Date(b.class_slots!.date + "T12:00:00").toLocaleDateString("pt-BR", { month: "short" }).slice(0, 3)}</span>
+                    <span>{new Date(b.class_slots!.date + "T12:00:00").toLocaleDateString(intlLocale, { day: "2-digit" })}</span>
+                    <span className="uppercase">{new Date(b.class_slots!.date + "T12:00:00").toLocaleDateString(intlLocale, { month: "short" }).slice(0, 3)}</span>
                   </div>
                   <div className="flex-1">
                     <div className="font-semibold text-sm flex items-center gap-1.5 flex-wrap">
                       {parseInt(b.class_slots!.start_time.slice(0, 2), 10)}h
                       {isConfirmed && (
                         <span className="inline-flex items-center gap-1 text-[9px] uppercase font-bold px-1.5 py-0.5 rounded-full bg-success/15 text-success border border-success/30">
-                          ✓ Confirmada
+                          {t("studentHome.confirmed")}
                         </span>
                       )}
                     </div>
@@ -173,6 +178,10 @@ export default function StudentHome() {
             })}
           </div>
         )}
+      </section>
+
+      <section className="px-5 mt-8">
+        <LessonHistory />
       </section>
     </div>
   );

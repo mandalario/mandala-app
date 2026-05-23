@@ -5,6 +5,7 @@ import { Button } from "@/components/ui/button";
 import { Checkbox } from "@/components/ui/checkbox";
 import { toast } from "sonner";
 import { ScrollText, ArrowDown, Check, Loader2 } from "lucide-react";
+import { useTranslation } from "@/i18n/LanguageContext";
 
 type Terms = { id: string; version: string; title: string; content: string };
 
@@ -14,6 +15,7 @@ type Props = {
 
 export const TermsGate = ({ onAccepted }: Props) => {
   const { user } = useAuth();
+  const { t } = useTranslation();
   const [terms, setTerms] = useState<Terms | null>(null);
   const [loading, setLoading] = useState(true);
   const [submitting, setSubmitting] = useState(false);
@@ -50,7 +52,7 @@ export const TermsGate = ({ onAccepted }: Props) => {
       .insert({ user_id: user.id, terms_id: terms.id });
     setSubmitting(false);
     if (error && !error.message.includes("duplicate")) {
-      toast.error("Erro: " + error.message);
+      toast.error(t("common.errorPrefix") + error.message);
       return;
     }
     onAccepted();
@@ -67,7 +69,7 @@ export const TermsGate = ({ onAccepted }: Props) => {
   if (!terms) {
     return (
       <div className="glass-strong rounded-3xl p-8 text-center text-muted-foreground">
-        Nenhum termo cadastrado. Avise o admin.
+        {t("termsGate.empty")}
       </div>
     );
   }
@@ -80,7 +82,7 @@ export const TermsGate = ({ onAccepted }: Props) => {
         </div>
         <div>
           <h2 className="font-bold">{terms.title}</h2>
-          <p className="text-xs text-muted-foreground">Versão {terms.version}</p>
+          <p className="text-xs text-muted-foreground">{t("common.version", { version: terms.version })}</p>
         </div>
       </div>
 
@@ -94,7 +96,7 @@ export const TermsGate = ({ onAccepted }: Props) => {
 
       {!reachedBottom && (
         <div className="px-6 pt-2 flex items-center justify-center gap-2 text-xs text-primary animate-pulse">
-          <ArrowDown className="w-3 h-3" /> role até o fim para liberar o aceite
+          <ArrowDown className="w-3 h-3" /> {t("termsGate.scrollHint")}
         </div>
       )}
 
@@ -107,7 +109,7 @@ export const TermsGate = ({ onAccepted }: Props) => {
             className="mt-0.5"
           />
           <span className="text-sm">
-            Li e concordo integralmente com os <span className="text-primary font-medium">Termos de Uso</span>.
+            {t("termsGate.agree")} <span className="text-primary font-medium">{t("termsGate.termsLink")}</span>.
           </span>
         </label>
 
@@ -117,7 +119,7 @@ export const TermsGate = ({ onAccepted }: Props) => {
           className="w-full h-12 rounded-xl bg-gradient-to-r from-primary to-accent text-primary-foreground font-semibold disabled:opacity-40"
         >
           {submitting ? <Loader2 className="w-5 h-5 animate-spin" /> : (
-            <span className="inline-flex items-center gap-2"><Check className="w-4 h-4" /> Aceitar e continuar</span>
+            <span className="inline-flex items-center gap-2"><Check className="w-4 h-4" /> {t("termsGate.accept")}</span>
           )}
         </Button>
       </div>

@@ -125,8 +125,10 @@ export function LanguageProvider({ children }: { children: ReactNode }) {
     (key, vars) => {
       const primary = getByPath(dictionaries[language], key);
       if (typeof primary === "string") return interpolate(primary, vars);
-      const fallback = getByPath(dictionaries.en, key);
-      if (typeof fallback === "string") return interpolate(fallback, vars);
+      const fallbackEn = getByPath(dictionaries.en, key);
+      if (typeof fallbackEn === "string") return interpolate(fallbackEn, vars);
+      const fallbackPt = getByPath(dictionaries.pt, key);
+      if (typeof fallbackPt === "string") return interpolate(fallbackPt, vars);
       return key;
     },
     [language],

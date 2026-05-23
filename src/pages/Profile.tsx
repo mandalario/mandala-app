@@ -14,6 +14,8 @@ import { useTranslation } from "@/i18n/LanguageContext";
 import { SetPasswordForm } from "@/components/SetPasswordForm";
 import { ExperienceNotesField } from "@/components/ExperienceNotesField";
 import { userHasPasswordLogin } from "@/lib/auth";
+import { boardTypeLabel } from "@/i18n/boardTypes";
+import { BOARD_TYPES } from "@/lib/board";
 
 export default function Profile() {
   const { user, profile, refreshProfile, signOut, loading } = useAuth();
@@ -45,14 +47,13 @@ export default function Profile() {
     (async () => {
       const { data } = await supabase.from("profiles").select("*").eq("id", user.id).maybeSingle();
       if (data) {
-        const types = ["Longboard soft", "Longboard fibra", "Fun board", "Mid Length", "Evolution", "Shortboard"];
         let parsedType = "";
         let parsedSize = data.board_size ?? "";
         
-        for (const t of types) {
-          if (parsedSize.startsWith(t)) {
-            parsedType = t;
-            let rem = parsedSize.slice(t.length).trim();
+        for (const bt of BOARD_TYPES) {
+          if (parsedSize.startsWith(bt)) {
+            parsedType = bt;
+            let rem = parsedSize.slice(bt.length).trim();
             if (rem.startsWith("(") && rem.endsWith(")")) {
               parsedSize = rem.slice(1, -1).trim();
             } else if (rem.startsWith("-")) {
@@ -173,18 +174,18 @@ export default function Profile() {
         <p className="text-xs text-muted-foreground mt-3">{profile.email}</p>
         <div className="mt-3 flex flex-col items-center gap-2 w-full max-w-xs">
           <div className="w-full glass rounded-2xl p-3 text-center space-y-1.5 border border-primary/20">
-            <p className="text-[10px] uppercase tracking-widest text-muted-foreground">Meus Créditos</p>
+            <p className="text-[10px] uppercase tracking-widest text-muted-foreground">{t("profile.credits.title")}</p>
             <div className="grid grid-cols-3 gap-2 text-center">
               <div>
-                <p className="text-xs text-muted-foreground">Grupo</p>
+                <p className="text-xs text-muted-foreground">{t("profile.credits.group")}</p>
                 <p className="text-sm font-bold text-primary">{profile.credits_grupo ?? 0}</p>
               </div>
               <div className="border-x border-border/40">
-                <p className="text-xs text-muted-foreground">Particular</p>
+                <p className="text-xs text-muted-foreground">{t("profile.credits.private")}</p>
                 <p className="text-sm font-bold text-primary">{profile.credits_particular ?? 0}</p>
               </div>
               <div>
-                <p className="text-xs text-muted-foreground">Aluguel</p>
+                <p className="text-xs text-muted-foreground">{t("profile.credits.rental")}</p>
                 <p className="text-sm font-bold text-primary">{profile.credits_aluguel ?? 0}</p>
               </div>
             </div>
@@ -242,16 +243,13 @@ export default function Profile() {
           </div>
           {form.has_own_board && (
             <div className="grid grid-cols-2 gap-3">
-              <Field label="Tipo da prancha">
+              <Field label={t("board.type")}>
                 <Select value={form.board_type} onValueChange={(v) => setForm({ ...form, board_type: v })}>
-                  <SelectTrigger><SelectValue placeholder="Selecione o tipo" /></SelectTrigger>
+                  <SelectTrigger><SelectValue placeholder={t("board.selectType")} /></SelectTrigger>
                   <SelectContent>
-                    <SelectItem value="Longboard soft">Longboard soft</SelectItem>
-                    <SelectItem value="Longboard fibra">Longboard fibra</SelectItem>
-                    <SelectItem value="Fun board">Fun board</SelectItem>
-                    <SelectItem value="Mid Length">Mid Length</SelectItem>
-                    <SelectItem value="Evolution">Evolution</SelectItem>
-                    <SelectItem value="Shortboard">Shortboard</SelectItem>
+                    {BOARD_TYPES.map((value) => (
+                      <SelectItem key={value} value={value}>{boardTypeLabel(value, t)}</SelectItem>
+                    ))}
                   </SelectContent>
                 </Select>
               </Field>
@@ -259,7 +257,7 @@ export default function Profile() {
                 <Input 
                   value={form.board_size} 
                   onChange={(e) => setForm({ ...form, board_size: e.target.value })} 
-                  placeholder={`Ex: 6'2" ou 9'0"`} 
+                  placeholder={t("board.sizePlaceholder")} 
                 />
               </Field>
             </div>
