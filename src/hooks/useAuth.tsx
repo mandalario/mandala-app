@@ -1,6 +1,11 @@
 import { createContext, useCallback, useContext, useEffect, useState, useRef, ReactNode } from "react";
 import { Session, User } from "@supabase/supabase-js";
 import { supabase } from "@/integrations/supabase/client";
+import {
+  type AdminArea,
+  canAccessAdminArea,
+  isSuperAdminEmail,
+} from "@/lib/adminPermissions";
 
 type Profile = {
   id: string;
@@ -20,6 +25,10 @@ type AuthContextValue = {
   session: Session | null;
   profile: Profile | null;
   isAdmin: boolean;
+  /** null = acesso total (admin legado ou super admin) */
+  adminAreas: AdminArea[] | null;
+  isSuperAdmin: boolean;
+  hasAdminArea: (area: AdminArea) => boolean;
   loading: boolean;
   signOut: () => Promise<void>;
   refreshProfile: () => Promise<void>;
@@ -32,6 +41,8 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
   const [session, setSession] = useState<Session | null>(null);
   const [profile, setProfile] = useState<Profile | null>(null);
   const [isAdmin, setIsAdmin] = useState(false);
+  const [adminAreas, setAdminAreas] = useState<AdminArea[] | null>(null);
+  const [isSuperAdmin, setIsSuperAdmin] = useState(false);
   const [loading, setLoading] = useState(true);
 
   // Refs para evitar stale closure no listener do onAuthStateChange
@@ -90,6 +101,22 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
       .eq("role", "admin")
       .maybeSingle();
 
+    const email = existingProfile?.email ?? currentUser.email ?? "";
+    const superAdmin = isSuperAdminEmail(email);
+    setIsSuperAdmin(superAdmin);
+
+    let areas: AdminArea[] | null = null;
+    if (roleData && !superAdmin) {
+      const { data: permRows } = await supabase
+        .from("admin_permissions")
+        .select("area")
+        .eq("user_id", currentUser.id);
+      if (permRows && permRows.length > 0) {
+        areas = permRows.map((r) => r.area);
+      }
+    }
+    setAdminAreas(areas);
+
     let profileData: Profile | null = existingProfile;
 
     // 2) Só cria perfil em conta recém-criada (corrida com handle_new_user).
@@ -117,6 +144,8 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
         await supabase.auth.signOut();
         setProfile(null);
         setIsAdmin(false);
+        setAdminAreas(null);
+        setIsSuperAdmin(false);
         return;
       }
     }
@@ -124,6 +153,14 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
     setProfile(profileData);
     setIsAdmin(!!roleData);
   }, []);
+
+  const hasAdminArea = useCallback(
+    (area: AdminArea) => {
+      if (!isAdmin) return false;
+      return canAccessAdminArea(area, isSuperAdmin, adminAreas);
+    },
+    [isAdmin, isSuperAdmin, adminAreas],
+  );
 
   useEffect(() => {
     let mounted = true;
@@ -158,6 +195,8 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
       } else {
         setProfile(null);
         setIsAdmin(false);
+        setAdminAreas(null);
+        setIsSuperAdmin(false);
         setLoading(false);
       }
     });
@@ -187,6 +226,8 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
     await supabase.auth.signOut();
     setProfile(null);
     setIsAdmin(false);
+    setAdminAreas(null);
+    setIsSuperAdmin(false);
   };
 
   const refreshProfile = async () => {
@@ -194,7 +235,20 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
   };
 
   return (
-    <AuthContext.Provider value={{ user, session, profile, isAdmin, loading, signOut, refreshProfile }}>
+    <AuthContext.Provider
+      value={{
+        user,
+        session,
+        profile,
+        isAdmin,
+        adminAreas,
+        isSuperAdmin,
+        hasAdminArea,
+        loading,
+        signOut,
+        refreshProfile,
+      }}
+    >
       {children}
     </AuthContext.Provider>
   );

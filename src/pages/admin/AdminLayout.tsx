@@ -1,33 +1,47 @@
-import { useEffect } from "react";
-import { Link, NavLink, Outlet, useNavigate } from "react-router-dom";
+import { useEffect, useMemo } from "react";
+import { Link, NavLink, Outlet, useLocation, useNavigate } from "react-router-dom";
 import { useAuth } from "@/hooks/useAuth";
 import { OceanBackground } from "@/components/OceanBackground";
 import { Brand } from "@/components/Brand";
 import { NotificationsBell } from "@/components/NotificationsBell";
-import { LayoutDashboard, Users, CalendarDays, ScrollText, Video, MessageCircle, LogOut, Package, Wind, Image as ImageIcon, DollarSign, ShieldCheck, Bell, KeyRound, Loader2 } from "lucide-react";
+import { LayoutDashboard, Users, CalendarDays, ScrollText, Video, MessageCircle, LogOut, Package, Wind, Image as ImageIcon, DollarSign, ShieldCheck, Bell, KeyRound, Loader2, GraduationCap } from "lucide-react";
 import logoMandala from "@/assets/logo-mandala.png";
 import { useTranslation } from "@/i18n/LanguageContext";
+import { adminAreaFromPath, firstAllowedAdminPath, type AdminArea } from "@/lib/adminPermissions";
+
+const NAV_ITEMS: { to: string; area: AdminArea; labelKey: string; icon: typeof LayoutDashboard; end?: boolean }[] = [
+  { to: "/admin", area: "dashboard", labelKey: "admin.layout.dashboard", icon: LayoutDashboard, end: true },
+  { to: "/admin/students", area: "students", labelKey: "admin.layout.students", icon: Users },
+  { to: "/admin/teachers", area: "teachers", labelKey: "admin.layout.teachers", icon: GraduationCap },
+  { to: "/admin/schedule", area: "schedule", labelKey: "admin.layout.schedule", icon: CalendarDays },
+  { to: "/admin/forecast", area: "forecast", labelKey: "admin.layout.forecast", icon: Wind },
+  { to: "/admin/billing", area: "billing", labelKey: "admin.layout.billing", icon: DollarSign },
+  { to: "/admin/packages", area: "packages", labelKey: "admin.layout.packages", icon: Package },
+  { to: "/admin/content", area: "content", labelKey: "admin.layout.content", icon: ImageIcon },
+  { to: "/admin/posts", area: "posts", labelKey: "admin.layout.posts", icon: Video },
+  { to: "/admin/chat", area: "chat", labelKey: "admin.layout.chat", icon: MessageCircle },
+  { to: "/admin/notifications", area: "notifications", labelKey: "admin.layout.notifications", icon: Bell },
+  { to: "/admin/terms", area: "terms", labelKey: "admin.layout.terms", icon: ScrollText },
+  { to: "/admin/privacy", area: "privacy", labelKey: "admin.layout.privacy", icon: ShieldCheck },
+  { to: "/admin/access", area: "access", labelKey: "admin.layout.access", icon: KeyRound },
+];
 
 export default function AdminLayout() {
   const { t } = useTranslation();
-  const { profile, signOut, isAdmin, loading, user } = useAuth();
-
-  const nav = [
-    { to: "/admin", label: t("admin.layout.dashboard"), icon: LayoutDashboard, end: true },
-    { to: "/admin/students", label: t("admin.layout.students"), icon: Users },
-    { to: "/admin/schedule", label: t("admin.layout.schedule"), icon: CalendarDays },
-    { to: "/admin/forecast", label: t("admin.layout.forecast"), icon: Wind },
-    { to: "/admin/billing", label: t("admin.layout.billing"), icon: DollarSign },
-    { to: "/admin/packages", label: t("admin.layout.packages"), icon: Package },
-    { to: "/admin/content", label: t("admin.layout.content"), icon: ImageIcon },
-    { to: "/admin/posts", label: t("admin.layout.posts"), icon: Video },
-    { to: "/admin/chat", label: t("admin.layout.chat"), icon: MessageCircle },
-    { to: "/admin/notifications", label: t("admin.layout.notifications"), icon: Bell },
-    { to: "/admin/terms", label: t("admin.layout.terms"), icon: ScrollText },
-    { to: "/admin/privacy", label: t("admin.layout.privacy"), icon: ShieldCheck },
-    { to: "/admin/access", label: t("admin.layout.access"), icon: KeyRound },
-  ];
+  const { profile, signOut, isAdmin, loading, user, hasAdminArea, isSuperAdmin, adminAreas } = useAuth();
   const navigate = useNavigate();
+  const location = useLocation();
+
+  const nav = useMemo(
+    () =>
+      NAV_ITEMS.filter((n) => hasAdminArea(n.area)).map((n) => ({
+        to: n.to,
+        label: t(n.labelKey),
+        icon: n.icon,
+        end: n.end,
+      })),
+    [hasAdminArea, t],
+  );
 
   useEffect(() => {
     if (loading) return;
@@ -38,11 +52,27 @@ export default function AdminLayout() {
     }
   }, [user, isAdmin, loading, navigate]);
 
+  useEffect(() => {
+    if (loading || !isAdmin) return;
+    const area = adminAreaFromPath(location.pathname);
+    if (!area || hasAdminArea(area)) return;
+    navigate(firstAllowedAdminPath(isSuperAdmin, adminAreas), { replace: true });
+  }, [location.pathname, loading, isAdmin, hasAdminArea, isSuperAdmin, adminAreas, navigate]);
+
   if (loading || !user || !isAdmin) {
     return (
       <div className="relative min-h-screen flex items-center justify-center">
         <OceanBackground />
         <Loader2 className="w-8 h-8 animate-spin text-primary" />
+      </div>
+    );
+  }
+
+  if (nav.length === 0) {
+    return (
+      <div className="relative min-h-screen flex items-center justify-center p-6">
+        <OceanBackground />
+        <p className="text-sm text-muted-foreground text-center">{t("admin.access.noAreas")}</p>
       </div>
     );
   }
@@ -87,7 +117,7 @@ export default function AdminLayout() {
       {/* Mobile top bar */}
       <div className="lg:hidden fixed top-0 inset-x-0 z-30 glass-strong">
         <div className="flex items-center justify-between px-4 py-3">
-          <Link to="/admin" className="flex items-center gap-2">
+          <Link to={nav[0]?.to ?? "/admin"} className="flex items-center gap-2">
             <div className="w-9 h-9 rounded-xl bg-white flex items-center justify-center shrink-0 p-0.5"><img src={logoMandala} alt="Mandala Rio" className="w-full h-full object-contain" /></div>
             <Brand size="sm" align="left" />
           </Link>

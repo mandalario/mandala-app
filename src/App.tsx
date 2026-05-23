@@ -32,6 +32,8 @@ import AdminContent from "./pages/admin/AdminContent.tsx";
 import AdminNotifications from "./pages/admin/AdminNotifications.tsx";
 import AdminForecast from "./pages/admin/AdminForecast.tsx";
 import AdminAccess from "./pages/admin/AdminAccess.tsx";
+import AdminTeachers from "./pages/admin/AdminTeachers.tsx";
+import TeacherRatings from "./pages/TeacherRatings.tsx";
 import Profile from "./pages/Profile.tsx";
 import NotFound from "./pages/NotFound.tsx";
 
@@ -71,6 +73,7 @@ const App = () => (
               <Route path="/feed" element={<Feed />} />
               <Route path="/chat" element={<Chat />} />
               <Route path="/profile" element={<Profile />} />
+              <Route path="/teachers" element={<TeacherRatings />} />
               <Route path="/terms" element={<LegalPage kind="terms" />} />
               <Route path="/privacy" element={<LegalPage kind="privacy" />} />
 
@@ -88,6 +91,7 @@ const App = () => (
                 <Route path="chat" element={<AdminChatList />} />
                 <Route path="notifications" element={<AdminNotifications />} />
                 <Route path="access" element={<AdminAccess />} />
+                <Route path="teachers" element={<AdminTeachers />} />
               </Route>
               <Route path="/admin/chat/conv" element={<Chat />} />
 

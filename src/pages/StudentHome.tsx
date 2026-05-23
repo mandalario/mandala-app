@@ -10,7 +10,7 @@ import { HomePartners } from "@/components/HomePartners";
 import { DailyQuote } from "@/components/DailyQuote";
 import { SeaConditionCard } from "@/components/SeaConditionCard";
 import { LessonHistory } from "@/components/LessonHistory";
-import { Waves, Calendar, CreditCard, MessageCircle, Video, User as UserIcon } from "lucide-react";
+import { Waves, Calendar, CreditCard, MessageCircle, Video, User as UserIcon, Star } from "lucide-react";
 import logoMandala from "@/assets/logo-mandala.png";
 import { useTranslation } from "@/i18n/LanguageContext";
 import { intlLocaleFor } from "@/i18n/dateLocale";
@@ -137,6 +137,12 @@ export default function StudentHome() {
           icon={<CreditCard className="w-5 h-5" />}
           label={t("packages.title")}
           sub={t("studentHome.packagesHistory")}
+        />
+        <ActionTile
+          to="/teachers"
+          icon={<Star className="w-5 h-5" />}
+          label={t("teacherRatings.shortTitle")}
+          sub={t("teacherRatings.shortSub")}
         />
       </section>
 

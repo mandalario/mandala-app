@@ -1,5 +1,5 @@
 import { useEffect, useRef, useState } from "react";
-import { Link, useSearchParams } from "react-router-dom";
+import { Link, useLocation, useNavigate, useSearchParams } from "react-router-dom";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/hooks/useAuth";
 import { OceanBackground } from "@/components/OceanBackground";
@@ -12,7 +12,10 @@ import { intlLocaleFor } from "@/i18n/dateLocale";
 type Msg = { id: string; conversation_user: string; sender_id: string; body: string; created_at: string; kind?: string | null };
 
 export default function Chat() {
-  const { user, isAdmin } = useAuth();
+  const { user, isAdmin, hasAdminArea, loading: authLoading } = useAuth();
+  const location = useLocation();
+  const navigate = useNavigate();
+  const isAdminConv = isAdmin && location.pathname.startsWith("/admin/chat");
   const { t, language } = useTranslation();
   const timeLocale = intlLocaleFor(language);
   const [params] = useSearchParams();
@@ -24,6 +27,13 @@ export default function Chat() {
   const [sending, setSending] = useState(false);
   const [otherName, setOtherName] = useState<string>("");
   const endRef = useRef<HTMLDivElement>(null);
+
+  useEffect(() => {
+    if (authLoading || !isAdminConv) return;
+    if (!hasAdminArea("chat")) {
+      navigate("/admin", { replace: true });
+    }
+  }, [authLoading, isAdminConv, hasAdminArea, navigate]);
 
   useEffect(() => {
     if (!convUser) return;

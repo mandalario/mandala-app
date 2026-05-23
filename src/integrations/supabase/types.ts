@@ -14,6 +14,27 @@ export type Database = {
   }
   public: {
     Tables: {
+      admin_permissions: {
+        Row: {
+          area: Database["public"]["Enums"]["admin_area"]
+          created_at: string
+          id: string
+          user_id: string
+        }
+        Insert: {
+          area: Database["public"]["Enums"]["admin_area"]
+          created_at?: string
+          id?: string
+          user_id: string
+        }
+        Update: {
+          area?: Database["public"]["Enums"]["admin_area"]
+          created_at?: string
+          id?: string
+          user_id?: string
+        }
+        Relationships: []
+      }
       admin_secrets: {
         Row: {
           key: string
@@ -745,6 +766,81 @@ export type Database = {
         }
         Relationships: []
       }
+      teacher_reviews: {
+        Row: {
+          comment: string | null
+          created_at: string
+          id: string
+          rating: number
+          teacher_id: string
+          updated_at: string
+          user_id: string
+        }
+        Insert: {
+          comment?: string | null
+          created_at?: string
+          id?: string
+          rating: number
+          teacher_id: string
+          updated_at?: string
+          user_id: string
+        }
+        Update: {
+          comment?: string | null
+          created_at?: string
+          id?: string
+          rating?: number
+          teacher_id?: string
+          updated_at?: string
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "teacher_reviews_teacher_id_fkey"
+            columns: ["teacher_id"]
+            isOneToOne: false
+            referencedRelation: "teachers"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "teacher_reviews_user_id_fkey"
+            columns: ["user_id"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      teachers: {
+        Row: {
+          avatar_url: string | null
+          created_at: string
+          id: string
+          is_active: boolean
+          name: string
+          sort_order: number
+          updated_at: string
+        }
+        Insert: {
+          avatar_url?: string | null
+          created_at?: string
+          id?: string
+          is_active?: boolean
+          name: string
+          sort_order?: number
+          updated_at?: string
+        }
+        Update: {
+          avatar_url?: string | null
+          created_at?: string
+          id?: string
+          is_active?: boolean
+          name?: string
+          sort_order?: number
+          updated_at?: string
+        }
+        Relationships: []
+      }
       user_push_tokens: {
         Row: {
           created_at: string
@@ -914,6 +1010,21 @@ export type Database = {
       }
     }
     Enums: {
+      admin_area:
+        | "dashboard"
+        | "students"
+        | "teachers"
+        | "schedule"
+        | "forecast"
+        | "billing"
+        | "packages"
+        | "content"
+        | "posts"
+        | "chat"
+        | "notifications"
+        | "terms"
+        | "privacy"
+        | "access"
       app_role: "admin" | "student"
       approval_status: "pending" | "approved" | "rejected"
       booking_status: "confirmed" | "cancelled" | "completed" | "no_show"
@@ -1050,6 +1161,22 @@ export type CompositeTypes<
 export const Constants = {
   public: {
     Enums: {
+      admin_area: [
+        "dashboard",
+        "students",
+        "teachers",
+        "schedule",
+        "forecast",
+        "billing",
+        "packages",
+        "content",
+        "posts",
+        "chat",
+        "notifications",
+        "terms",
+        "privacy",
+        "access",
+      ],
       app_role: ["admin", "student"],
       approval_status: ["pending", "approved", "rejected"],
       booking_status: ["confirmed", "cancelled", "completed", "no_show"],
