@@ -21,6 +21,7 @@ import AdminLayout from "./pages/admin/AdminLayout.tsx";
 import AdminDashboardHome from "./pages/admin/AdminDashboardHome.tsx";
 import AdminStudents from "./pages/admin/AdminStudents.tsx";
 import AdminSchedule from "./pages/admin/AdminSchedule.tsx";
+import AdminBookingRefunds from "./pages/admin/AdminBookingRefunds.tsx";
 import AdminBilling from "./pages/admin/AdminBilling.tsx";
 import AdminPackages from "./pages/admin/AdminPackages.tsx";
 import AdminPosts from "./pages/admin/AdminPosts.tsx";
@@ -86,6 +87,7 @@ const App = () => (
                 <Route index element={<AdminDashboardHome />} />
                 <Route path="students" element={<AdminStudents />} />
                 <Route path="schedule" element={<AdminSchedule />} />
+                <Route path="refunds" element={<AdminBookingRefunds />} />
                 <Route path="forecast" element={<AdminForecast />} />
                 <Route path="billing" element={<AdminBilling />} />
                 <Route path="packages" element={<AdminPackages />} />

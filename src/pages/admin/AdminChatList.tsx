@@ -11,6 +11,7 @@ import { Dialog, DialogContent, DialogFooter, DialogHeader, DialogTitle, DialogT
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { toast } from "sonner";
 import { Loader2, MessageCircle, Megaphone, Search, Send, ArrowLeft, Users, Bell } from "lucide-react";
+import { BookingRefundPanel } from "@/components/admin/BookingRefundPanel";
 
 type Student = {
   id: string;
@@ -295,6 +296,8 @@ function ConversationPanel({
           <p className="text-xs text-muted-foreground truncate">{student?.email} · {levelLabel(student?.surf_level ?? null)}</p>
         </div>
       </header>
+
+      <BookingRefundPanel userId={convUser} compact className="mx-4 mt-3" />
 
       <main className="flex-1 px-4 py-4 overflow-y-auto space-y-2">
         {loading ? (

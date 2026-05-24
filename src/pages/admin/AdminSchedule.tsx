@@ -18,7 +18,9 @@ import {
   CalendarDays, Sparkles, Repeat, Wand2, Lock, Pencil, ChevronDown, ChevronUp, CheckSquare, Square, X, RefreshCw
 } from "lucide-react";
 import { Modal } from "./AdminStudents";
+import { Link } from "react-router-dom";
 import { ForecastWidget } from "@/components/ForecastWidget";
+import { BookingRefundPanel } from "@/components/admin/BookingRefundPanel";
 
 type Level = "iniciante" | "intermediario" | "avancado";
 type ClassType = "avulsa_grupo" | "avulsa_particular" | "aluguel";
@@ -365,6 +367,16 @@ export default function AdminSchedule() {
       </div>
 
       <ForecastWidget />
+
+      <div className="space-y-2">
+        <div className="flex items-center justify-between gap-2 px-1">
+          <p className="text-xs text-muted-foreground">Cancelamentos tardios sem devolução automática</p>
+          <Link to="/admin/refunds" className="text-xs font-bold text-primary hover:underline">
+            Ver todos →
+          </Link>
+        </div>
+        <BookingRefundPanel alwaysVisible />
+      </div>
 
       <Tabs defaultValue="calendar" className="w-full">
         <TabsList className="bg-secondary/40 rounded-xl p-1">

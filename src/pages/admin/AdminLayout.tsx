@@ -4,7 +4,7 @@ import { useAuth } from "@/hooks/useAuth";
 import { OceanBackground } from "@/components/OceanBackground";
 import { Brand } from "@/components/Brand";
 import { NotificationsBell } from "@/components/NotificationsBell";
-import { LayoutDashboard, Users, CalendarDays, ScrollText, Video, MessageCircle, LogOut, Package, Wind, Image as ImageIcon, DollarSign, ShieldCheck, Bell, KeyRound, Loader2, GraduationCap } from "lucide-react";
+import { LayoutDashboard, Users, CalendarDays, ScrollText, Video, MessageCircle, LogOut, Package, Wind, Image as ImageIcon, DollarSign, ShieldCheck, Bell, KeyRound, Loader2, GraduationCap, RotateCcw } from "lucide-react";
 import logoMandala from "@/assets/logo-mandala.png";
 import { useTranslation } from "@/i18n/LanguageContext";
 import { adminAreaFromPath, firstAllowedAdminPath, type AdminArea } from "@/lib/adminPermissions";
@@ -14,6 +14,7 @@ const NAV_ITEMS: { to: string; area: AdminArea; labelKey: string; icon: typeof L
   { to: "/admin/students", area: "students", labelKey: "admin.layout.students", icon: Users },
   { to: "/admin/teachers", area: "teachers", labelKey: "admin.layout.teachers", icon: GraduationCap },
   { to: "/admin/schedule", area: "schedule", labelKey: "admin.layout.schedule", icon: CalendarDays },
+  { to: "/admin/refunds", area: "schedule", labelKey: "admin.layout.refunds", icon: RotateCcw },
   { to: "/admin/forecast", area: "forecast", labelKey: "admin.layout.forecast", icon: Wind },
   { to: "/admin/billing", area: "billing", labelKey: "admin.layout.billing", icon: DollarSign },
   { to: "/admin/packages", area: "packages", labelKey: "admin.layout.packages", icon: Package },

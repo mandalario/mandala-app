@@ -34,6 +34,7 @@ export const GRANTABLE_ADMIN_AREAS = ADMIN_AREAS.filter((a) => a.id !== "access"
 export function adminAreaFromPath(pathname: string): AdminArea | null {
   if (pathname === "/admin" || pathname === "/admin/") return "dashboard";
   if (pathname.startsWith("/admin/chat")) return "chat";
+  if (pathname.startsWith("/admin/refunds")) return "schedule";
   const match = ADMIN_AREAS.find((a) => a.id !== "dashboard" && pathname.startsWith(a.path));
   return match?.id ?? null;
 }
