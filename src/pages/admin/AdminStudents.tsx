@@ -11,6 +11,10 @@ import { CheckCircle2, XCircle, Search, Loader2, X, Plus, Save, User, Phone, Mai
 import { BoardFields } from "@/components/BoardFields";
 import { LessonHistory } from "@/components/LessonHistory";
 import { formatBoardField, parseBoardField } from "@/lib/board";
+import { isValidRealEmail, normalizeEmail, stripInvalidEmailInput } from "@/lib/email";
+import { PhoneInput } from "@/components/PhoneInput";
+import { formatPhoneNationalOnly, isValidPhone } from "@/lib/phone";
+import { useTranslation } from "@/i18n/LanguageContext";
 
 type Student = {
   id: string; email: string; full_name: string | null; phone: string | null;
@@ -174,6 +178,7 @@ function StudentSheet({
   onSaved: () => void;
   onDeleted: (id: string) => void;
 }) {
+  const { t } = useTranslation();
   const initialBoard = parseBoardField(student.board_size);
   const [f, setF] = useState<Student>(student);
   const [boardType, setBoardType] = useState(initialBoard.type);
@@ -186,11 +191,11 @@ function StudentSheet({
     if (error) return toast.error(error.message);
     await supabase.from("notifications").insert({
       user_id: student.id,
-      title: status === "approved" ? "Cadastro aprovado!" : "Cadastro recusado",
-      body: status === "approved" ? "Você já pode agendar aulas." : "Entre em contato com o instrutor.",
+      title: status === "approved" ? t("admin.students.notifApprovedTitle") : t("admin.students.notifRejectedTitle"),
+      body: status === "approved" ? t("admin.students.notifApprovedBody") : t("admin.students.notifRejectedBody"),
       kind: "approval",
     });
-    toast.success(status === "approved" ? "Aluno aprovado" : "Aluno rejeitado");
+    toast.success(status === "approved" ? t("admin.students.approved") : t("admin.students.rejected"));
     onSaved();
   };
 
@@ -217,12 +222,12 @@ function StudentSheet({
     }).eq("id", student.id);
     setSaving(false);
     if (error) return toast.error(error.message);
-    toast.success("Dados atualizados");
+    toast.success(t("admin.students.updated"));
     onSaved();
   };
 
   const deleteStudent = async () => {
-    if (!window.confirm("Tem certeza que deseja excluir este aluno permanentemente?")) return;
+    if (!window.confirm(t("admin.students.deleteConfirm"))) return;
     setSaving(true);
     const { data, error } = await supabase.functions.invoke("admin-delete-student", {
       body: { user_id: student.id },
@@ -238,18 +243,18 @@ function StudentSheet({
       } catch {
         /* use default */
       }
-      toast.error("Erro ao excluir: " + msg);
+      toast.error(t("admin.students.deleteError") + msg);
       return;
     }
     if (data?.error) {
-      toast.error("Erro ao excluir: " + data.error);
+      toast.error(t("admin.students.deleteError") + data.error);
       return;
     }
     if (!data?.ok) {
-      toast.error("Erro ao excluir: resposta inválida do servidor");
+      toast.error(t("admin.students.deleteInvalid"));
       return;
     }
-    toast.success("Aluno excluído com sucesso");
+    toast.success(t("admin.students.deleted"));
     onDeleted(student.id);
   };
 
@@ -259,7 +264,7 @@ function StudentSheet({
     <Overlay
       onClose={onClose}
       title={f.full_name ?? f.email}
-      subtitle={`${f.email}${f.phone ? " · " + f.phone : ""}`}
+      subtitle={`${f.email}${f.phone ? " · " + formatPhoneNationalOnly(f.phone) : ""}`}
       badge={<Badge status={f.approval_status} />}
     >
       {/* Hero */}
@@ -276,7 +281,9 @@ function StudentSheet({
 
       <Section icon={<User className="w-4 h-4" />} title="Dados pessoais">
         <Field label="Nome completo"><Input value={f.full_name ?? ""} onChange={(e) => set("full_name", e.target.value)} /></Field>
-        <Field label="Telefone"><Input value={f.phone ?? ""} onChange={(e) => set("phone", e.target.value)} /></Field>
+        <Field label="Telefone">
+          <PhoneInput value={f.phone ?? ""} onChange={(phone) => set("phone", phone)} />
+        </Field>
         <Field label="Idade"><Input type="number" value={f.age ?? ""} onChange={(e) => set("age", e.target.value ? +e.target.value : null)} /></Field>
         <Field label="Peso (kg)"><Input type="number" value={f.weight_kg ?? ""} onChange={(e) => set("weight_kg", e.target.value ? +e.target.value : null)} /></Field>
         <Field label="Altura (cm)"><Input type="number" value={f.height_cm ?? ""} onChange={(e) => set("height_cm", e.target.value ? +e.target.value : null)} /></Field>
@@ -328,7 +335,12 @@ function StudentSheet({
           <Textarea rows={3} value={f.medical_conditions ?? ""} onChange={(e) => set("medical_conditions", e.target.value)} />
         </Field>
         <Field label="Contato de emergência"><Input value={f.emergency_contact_name ?? ""} onChange={(e) => set("emergency_contact_name", e.target.value)} /></Field>
-        <Field label="Telefone de emergência"><Input value={f.emergency_contact_phone ?? ""} onChange={(e) => set("emergency_contact_phone", e.target.value)} /></Field>
+        <Field label="Telefone (DDD + número)">
+          <PhoneInput
+            value={f.emergency_contact_phone ?? ""}
+            onChange={(phone) => set("emergency_contact_phone", phone)}
+          />
+        </Field>
       </Section>
 
       <LessonHistory userId={student.id} />
@@ -370,17 +382,29 @@ function CreateStudentSheet({ onClose, onCreated }: { onClose: () => void; onCre
     experience_notes: "",
   });
   const set = (k: string, v: any) => setF((p) => ({ ...p, [k]: v }));
+  const { t } = useTranslation();
 
   const submit = async () => {
-    if (!f.email || !f.password || !f.full_name) return toast.error("Email, senha e nome são obrigatórios");
-    if (f.password.length < 8) return toast.error("A senha deve ter ao menos 8 caracteres");
+    if (!f.email || !f.password || !f.full_name) return toast.error(t("admin.students.requiredFields"));
+    const email = normalizeEmail(f.email);
+    if (!isValidRealEmail(email)) {
+      return toast.error(
+        t("validation.fieldError", { field: t("login.email"), message: t("validation.emailInvalid") }),
+      );
+    }
+    if (f.password.length < 8) return toast.error(t("admin.students.passwordLen"));
+    if (f.phone && !isValidPhone(f.phone)) {
+      return toast.error(
+        t("validation.fieldError", { field: t("admin.students.phone"), message: t("validation.phoneInvalid") }),
+      );
+    }
     setLoading(true);
     const { data, error } = await supabase.functions.invoke("admin-create-student", {
       body: {
-        email: f.email,
+        email,
         password: f.password,
         full_name: f.full_name,
-        phone: f.phone,
+        phone: f.phone || null,
         profile: {
           age: f.age ? +f.age : null,
           weight_kg: f.weight_kg ? +f.weight_kg : null,
@@ -411,20 +435,22 @@ function CreateStudentSheet({ onClose, onCreated }: { onClose: () => void; onCre
       }
       return toast.error(errorMessage);
     }
-    toast.success("Aluno criado e aprovado");
+    toast.success(t("admin.students.createSuccess"));
     onCreated();
   };
 
   return (
     <Overlay onClose={onClose} title="Novo aluno" subtitle="Crie a conta e pré-preencha o cadastro">
       <Section icon={<Mail className="w-4 h-4" />} title="Acesso">
-        <Field label="Email"><Input type="email" value={f.email} onChange={(e) => set("email", e.target.value)} /></Field>
+        <Field label="Email"><Input type="email" value={f.email} onChange={(e) => set("email", stripInvalidEmailInput(e.target.value))} /></Field>
         <Field label="Senha (mín. 8)"><Input type="text" value={f.password} onChange={(e) => set("password", e.target.value)} /></Field>
       </Section>
 
       <Section icon={<User className="w-4 h-4" />} title="Dados pessoais">
         <Field label="Nome completo"><Input value={f.full_name} onChange={(e) => set("full_name", e.target.value)} /></Field>
-        <Field label="Telefone"><Input value={f.phone} onChange={(e) => set("phone", e.target.value)} /></Field>
+        <Field label="Telefone">
+          <PhoneInput value={f.phone} onChange={(phone) => set("phone", phone)} />
+        </Field>
         <Field label="Idade"><Input type="number" value={f.age} onChange={(e) => set("age", e.target.value)} /></Field>
         <Field label="Peso (kg)"><Input type="number" value={f.weight_kg} onChange={(e) => set("weight_kg", e.target.value)} /></Field>
         <Field label="Altura (cm)"><Input type="number" value={f.height_cm} onChange={(e) => set("height_cm", e.target.value)} /></Field>

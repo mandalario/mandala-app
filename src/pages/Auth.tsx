@@ -14,17 +14,39 @@ import { Loader2 } from "lucide-react";
 import logoMandala from "@/assets/logo-mandala.png";
 import { useTranslation } from "@/i18n/LanguageContext";
 import { LanguageSwitcher } from "@/components/LanguageSwitcher";
+import { createRealEmailField, stripInvalidEmailInput } from "@/lib/email";
 
-const signupSchema = z.object({
-  full_name: z.string().trim().min(2, "Nome muito curto").max(100),
-  email: z.string().trim().email("Email inválido").max(255),
-  password: z.string().min(6, "Mínimo 6 caracteres").max(72),
-});
+const AUTH_FIELD_KEYS: Record<string, string> = {
+  full_name: "login.fullName",
+  email: "login.email",
+  password: "login.password",
+};
 
-const loginSchema = z.object({
-  email: z.string().trim().email("Email inválido"),
-  password: z.string().min(1, "Senha obrigatória"),
-});
+function formatAuthValidationError(
+  error: z.ZodError,
+  t: (key: string, vars?: Record<string, string | number>) => string,
+): string {
+  const issue = error.issues[0];
+  if (!issue) return t("validation.formCheck");
+  const field = String(issue.path[0] ?? "");
+  const fieldLabel = AUTH_FIELD_KEYS[field] ? t(AUTH_FIELD_KEYS[field]) : field;
+  return t("validation.fieldError", { field: fieldLabel, message: issue.message });
+}
+
+function createSignupSchema(t: (key: string, vars?: Record<string, string | number>) => string) {
+  return z.object({
+    full_name: z.string().trim().min(2, t("validation.authShortName")).max(100),
+    email: createRealEmailField(t),
+    password: z.string().min(6, t("validation.authMinPassword")).max(72),
+  });
+}
+
+function createLoginSchema(t: (key: string, vars?: Record<string, string | number>) => string) {
+  return z.object({
+    email: createRealEmailField(t),
+    password: z.string().min(1, t("validation.authPasswordRequired")),
+  });
+}
 
 const getErrorMessage = (error: unknown) => (error instanceof Error ? error.message : String(error));
 
@@ -45,9 +67,9 @@ export default function Auth() {
     setLoading(true);
     try {
       if (mode === "signup") {
-        const parsed = signupSchema.safeParse(form);
+        const parsed = createSignupSchema(t).safeParse(form);
         if (!parsed.success) {
-          toast.error(parsed.error.issues[0].message);
+          toast.error(formatAuthValidationError(parsed.error, t));
           return;
         }
         const { error } = await supabase.auth.signUp({
@@ -77,9 +99,9 @@ export default function Auth() {
         }
         toast.success(t("login.success.signup"));
       } else {
-        const parsed = loginSchema.safeParse(form);
+        const parsed = createLoginSchema(t).safeParse(form);
         if (!parsed.success) {
-          toast.error(parsed.error.issues[0].message);
+          toast.error(formatAuthValidationError(parsed.error, t));
           return;
         }
         const { error } = await supabase.auth.signInWithPassword({
@@ -162,7 +184,7 @@ export default function Auth() {
                 id="email"
                 type="email"
                 value={form.email}
-                onChange={(e) => setForm({ ...form, email: e.target.value })}
+                onChange={(e) => setForm({ ...form, email: stripInvalidEmailInput(e.target.value) })}
                 placeholder={t("login.emailPlaceholder")}
                 className="bg-input/60 border-0 h-12 rounded-xl"
                 required
@@ -220,10 +242,10 @@ export default function Auth() {
                   },
                 });
                 if (error) {
-                  toast.error("Erro ao entrar com Google: " + error.message);
+                  toast.error(t("login.googleError") + error.message);
                 }
               } catch (e: unknown) {
-                toast.error("Erro ao entrar com Google: " + getErrorMessage(e));
+                toast.error(t("login.googleError") + getErrorMessage(e));
               } finally {
                 setLoading(false);
               }

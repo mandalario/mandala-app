@@ -4,14 +4,25 @@ import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/hooks/useAuth";
 import { OceanBackground } from "@/components/OceanBackground";
 import { Button } from "@/components/ui/button";
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+} from "@/components/ui/alert-dialog";
 import { toast } from "sonner";
 import { ArrowLeft, Loader2, Waves, Wind, CloudOff, Calendar as Cal, Users, User, Package, XCircle } from "lucide-react";
 import { useTranslation } from "@/i18n/LanguageContext";
 import { useBillingEnabled } from "@/hooks/useBillingEnabled";
 import { Calendar } from "@/components/ui/calendar";
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
-import { format } from "date-fns";
+import { format, startOfDay } from "date-fns";
 import { dateFnsLocaleFor } from "@/i18n/dateLocale";
+import { isCancellationRefundable } from "@/lib/bookingCancellation";
 
 type Slot = { id: string; date: string; start_time: string; end_time: string; capacity: number; location: string | null; notes: string | null; is_open: boolean; class_type: "avulsa_grupo" | "avulsa_particular" | "aluguel" };
 type Cond = { date: string; condition: "good" | "medium" | "bad" | "flat"; notes: string | null };
@@ -41,10 +52,12 @@ export default function Schedule() {
   const [counts, setCounts] = useState<Record<string, number>>({});
   const [loading, setLoading] = useState(true);
   const [bookingId, setBookingId] = useState<string | null>(null);
+  const [pendingBookSlot, setPendingBookSlot] = useState<Slot | null>(null);
   const [filterDate, setFilterDate] = useState<string>("");
   const [classTypeFilter, setClassTypeFilter] = useState<ClassTypeFilter | null>(null);
 
-  const today = new Date().toISOString().slice(0, 10);
+  const today = format(new Date(), "yyyy-MM-dd");
+  const todayStart = startOfDay(new Date());
 
   const dateFnsLocale = dateFnsLocaleFor(language);
 
@@ -78,12 +91,13 @@ export default function Schedule() {
       .order("date")
       .order("start_time");
 
+    q = q.gte("date", today);
     if (filterDate) {
       q = q.eq("date", filterDate);
     } else {
       const d = new Date();
       d.setDate(d.getDate() + 7);
-      q = q.gte("date", today).lte("date", d.toISOString().slice(0, 10));
+      q = q.lte("date", format(d, "yyyy-MM-dd"));
     }
 
     const [{ data: s }, { data: b }] = await Promise.all([
@@ -139,6 +153,11 @@ export default function Schedule() {
   }), [conds]);
 
   const book = async (slot: Slot) => {
+    if (slot.date < today) {
+      toast.error("Não é possível agendar aulas em datas passadas.");
+      return;
+    }
+
     if (billingEnabled) {
       const type = slot.class_type || "avulsa_grupo";
       
@@ -177,16 +196,29 @@ export default function Schedule() {
   };
 
   const handleBookClick = (slot: Slot) => {
-    book(slot);
+    if (billingEnabled) {
+      setPendingBookSlot(slot);
+      return;
+    }
+    void book(slot);
+  };
+
+  const confirmBook = () => {
+    if (!pendingBookSlot) return;
+    const slot = pendingBookSlot;
+    setPendingBookSlot(null);
+    void book(slot);
   };
 
   const unbook = async (slot: Slot) => {
-    if (!window.confirm("Tem certeza que deseja desmarcar esta aula? Seu crédito será devolvido.")) return;
+    const refundable = isCancellationRefundable(slot.date);
+    const confirmMessage = refundable ? t("schedule.cancelConfirm") : t("schedule.cancelConfirmNoRefund");
+    if (!window.confirm(confirmMessage)) return;
     setBookingId(slot.id);
     const { error } = await supabase.from("bookings").update({ status: "cancelled" }).eq("slot_id", slot.id).eq("user_id", user!.id);
     setBookingId(null);
     if (error) { toast.error(error.message); return; }
-    toast.success("Aula desmarcada com sucesso! Crédito devolvido.");
+    toast.success(refundable ? t("schedule.cancelSuccess") : t("schedule.cancelSuccessNoRefund"));
     await refreshProfile();
     loadSlots();
   };
@@ -231,7 +263,16 @@ export default function Schedule() {
           <Calendar
             mode="single"
             selected={filterDate ? new Date(filterDate + "T12:00:00") : undefined}
-            onSelect={(date) => setFilterDate(date ? format(date, "yyyy-MM-dd") : "")}
+            onSelect={(date) => {
+              if (!date) {
+                setFilterDate("");
+                return;
+              }
+              const selected = format(date, "yyyy-MM-dd");
+              if (selected < today) return;
+              setFilterDate(selected);
+            }}
+            disabled={{ before: todayStart }}
             locale={dateFnsLocale}
             className="w-full flex justify-center p-2"
             modifiers={calendarModifiers}
@@ -355,6 +396,8 @@ export default function Schedule() {
                   {ds.map((s) => {
                     const taken = counts[s.id] ?? 0;
                     const isMine = myBooked.has(s.id);
+                    const isPast = s.date < today;
+                    const refundAvailable = isCancellationRefundable(s.date);
                     const full = taken >= s.capacity;
                     const isConfirmed = s.notes?.includes("[CONFIRMADA]") ?? false;
                     const cleanNotes = s.notes
@@ -408,26 +451,31 @@ export default function Schedule() {
 
                         <div className="mt-5">
                           {isMine ? (
-                            <div className="flex items-center justify-between gap-2">
-                              <span className="text-[10px] uppercase tracking-widest px-3 py-2 rounded-xl bg-success/15 text-success font-extrabold flex-1 text-center">
-                                {t("schedule.booked")}
-                              </span>
-                              <button
-                                onClick={() => unbook(s)}
-                                disabled={bookingId === s.id}
-                                className="w-10 h-10 flex items-center justify-center text-destructive hover:bg-destructive/10 rounded-xl transition-all disabled:opacity-50"
-                                title="Desmarcar"
-                              >
-                                {bookingId === s.id ? <Loader2 className="w-4 h-4 animate-spin" /> : <XCircle className="w-4 h-4" />}
-                              </button>
+                            <div className="flex flex-col gap-1.5">
+                              <div className="flex items-center justify-between gap-2">
+                                <span className="text-[10px] uppercase tracking-widest px-3 py-2 rounded-xl bg-success/15 text-success font-extrabold flex-1 text-center">
+                                  {t("schedule.booked")}
+                                </span>
+                                <button
+                                  onClick={() => unbook(s)}
+                                  disabled={bookingId === s.id}
+                                  className="w-10 h-10 flex items-center justify-center text-destructive hover:bg-destructive/10 rounded-xl transition-all disabled:opacity-50"
+                                  title={refundAvailable ? t("schedule.unbook") : t("schedule.unbookNoRefundHint")}
+                                >
+                                  {bookingId === s.id ? <Loader2 className="w-4 h-4 animate-spin" /> : <XCircle className="w-4 h-4" />}
+                                </button>
+                              </div>
+                              {!refundAvailable && (
+                                <p className="text-[9px] text-warning/90 px-1 leading-snug">{t("schedule.cancelNoRefundHint")}</p>
+                              )}
                             </div>
                           ) : (
                             <Button
                               onClick={() => handleBookClick(s)}
-                              disabled={full || bookingId === s.id}
+                              disabled={full || isPast || bookingId === s.id}
                               className="w-full h-11 rounded-2xl bg-gradient-to-r from-primary to-accent text-primary-foreground font-extrabold text-xs shadow-lg shadow-primary/20 hover:shadow-primary/40 transition-all disabled:opacity-40"
                             >
-                              {bookingId === s.id ? <Loader2 className="w-4 h-4 animate-spin" /> : full ? t("schedule.full") : "Agendar aula"}
+                              {bookingId === s.id ? <Loader2 className="w-4 h-4 animate-spin" /> : full ? t("schedule.full") : t("schedule.bookClass")}
                             </Button>
                           )}
                         </div>
@@ -440,6 +488,38 @@ export default function Schedule() {
           })}
         </div>
       )}
+
+      <AlertDialog open={!!pendingBookSlot} onOpenChange={(open) => !open && setPendingBookSlot(null)}>
+        <AlertDialogContent className="max-w-md">
+          <AlertDialogHeader>
+            <AlertDialogTitle>{t("schedule.bookConfirmTitle")}</AlertDialogTitle>
+            <AlertDialogDescription asChild>
+              <div className="space-y-3 text-sm text-muted-foreground">
+                <p>{t("schedule.bookConfirmCredit")}</p>
+                <ul className="list-disc space-y-1.5 pl-4">
+                  <li>{t("schedule.bookConfirmRefundOnTime")}</li>
+                  <li>{t("schedule.bookConfirmNoRefundSameDay")}</li>
+                </ul>
+                <p>
+                  {t("schedule.bookConfirmChatHint")}{" "}
+                  <Link
+                    to="/chat"
+                    className="font-medium text-primary underline underline-offset-2"
+                    onClick={() => setPendingBookSlot(null)}
+                  >
+                    {t("nav.chat")}
+                  </Link>
+                  .
+                </p>
+              </div>
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel>{t("common.cancel")}</AlertDialogCancel>
+            <AlertDialogAction onClick={confirmBook}>{t("schedule.bookConfirmAction")}</AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
 
     </div>
   );

@@ -36,6 +36,39 @@
       "shortboard": "Shortboard"
     }
   },
+  "phone": {
+    "searchCountry": "Buscar país...",
+    "noCountry": "Nenhum país encontrado.",
+    "nationalPlaceholderBr": "(11) 99999-9999",
+    "nationalPlaceholderIntl": "Número sem o código do país"
+  },
+  "validation": {
+    "formCheck": "Verifique os dados do formulário.",
+    "fieldError": "{{field}}: {{message}}",
+    "required": "é obrigatório",
+    "mustBeText": "deve ser um texto",
+    "mustBeNumber": "deve ser um número",
+    "mustBeInteger": "deve ser um número inteiro",
+    "mustBeBoolean": "deve ser verdadeiro ou falso",
+    "minChars": "deve ter pelo menos {{min}} caracteres",
+    "maxChars": "deve ter no máximo {{max}} caracteres",
+    "minAge": "deve ser no mínimo {{min}} anos",
+    "maxAge": "deve ser no máximo {{max}} anos",
+    "minWeight": "deve ser no mínimo {{min}} kg",
+    "maxWeight": "deve ser no máximo {{max}} kg",
+    "minHeight": "deve ser no mínimo {{min}} cm",
+    "maxHeight": "deve ser no máximo {{max}} cm",
+    "selectLevel": "selecione iniciante, intermediário ou avançado",
+    "selectStance": "selecione regular, goofy ou não sei ainda",
+    "lettersOnly": "deve conter apenas letras (sem números)",
+    "phoneInvalid": "informe um telefone válido, ex.: (11) 99999-9999",
+    "emailInvalid": "informe um e-mail válido, ex.: nome@provedor.com",
+    "phoneCheckFailed": "não foi possível validar o número. Tente novamente.",
+    "phoneAlreadyUsed": "este número já está cadastrado em outra conta.",
+    "authShortName": "Nome muito curto",
+    "authMinPassword": "Mínimo 6 caracteres",
+    "authPasswordRequired": "Senha obrigatória"
+  },
   "onboarding": {
     "backToLogin": "Voltar para login",
     "steps": {
@@ -57,11 +90,12 @@
     },
     "fields": {
       "phoneWhatsapp": "Telefone (WhatsApp)",
-      "phonePlaceholder": "(11) 99999-9999",
+      "phonePlaceholder": "(11) 99999-9999 ou +351912345678",
       "experienceOptional": "Experiência prévia (opcional)",
       "medicalOptional": "Condições médicas (opcional)",
       "emergencyContact": "Contato de emergência",
-      "emergencyPhone": "Telefone do contato"
+      "emergencyNamePlaceholder": "Nome do contato",
+      "emergencyPhone": "Telefone (DDD + número)"
     },
     "canSwim": {
       "label": "Sei nadar (Obrigatório)",
@@ -326,9 +360,19 @@
     "selectType": "Escolha um tipo de aula acima para ver os horários disponíveis.",
     "calendar": "Calendário",
     "cancelConfirm": "Tem certeza que deseja desmarcar esta aula? Seu crédito será devolvido.",
+    "cancelConfirmNoRefund": "Tem certeza que deseja desmarcar esta aula? O prazo para devolução do crédito já passou (até 23h59 do dia anterior) e o crédito não será devolvido.",
     "cancelSuccess": "Aula desmarcada com sucesso! Crédito devolvido.",
+    "cancelSuccessNoRefund": "Aula desmarcada. O crédito não foi devolvido (cancelamento após 23h59 do dia anterior).",
+    "cancelNoRefundHint": "Cancelamento após 23h59 do dia anterior não devolve crédito.",
+    "unbookNoRefundHint": "Desmarcar (sem devolução de crédito)",
     "unbook": "Desmarcar",
     "bookClass": "Agendar aula",
+    "bookConfirmTitle": "Confirmar agendamento",
+    "bookConfirmCredit": "Ao confirmar, 1 crédito será utilizado para esta aula.",
+    "bookConfirmRefundOnTime": "Cancelamento até 23h59 do dia anterior: o crédito será devolvido.",
+    "bookConfirmNoRefundSameDay": "Cancelamento no dia da aula ou depois: o crédito não será devolvido.",
+    "bookConfirmChatHint": "Em casos de motivo de força maior, fale conosco pelo",
+    "bookConfirmAction": "Confirmar agendamento",
     "confirmed": "✓ Confirmada",
     "noCreditsForType": "Você não tem créditos de {{type}}. Recarregue em Comprar Créditos.",
     "creditsShort": {
@@ -499,8 +543,8 @@
       "boardSize": "Tamanho da prancha",
       "ownBoard": "Tem prancha própria",
       "canSwim": "Sabe nadar",
-      "emergencyName": "Nome do Contato",
-      "emergencyPhone": "Telefone",
+      "emergencyName": "Contato de emergência",
+      "emergencyPhone": "Telefone (DDD + número)",
       "medical": "Condições médicas",
       "notes": "Notas / experiência"
     },
@@ -704,7 +748,7 @@
       "healthEmergency": "Saúde & emergência",
       "medical": "Condições médicas",
       "emergencyName": "Contato de emergência",
-      "emergencyPhone": "Telefone de emergência",
+      "emergencyPhone": "Telefone (DDD + número)",
       "delete": "Excluir",
       "reject": "Rejeitar",
       "approve": "Aprovar",

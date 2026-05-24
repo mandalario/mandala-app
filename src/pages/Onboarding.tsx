@@ -1,6 +1,5 @@
 import { useEffect, useState } from "react";
 import { useNavigate } from "react-router-dom";
-import { z } from "zod";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/hooks/useAuth";
 import { OceanBackground } from "@/components/OceanBackground";
@@ -18,23 +17,12 @@ import { useTranslation } from "@/i18n/LanguageContext";
 import { boardTypeLabel } from "@/i18n/boardTypes";
 import { BOARD_TYPES } from "@/lib/board";
 import { stripDecimalSeparators } from "@/lib/utils";
-
-const schema = z.object({
-  full_name: z.string().trim().min(2).max(100),
-  phone: z.string().trim().min(8).max(20),
-  age: z.coerce.number().int().min(5).max(99),
-  weight_kg: z.coerce.number().min(20).max(250),
-  height_cm: z.coerce.number().min(80).max(230),
-  surf_level: z.enum(["iniciante", "intermediario", "avancado"]),
-  stance: z.enum(["regular", "goofy", "desconhecido"]),
-  can_swim: z.boolean(),
-  has_own_board: z.boolean(),
-  board_size: z.string().trim().max(50).optional().or(z.literal("")),
-  experience_notes: z.string().trim().max(500).optional().or(z.literal("")),
-  medical_conditions: z.string().trim().max(500).optional().or(z.literal("")),
-  emergency_contact_name: z.string().trim().min(2).max(100),
-  emergency_contact_phone: z.string().trim().min(8).max(20),
-});
+import { PhoneInput } from "@/components/PhoneInput";
+import { stripDigitsFromName, stripToDecimalInput, stripToDigits } from "@/lib/phone";
+import {
+  createOnboardingProfileSchema,
+  formatAllProfileValidationErrors,
+} from "@/lib/profileFormValidation";
 
 export default function Onboarding() {
   const navigate = useNavigate();
@@ -149,9 +137,32 @@ export default function Onboarding() {
       board_size: combinedBoard
     };
 
-    const parsed = schema.safeParse(dataToValidate);
+    const parsed = createOnboardingProfileSchema(t).safeParse(dataToValidate);
     if (!parsed.success) {
-      toast.error(parsed.error.issues[0].message);
+      toast.error(formatAllProfileValidationErrors(parsed.error, t), { duration: 8000 });
+      return;
+    }
+
+    const { data: phoneAvailable, error: phoneCheckErr } = await supabase.rpc("check_phone_available", {
+      p_phone: parsed.data.phone,
+      p_user_id: user.id,
+    });
+    if (phoneCheckErr) {
+      toast.error(
+        t("validation.fieldError", {
+          field: t("onboarding.fields.phoneWhatsapp"),
+          message: t("validation.phoneCheckFailed"),
+        }),
+      );
+      return;
+    }
+    if (phoneAvailable === false) {
+      toast.error(
+        t("validation.fieldError", {
+          field: t("onboarding.fields.phoneWhatsapp"),
+          message: t("validation.phoneAlreadyUsed"),
+        }),
+      );
       return;
     }
     if (!parsed.data.can_swim) {
@@ -174,6 +185,15 @@ export default function Onboarding() {
     setLoading(false);
 
     if (error) {
+      if (error.code === "23505" && error.message.includes("phone_digits")) {
+        toast.error(
+          t("validation.fieldError", {
+            field: t("onboarding.fields.phoneWhatsapp"),
+            message: t("validation.phoneAlreadyUsed"),
+          }),
+        );
+        return;
+      }
       toast.error(t("common.saveErrorPrefix") + error.message);
       return;
     }
@@ -237,14 +257,32 @@ export default function Onboarding() {
                 <Input value={form.full_name} onChange={(e) => setForm({ ...form, full_name: e.target.value })} required className="bg-input/60 border-0 h-11 rounded-xl" />
               </Field>
               <Field label={t("onboarding.fields.phoneWhatsapp")}>
-                <Input value={form.phone} onChange={(e) => setForm({ ...form, phone: e.target.value })} placeholder={t("onboarding.fields.phonePlaceholder")} required className="bg-input/60 border-0 h-11 rounded-xl" />
+                <PhoneInput
+                  value={form.phone}
+                  onChange={(phone) => setForm({ ...form, phone })}
+                  required
+                />
               </Field>
               <div className="grid grid-cols-3 gap-3">
                 <Field label={t("profile.fields.age")}>
-                  <Input type="number" value={form.age} onChange={(e) => setForm({ ...form, age: e.target.value })} required className="bg-input/60 border-0 h-11 rounded-xl" />
+                  <Input
+                    type="text"
+                    inputMode="numeric"
+                    value={form.age}
+                    onChange={(e) => setForm({ ...form, age: stripToDigits(e.target.value, 2) })}
+                    required
+                    className="bg-input/60 border-0 h-11 rounded-xl"
+                  />
                 </Field>
                 <Field label={t("profile.fields.weight")}>
-                  <Input type="number" step="0.1" value={form.weight_kg} onChange={(e) => setForm({ ...form, weight_kg: e.target.value })} required className="bg-input/60 border-0 h-11 rounded-xl" />
+                  <Input
+                    type="text"
+                    inputMode="decimal"
+                    value={form.weight_kg}
+                    onChange={(e) => setForm({ ...form, weight_kg: stripToDecimalInput(e.target.value) })}
+                    required
+                    className="bg-input/60 border-0 h-11 rounded-xl"
+                  />
                 </Field>
                 <Field label={t("profile.fields.height")}>
                   <Input
@@ -327,10 +365,24 @@ export default function Onboarding() {
               </Field>
               <div className="grid md:grid-cols-2 gap-3">
                 <Field label={t("onboarding.fields.emergencyContact")}>
-                  <Input value={form.emergency_contact_name} onChange={(e) => setForm({ ...form, emergency_contact_name: e.target.value })} required className="bg-input/60 border-0 h-11 rounded-xl" />
+                  <Input
+                    value={form.emergency_contact_name}
+                    onChange={(e) =>
+                      setForm({ ...form, emergency_contact_name: stripDigitsFromName(e.target.value) })
+                    }
+                    placeholder={t("onboarding.fields.emergencyNamePlaceholder")}
+                    required
+                    className="bg-input/60 border-0 h-11 rounded-xl"
+                  />
                 </Field>
                 <Field label={t("onboarding.fields.emergencyPhone")}>
-                  <Input value={form.emergency_contact_phone} onChange={(e) => setForm({ ...form, emergency_contact_phone: e.target.value })} required className="bg-input/60 border-0 h-11 rounded-xl" />
+                  <PhoneInput
+                    value={form.emergency_contact_phone}
+                    onChange={(emergency_contact_phone) =>
+                      setForm({ ...form, emergency_contact_phone })
+                    }
+                    required
+                  />
                 </Field>
               </div>
             </Section>

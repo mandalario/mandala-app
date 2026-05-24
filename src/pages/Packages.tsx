@@ -227,7 +227,7 @@ function PixCheckout({ pkg, onBack, t }: { pkg: Pkg; onBack: () => void; t: (k: 
   const startApplePay = () => {
     const bridge = (window as any).ReactNativeWebView;
     if (!bridge) {
-      toast.error("Apple Pay disponível apenas no app");
+      toast.error(t("packages.applePayAppOnly"));
       return;
     }
     setApplePayLoading(true);

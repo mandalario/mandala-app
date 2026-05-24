@@ -36,6 +36,39 @@
       "shortboard": "Shortboard"
     }
   },
+  "phone": {
+    "searchCountry": "Search country...",
+    "noCountry": "No country found.",
+    "nationalPlaceholderBr": "(11) 99999-9999",
+    "nationalPlaceholderIntl": "Number without country code"
+  },
+  "validation": {
+    "formCheck": "Please check the form data.",
+    "fieldError": "{{field}}: {{message}}",
+    "required": "is required",
+    "mustBeText": "must be text",
+    "mustBeNumber": "must be a number",
+    "mustBeInteger": "must be a whole number",
+    "mustBeBoolean": "must be true or false",
+    "minChars": "must be at least {{min}} characters",
+    "maxChars": "must be at most {{max}} characters",
+    "minAge": "must be at least {{min}} years old",
+    "maxAge": "must be at most {{max}} years old",
+    "minWeight": "must be at least {{min}} kg",
+    "maxWeight": "must be at most {{max}} kg",
+    "minHeight": "must be at least {{min}} cm",
+    "maxHeight": "must be at most {{max}} cm",
+    "selectLevel": "select beginner, intermediate, or advanced",
+    "selectStance": "select regular, goofy, or not sure yet",
+    "lettersOnly": "must contain letters only (no numbers)",
+    "phoneInvalid": "enter a valid phone, e.g. (11) 99999-9999",
+    "emailInvalid": "enter a valid email, e.g. name@provider.com",
+    "phoneCheckFailed": "could not validate the number. Please try again.",
+    "phoneAlreadyUsed": "this number is already registered on another account.",
+    "authShortName": "Name is too short",
+    "authMinPassword": "Minimum 6 characters",
+    "authPasswordRequired": "Password is required"
+  },
   "onboarding": {
     "backToLogin": "Back to sign in",
     "steps": {
@@ -57,11 +90,12 @@
     },
     "fields": {
       "phoneWhatsapp": "Phone (WhatsApp)",
-      "phonePlaceholder": "(555) 123-4567",
+      "phonePlaceholder": "(555) 123-4567 or +351912345678",
       "experienceOptional": "Previous experience (optional)",
       "medicalOptional": "Medical conditions (optional)",
       "emergencyContact": "Emergency contact",
-      "emergencyPhone": "Contact phone"
+      "emergencyNamePlaceholder": "Contact name",
+      "emergencyPhone": "Phone (area code + number)"
     },
     "canSwim": {
       "label": "I can swim (required)",
@@ -326,9 +360,19 @@
     "selectType": "Choose a class type above to see available times.",
     "calendar": "Calendar",
     "cancelConfirm": "Are you sure you want to cancel this class? Your credit will be refunded.",
+    "cancelConfirmNoRefund": "Are you sure you want to cancel this class? The refund deadline has passed (until 11:59 PM the day before) and your credit will not be refunded.",
     "cancelSuccess": "Class cancelled! Credit refunded.",
+    "cancelSuccessNoRefund": "Class cancelled. Your credit was not refunded (cancellation after 11:59 PM the day before).",
+    "cancelNoRefundHint": "Cancellations after 11:59 PM the day before do not refund credits.",
+    "unbookNoRefundHint": "Cancel booking (no credit refund)",
     "unbook": "Cancel booking",
     "bookClass": "Book class",
+    "bookConfirmTitle": "Confirm booking",
+    "bookConfirmCredit": "By confirming, 1 credit will be used for this class.",
+    "bookConfirmRefundOnTime": "Cancellation until 11:59 PM the day before: your credit will be refunded.",
+    "bookConfirmNoRefundSameDay": "Cancellation on the class day or later: no credit refund.",
+    "bookConfirmChatHint": "For exceptional circumstances, contact us via",
+    "bookConfirmAction": "Confirm booking",
     "confirmed": "✓ Confirmed",
     "noCreditsForType": "You have no {{type}} credits. Top up in Buy Credits.",
     "creditsShort": {
@@ -500,7 +544,7 @@
       "ownBoard": "Has own board",
       "canSwim": "Can swim",
       "emergencyName": "Contact name",
-      "emergencyPhone": "Phone",
+      "emergencyPhone": "Phone (area code + number)",
       "medical": "Medical conditions",
       "notes": "Notes / experience"
     },
@@ -704,7 +748,7 @@
       "healthEmergency": "Health & emergency",
       "medical": "Medical conditions",
       "emergencyName": "Emergency contact",
-      "emergencyPhone": "Emergency phone",
+      "emergencyPhone": "Phone (area code + number)",
       "delete": "Delete",
       "reject": "Reject",
       "approve": "Approve",

@@ -17,6 +17,13 @@ import { stripDecimalSeparators } from "@/lib/utils";
 import { userHasPasswordLogin } from "@/lib/auth";
 import { boardTypeLabel } from "@/i18n/boardTypes";
 import { BOARD_TYPES } from "@/lib/board";
+import { PhoneInput } from "@/components/PhoneInput";
+import { stripDigitsFromName } from "@/lib/phone";
+import {
+  createOnboardingProfileSchema,
+  fieldValidationError,
+  formatAllProfileValidationErrors,
+} from "@/lib/profileFormValidation";
 
 export default function Profile() {
   const { user, profile, refreshProfile, signOut, loading } = useAuth();
@@ -89,30 +96,70 @@ export default function Profile() {
 
   const save = async () => {
     if (!user) return;
+
+    const combinedBoard = form.board_type && form.board_size
+      ? `${form.board_type} (${form.board_size})`
+      : form.board_type || form.board_size || "";
+
+    const parsed = createOnboardingProfileSchema(t).safeParse({
+      full_name: form.full_name,
+      phone: form.phone,
+      age: form.age,
+      weight_kg: form.weight_kg,
+      height_cm: form.height_cm,
+      surf_level: form.surf_level,
+      stance: form.stance,
+      can_swim: form.can_swim,
+      has_own_board: form.has_own_board,
+      board_size: combinedBoard,
+      experience_notes: form.experience_notes,
+      medical_conditions: form.medical_conditions,
+      emergency_contact_name: form.emergency_contact_name,
+      emergency_contact_phone: form.emergency_contact_phone,
+    });
+    if (!parsed.success) {
+      toast.error(formatAllProfileValidationErrors(parsed.error, t), { duration: 8000 });
+      return;
+    }
+
+    const { data: phoneAvailable, error: phoneCheckErr } = await supabase.rpc("check_phone_available", {
+      p_phone: parsed.data.phone,
+      p_user_id: user.id,
+    });
+    if (phoneCheckErr) {
+      toast.error(fieldValidationError(t, "phone", t("validation.phoneCheckFailed")));
+      return;
+    }
+    if (phoneAvailable === false) {
+      toast.error(fieldValidationError(t, "phone", t("validation.phoneAlreadyUsed")));
+      return;
+    }
+
     setSaving(true);
 
-    const combinedBoard = form.board_type && form.board_size 
-      ? `${form.board_type} (${form.board_size})`
-      : form.board_type || form.board_size || null;
-
     const payload: any = {
-      full_name: form.full_name || null,
-      phone: form.phone || null,
-      height_cm: form.height_cm ? Number(form.height_cm) : null,
-      weight_kg: form.weight_kg ? Number(form.weight_kg) : null,
-      age: form.age ? Number(form.age) : null,
-      stance: form.stance,
-      has_own_board: form.has_own_board,
-      can_swim: form.can_swim,
-      board_size: combinedBoard,
-      emergency_contact_name: form.emergency_contact_name || null,
-      emergency_contact_phone: form.emergency_contact_phone || null,
-      medical_conditions: form.medical_conditions || null,
-      experience_notes: form.experience_notes || null,
+      full_name: parsed.data.full_name,
+      phone: parsed.data.phone,
+      height_cm: parsed.data.height_cm,
+      weight_kg: parsed.data.weight_kg,
+      age: parsed.data.age,
+      stance: parsed.data.stance,
+      has_own_board: parsed.data.has_own_board,
+      can_swim: parsed.data.can_swim,
+      board_size: parsed.data.board_size || null,
+      emergency_contact_name: parsed.data.emergency_contact_name,
+      emergency_contact_phone: parsed.data.emergency_contact_phone,
+      medical_conditions: parsed.data.medical_conditions || null,
+      experience_notes: parsed.data.experience_notes || null,
     };
     const { error } = await supabase.from("profiles").update(payload).eq("id", user.id);
     setSaving(false);
-    if (error) return toast.error(error.message);
+    if (error) {
+      if (error.code === "23505" && error.message.includes("phone_digits")) {
+        return toast.error(fieldValidationError(t, "phone", t("validation.phoneAlreadyUsed")));
+      }
+      return toast.error(error.message);
+    }
     toast.success(t("profile.updated"));
     await refreshProfile();
   };
@@ -208,7 +255,12 @@ export default function Profile() {
         <Block title={t("profile.blocks.personal")}>
           <Field label={t("profile.fields.fullName")}><Input value={form.full_name} onChange={(e) => setForm({ ...form, full_name: e.target.value })} /></Field>
           <div className="grid grid-cols-2 gap-3">
-            <Field label={t("profile.fields.phone")}><Input value={form.phone} onChange={(e) => setForm({ ...form, phone: e.target.value })} /></Field>
+            <Field label={t("profile.fields.phone")}>
+              <PhoneInput
+                value={form.phone}
+                onChange={(phone) => setForm({ ...form, phone })}
+              />
+            </Field>
             <Field label={t("profile.fields.age")}><Input type="number" value={form.age} onChange={(e) => setForm({ ...form, age: e.target.value })} /></Field>
             <Field label={t("profile.fields.height")}>
               <Input
@@ -274,8 +326,23 @@ export default function Profile() {
 
         <Block title={t("profile.blocks.emergency")}>
           <div className="grid grid-cols-2 gap-3">
-            <Field label={t("profile.fields.emergencyName")}><Input value={form.emergency_contact_name} onChange={(e) => setForm({ ...form, emergency_contact_name: e.target.value })} /></Field>
-            <Field label={t("profile.fields.emergencyPhone")}><Input value={form.emergency_contact_phone} onChange={(e) => setForm({ ...form, emergency_contact_phone: e.target.value })} /></Field>
+            <Field label={t("profile.fields.emergencyName")}>
+              <Input
+                value={form.emergency_contact_name}
+                onChange={(e) =>
+                  setForm({ ...form, emergency_contact_name: stripDigitsFromName(e.target.value) })
+                }
+                placeholder={t("onboarding.fields.emergencyNamePlaceholder")}
+              />
+            </Field>
+            <Field label={t("profile.fields.emergencyPhone")}>
+              <PhoneInput
+                value={form.emergency_contact_phone}
+                onChange={(emergency_contact_phone) =>
+                  setForm({ ...form, emergency_contact_phone })
+                }
+              />
+            </Field>
           </div>
           <Field label={t("profile.fields.medical")}><Textarea rows={2} value={form.medical_conditions} onChange={(e) => setForm({ ...form, medical_conditions: e.target.value })} /></Field>
         </Block>
