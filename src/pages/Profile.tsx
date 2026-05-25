@@ -254,14 +254,14 @@ export default function Profile() {
 
         <Block title={t("profile.blocks.personal")}>
           <Field label={t("profile.fields.fullName")}><Input value={form.full_name} onChange={(e) => setForm({ ...form, full_name: e.target.value })} /></Field>
+          <Field label={t("profile.fields.phone")}>
+            <PhoneInput
+              value={form.phone}
+              onChange={(phone) => setForm({ ...form, phone })}
+            />
+          </Field>
+          <Field label={t("profile.fields.age")}><Input type="number" value={form.age} onChange={(e) => setForm({ ...form, age: e.target.value })} /></Field>
           <div className="grid grid-cols-2 gap-3">
-            <Field label={t("profile.fields.phone")}>
-              <PhoneInput
-                value={form.phone}
-                onChange={(phone) => setForm({ ...form, phone })}
-              />
-            </Field>
-            <Field label={t("profile.fields.age")}><Input type="number" value={form.age} onChange={(e) => setForm({ ...form, age: e.target.value })} /></Field>
             <Field label={t("profile.fields.height")}>
               <Input
                 type="text"
