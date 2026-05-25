@@ -14,8 +14,13 @@ const USER_DATA_TABLES = [
   "terms_acceptances",
   "privacy_acceptances",
   "user_push_tokens",
+  "teacher_reviews",
   "user_roles",
 ] as const;
+
+function isMissingTableError(message: string) {
+  return /Could not find the table|schema cache/i.test(message);
+}
 
 Deno.serve(async (req) => {
   if (req.method === "OPTIONS") return new Response(null, { headers: corsHeaders });
@@ -56,7 +61,9 @@ Deno.serve(async (req) => {
 
     for (const table of USER_DATA_TABLES) {
       const { error } = await admin.from(table).delete().eq("user_id", userId);
-      if (error) return json({ error: `Falha ao limpar ${table}: ${error.message}` }, 400);
+      if (error && !isMissingTableError(error.message)) {
+        return json({ error: `Falha ao limpar ${table}: ${error.message}` }, 400);
+      }
     }
 
     const { error: chatConvErr } = await admin.from("chat_messages").delete().eq("conversation_user", userId);
