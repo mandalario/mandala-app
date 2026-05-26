@@ -23,6 +23,7 @@ import {
   createOnboardingProfileSchema,
   formatAllProfileValidationErrors,
 } from "@/lib/profileFormValidation";
+import { checkPhoneAvailable } from "@/lib/checkPhoneAvailable";
 
 export default function Onboarding() {
   const navigate = useNavigate();
@@ -143,11 +144,8 @@ export default function Onboarding() {
       return;
     }
 
-    const { data: phoneAvailable, error: phoneCheckErr } = await supabase.rpc("check_phone_available", {
-      p_phone: parsed.data.phone,
-      p_user_id: user.id,
-    });
-    if (phoneCheckErr) {
+    const phoneCheck = await checkPhoneAvailable(parsed.data.phone, user.id);
+    if (!phoneCheck.ok) {
       toast.error(
         t("validation.fieldError", {
           field: t("onboarding.fields.phoneWhatsapp"),
@@ -156,7 +154,7 @@ export default function Onboarding() {
       );
       return;
     }
-    if (phoneAvailable === false) {
+    if (!phoneCheck.available) {
       toast.error(
         t("validation.fieldError", {
           field: t("onboarding.fields.phoneWhatsapp"),

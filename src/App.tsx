@@ -1,14 +1,15 @@
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
-import { BrowserRouter, Navigate, Route, Routes } from "react-router-dom";
+import { BrowserRouter, Navigate, Route, Routes, useLocation } from "react-router-dom";
 import { Toaster as Sonner } from "@/components/ui/sonner";
 import { Toaster } from "@/components/ui/toaster";
 import { TooltipProvider } from "@/components/ui/tooltip";
 import { AuthProvider, useAuth } from "@/hooks/useAuth";
 import { LanguageProvider } from "@/i18n/LanguageContext";
 import { userHasOAuthLogin, userHasPasswordLogin } from "@/lib/auth";
-import { useLocation } from "react-router-dom";
 import { BottomNav } from "@/components/BottomNav";
 import { PushNotificationManager } from "@/components/PushNotificationManager";
+import { OceanBackground } from "@/components/OceanBackground";
+import { Loader2 } from "lucide-react";
 import Index from "./pages/Index.tsx";
 import Auth from "./pages/Auth.tsx";
 import Onboarding from "./pages/Onboarding.tsx";
@@ -41,13 +42,71 @@ import NotFound from "./pages/NotFound.tsx";
 
 const queryClient = new QueryClient();
 
+const PUBLIC_PATHS = ["/auth", "/terms", "/privacy"];
+const AUTH_ONLY_PATHS = ["/auth", "/onboarding", "/pending", "/set-password"];
+
+const PageLoader = () => (
+  <div className="relative min-h-screen flex items-center justify-center">
+    <OceanBackground />
+    <Loader2 className="w-8 h-8 animate-spin text-primary" />
+  </div>
+);
+
+function useAccessRedirect(): { loading: boolean; redirectTo: string | null } {
+  const { user, isAdmin, profile, loading } = useAuth();
+  const location = useLocation();
+  const path = location.pathname;
+  const isPublicPath = PUBLIC_PATHS.includes(path);
+
+  if (loading) return { loading: true, redirectTo: null };
+
+  if (!user) {
+    return { loading: false, redirectTo: isPublicPath ? null : "/auth" };
+  }
+
+  if (isAdmin) {
+    if (AUTH_ONLY_PATHS.includes(path)) return { loading: false, redirectTo: "/admin" };
+    return { loading: false, redirectTo: null };
+  }
+
+  if (!profile) return { loading: true, redirectTo: null };
+
+  const mustSetPasswordFirst = userHasOAuthLogin(user) && !userHasPasswordLogin(user);
+  if (mustSetPasswordFirst) {
+    if (path !== "/set-password" && !isPublicPath) {
+      return { loading: false, redirectTo: "/set-password" };
+    }
+    return { loading: false, redirectTo: null };
+  }
+
+  if (!profile.profile_completed) {
+    if (path !== "/onboarding" && !isPublicPath) {
+      return { loading: false, redirectTo: "/onboarding" };
+    }
+    return { loading: false, redirectTo: null };
+  }
+
+  if (profile.approval_status !== "approved") {
+    if (path !== "/pending" && !isPublicPath) {
+      return { loading: false, redirectTo: "/pending" };
+    }
+    return { loading: false, redirectTo: null };
+  }
+
+  if (AUTH_ONLY_PATHS.includes(path)) {
+    return { loading: false, redirectTo: "/" };
+  }
+
+  return { loading: false, redirectTo: null };
+}
+
 const ConditionalBottomNav = () => {
   const { user, isAdmin, profile, loading } = useAuth();
   const location = useLocation();
 
   if (loading || !user || isAdmin) return null;
-  
-  const hidePaths = ["/auth", "/onboarding", "/pending", "/chat"];
+
+  const hidePaths = ["/auth", "/onboarding", "/pending", "/chat", "/set-password"];
   if (hidePaths.includes(location.pathname)) return null;
   if (location.pathname.startsWith("/admin")) return null;
   if (profile?.approval_status !== "approved") return null;
@@ -55,53 +114,57 @@ const ConditionalBottomNav = () => {
   return <BottomNav />;
 };
 
-const AppAccessGuard = () => {
-  const { user, isAdmin, profile, loading } = useAuth();
+function AppRoutes() {
+  const { loading, redirectTo } = useAccessRedirect();
   const location = useLocation();
 
-  if (loading) return null;
-
-  const publicPaths = ["/auth", "/terms", "/privacy"];
-  const authOnlyPaths = ["/auth", "/onboarding", "/pending", "/set-password"];
-  const isPublicPath = publicPaths.includes(location.pathname);
-
-  if (!user) {
-    if (!isPublicPath) return <Navigate to="/auth" replace />;
-    return null;
+  if (loading) return <PageLoader />;
+  if (redirectTo && redirectTo !== location.pathname) {
+    return <Navigate to={redirectTo} replace />;
   }
 
-  if (isAdmin) {
-    if (authOnlyPaths.includes(location.pathname)) return <Navigate to="/admin" replace />;
-    return null;
-  }
+  return (
+    <>
+      <Routes>
+        <Route path="/" element={<Index />} />
+        <Route path="/auth" element={<Auth />} />
+        <Route path="/set-password" element={<ForceSetPassword />} />
+        <Route path="/onboarding" element={<Onboarding />} />
+        <Route path="/pending" element={<PendingApproval />} />
+        <Route path="/packages" element={<Packages />} />
+        <Route path="/schedule" element={<Schedule />} />
+        <Route path="/feed" element={<Feed />} />
+        <Route path="/chat" element={<Chat />} />
+        <Route path="/profile" element={<Profile />} />
+        <Route path="/teachers" element={<TeacherRatings />} />
+        <Route path="/terms" element={<LegalPage kind="terms" />} />
+        <Route path="/privacy" element={<LegalPage kind="privacy" />} />
 
-  if (!profile) return null;
+        <Route path="/admin" element={<AdminLayout />}>
+          <Route index element={<AdminDashboardHome />} />
+          <Route path="students" element={<AdminStudents />} />
+          <Route path="schedule" element={<AdminSchedule />} />
+          <Route path="refunds" element={<AdminBookingRefunds />} />
+          <Route path="forecast" element={<AdminForecast />} />
+          <Route path="billing" element={<AdminBilling />} />
+          <Route path="packages" element={<AdminPackages />} />
+          <Route path="content" element={<AdminContent />} />
+          <Route path="posts" element={<AdminPosts />} />
+          <Route path="terms" element={<AdminTerms />} />
+          <Route path="privacy" element={<AdminPrivacy />} />
+          <Route path="chat" element={<AdminChatList />} />
+          <Route path="notifications" element={<AdminNotifications />} />
+          <Route path="access" element={<AdminAccess />} />
+          <Route path="teachers" element={<AdminTeachers />} />
+        </Route>
+        <Route path="/admin/chat/conv" element={<Chat />} />
 
-  const mustSetPasswordFirst = userHasOAuthLogin(user) && !userHasPasswordLogin(user);
-  if (mustSetPasswordFirst) {
-    if (location.pathname !== "/set-password" && !isPublicPath) {
-      return <Navigate to="/set-password" replace />;
-    }
-    return null;
-  }
-
-  if (!profile.profile_completed) {
-    if (location.pathname !== "/onboarding" && !isPublicPath) {
-      return <Navigate to="/onboarding" replace />;
-    }
-    return null;
-  }
-
-  if (profile.approval_status !== "approved") {
-    if (location.pathname !== "/pending" && !isPublicPath) {
-      return <Navigate to="/pending" replace />;
-    }
-    return null;
-  }
-
-  if (authOnlyPaths.includes(location.pathname)) return <Navigate to="/" replace />;
-  return null;
-};
+        <Route path="*" element={<NotFound />} />
+      </Routes>
+      <ConditionalBottomNav />
+    </>
+  );
+}
 
 const App = () => (
   <QueryClientProvider client={queryClient}>
@@ -117,44 +180,7 @@ const App = () => (
         >
           <AuthProvider>
             <PushNotificationManager />
-            <AppAccessGuard />
-            <Routes>
-              <Route path="/" element={<Index />} />
-              <Route path="/auth" element={<Auth />} />
-              <Route path="/set-password" element={<ForceSetPassword />} />
-              <Route path="/onboarding" element={<Onboarding />} />
-              <Route path="/pending" element={<PendingApproval />} />
-              <Route path="/packages" element={<Packages />} />
-              <Route path="/schedule" element={<Schedule />} />
-              <Route path="/feed" element={<Feed />} />
-              <Route path="/chat" element={<Chat />} />
-              <Route path="/profile" element={<Profile />} />
-              <Route path="/teachers" element={<TeacherRatings />} />
-              <Route path="/terms" element={<LegalPage kind="terms" />} />
-              <Route path="/privacy" element={<LegalPage kind="privacy" />} />
-
-              <Route path="/admin" element={<AdminLayout />}>
-                <Route index element={<AdminDashboardHome />} />
-                <Route path="students" element={<AdminStudents />} />
-                <Route path="schedule" element={<AdminSchedule />} />
-                <Route path="refunds" element={<AdminBookingRefunds />} />
-                <Route path="forecast" element={<AdminForecast />} />
-                <Route path="billing" element={<AdminBilling />} />
-                <Route path="packages" element={<AdminPackages />} />
-                <Route path="content" element={<AdminContent />} />
-                <Route path="posts" element={<AdminPosts />} />
-                <Route path="terms" element={<AdminTerms />} />
-                <Route path="privacy" element={<AdminPrivacy />} />
-                <Route path="chat" element={<AdminChatList />} />
-                <Route path="notifications" element={<AdminNotifications />} />
-                <Route path="access" element={<AdminAccess />} />
-                <Route path="teachers" element={<AdminTeachers />} />
-              </Route>
-              <Route path="/admin/chat/conv" element={<Chat />} />
-
-              <Route path="*" element={<NotFound />} />
-            </Routes>
-            <ConditionalBottomNav />
+            <AppRoutes />
           </AuthProvider>
         </BrowserRouter>
       </TooltipProvider>

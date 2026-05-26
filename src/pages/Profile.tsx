@@ -24,6 +24,7 @@ import {
   fieldValidationError,
   formatAllProfileValidationErrors,
 } from "@/lib/profileFormValidation";
+import { checkPhoneAvailable } from "@/lib/checkPhoneAvailable";
 
 export default function Profile() {
   const { user, profile, refreshProfile, signOut, loading } = useAuth();
@@ -122,15 +123,12 @@ export default function Profile() {
       return;
     }
 
-    const { data: phoneAvailable, error: phoneCheckErr } = await supabase.rpc("check_phone_available", {
-      p_phone: parsed.data.phone,
-      p_user_id: user.id,
-    });
-    if (phoneCheckErr) {
+    const phoneCheck = await checkPhoneAvailable(parsed.data.phone, user.id);
+    if (!phoneCheck.ok) {
       toast.error(fieldValidationError(t, "phone", t("validation.phoneCheckFailed")));
       return;
     }
-    if (phoneAvailable === false) {
+    if (!phoneCheck.available) {
       toast.error(fieldValidationError(t, "phone", t("validation.phoneAlreadyUsed")));
       return;
     }
