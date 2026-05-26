@@ -59,6 +59,15 @@ Deno.serve(async (req) => {
       .maybeSingle();
     if (targetRole) return json({ error: "Não é possível excluir um administrador" }, 400);
 
+    // Release phone lock early so the number can be reused even if later steps fail.
+    const { error: clearPhoneErr } = await admin
+      .from("profiles")
+      .update({ phone: null, phone_digits: null })
+      .eq("id", userId);
+    if (clearPhoneErr) {
+      return json({ error: `Falha ao liberar telefone: ${clearPhoneErr.message}` }, 400);
+    }
+
     for (const table of USER_DATA_TABLES) {
       const { error } = await admin.from(table).delete().eq("user_id", userId);
       if (error && !isMissingTableError(error.message)) {

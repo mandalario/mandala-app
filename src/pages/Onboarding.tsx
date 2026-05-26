@@ -199,7 +199,7 @@ export default function Onboarding() {
     }
     toast.success(t("onboarding.success.submitted"));
     await refreshProfile();
-    navigate("/", { replace: true });
+    navigate("/pending", { replace: true });
   };
 
   const stepLabels: Record<typeof step, { title: string; subtitle: string }> = {

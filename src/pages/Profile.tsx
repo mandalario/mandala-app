@@ -245,9 +245,11 @@ export default function Profile() {
       </section>
 
       <section className="px-5 mt-8 space-y-5">
-        {user && !hasPasswordLogin && (
+        {user && (
           <Block title={t("profile.blocks.access")}>
-            <p className="text-sm text-muted-foreground">{t("setPassword.profileHint")}</p>
+            <p className="text-sm text-muted-foreground">
+              {hasPasswordLogin ? t("setPassword.profileChangeHint") : t("setPassword.profileHint")}
+            </p>
             <SetPasswordForm onSuccess={() => setHasPasswordLogin(true)} />
           </Block>
         )}

@@ -1,18 +1,19 @@
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
-import { BrowserRouter, Route, Routes } from "react-router-dom";
+import { BrowserRouter, Navigate, Route, Routes } from "react-router-dom";
 import { Toaster as Sonner } from "@/components/ui/sonner";
 import { Toaster } from "@/components/ui/toaster";
 import { TooltipProvider } from "@/components/ui/tooltip";
 import { AuthProvider, useAuth } from "@/hooks/useAuth";
 import { LanguageProvider } from "@/i18n/LanguageContext";
+import { userHasOAuthLogin, userHasPasswordLogin } from "@/lib/auth";
 import { useLocation } from "react-router-dom";
 import { BottomNav } from "@/components/BottomNav";
 import { PushNotificationManager } from "@/components/PushNotificationManager";
-import { SetPasswordPrompt } from "@/components/SetPasswordPrompt";
 import Index from "./pages/Index.tsx";
 import Auth from "./pages/Auth.tsx";
 import Onboarding from "./pages/Onboarding.tsx";
 import PendingApproval from "./pages/PendingApproval.tsx";
+import ForceSetPassword from "./pages/ForceSetPassword.tsx";
 import Packages from "./pages/Packages.tsx";
 import Schedule from "./pages/Schedule.tsx";
 import Feed from "./pages/Feed.tsx";
@@ -54,6 +55,54 @@ const ConditionalBottomNav = () => {
   return <BottomNav />;
 };
 
+const AppAccessGuard = () => {
+  const { user, isAdmin, profile, loading } = useAuth();
+  const location = useLocation();
+
+  if (loading) return null;
+
+  const publicPaths = ["/auth", "/terms", "/privacy"];
+  const authOnlyPaths = ["/auth", "/onboarding", "/pending", "/set-password"];
+  const isPublicPath = publicPaths.includes(location.pathname);
+
+  if (!user) {
+    if (!isPublicPath) return <Navigate to="/auth" replace />;
+    return null;
+  }
+
+  if (isAdmin) {
+    if (authOnlyPaths.includes(location.pathname)) return <Navigate to="/admin" replace />;
+    return null;
+  }
+
+  if (!profile) return null;
+
+  const mustSetPasswordFirst = userHasOAuthLogin(user) && !userHasPasswordLogin(user);
+  if (mustSetPasswordFirst) {
+    if (location.pathname !== "/set-password" && !isPublicPath) {
+      return <Navigate to="/set-password" replace />;
+    }
+    return null;
+  }
+
+  if (!profile.profile_completed) {
+    if (location.pathname !== "/onboarding" && !isPublicPath) {
+      return <Navigate to="/onboarding" replace />;
+    }
+    return null;
+  }
+
+  if (profile.approval_status !== "approved") {
+    if (location.pathname !== "/pending" && !isPublicPath) {
+      return <Navigate to="/pending" replace />;
+    }
+    return null;
+  }
+
+  if (authOnlyPaths.includes(location.pathname)) return <Navigate to="/" replace />;
+  return null;
+};
+
 const App = () => (
   <QueryClientProvider client={queryClient}>
     <LanguageProvider>
@@ -68,10 +117,11 @@ const App = () => (
         >
           <AuthProvider>
             <PushNotificationManager />
-            <SetPasswordPrompt />
+            <AppAccessGuard />
             <Routes>
               <Route path="/" element={<Index />} />
               <Route path="/auth" element={<Auth />} />
+              <Route path="/set-password" element={<ForceSetPassword />} />
               <Route path="/onboarding" element={<Onboarding />} />
               <Route path="/pending" element={<PendingApproval />} />
               <Route path="/packages" element={<Packages />} />

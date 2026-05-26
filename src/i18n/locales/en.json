@@ -316,12 +316,20 @@
       "invalidEmail": "Invalid email",
       "minPassword": "Minimum 6 characters",
       "passwordRequired": "Password required"
+    },
+    "forgot": {
+      "link": "Forgot my password",
+      "sending": "Sending...",
+      "invalidEmail": "Enter a valid email to recover your password.",
+      "success": "We sent a password reset link to your email.",
+      "error": "Could not send reset link: "
     }
   },
   "setPassword": {
     "promptTitle": "Create a password",
     "promptDescription": "You signed in with Google. Set a password so you can also sign in with email and password without Google.",
     "profileHint": "Set a password to sign in with your email without using Google.",
+    "profileChangeHint": "You can change your password anytime here.",
     "emailHint": "Use your account email:",
     "password": "New password",
     "confirm": "Confirm password",

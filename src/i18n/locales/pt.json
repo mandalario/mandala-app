@@ -316,12 +316,20 @@
       "invalidEmail": "Email inválido",
       "minPassword": "Mínimo 6 caracteres",
       "passwordRequired": "Senha obrigatória"
+    },
+    "forgot": {
+      "link": "Esqueci minha senha",
+      "sending": "Enviando...",
+      "invalidEmail": "Digite um email válido para recuperar a senha.",
+      "success": "Enviamos um link para redefinir sua senha no email informado.",
+      "error": "Não foi possível enviar o link de recuperação: "
     }
   },
   "setPassword": {
     "promptTitle": "Criar senha de acesso",
     "promptDescription": "Você entrou com o Google. Defina uma senha para também poder entrar com email e senha, sem precisar do Google.",
     "profileHint": "Cadastre uma senha para entrar com seu email sem usar o Google.",
+    "profileChangeHint": "Você pode alterar sua senha a qualquer momento por aqui.",
     "emailHint": "Use o email da sua conta:",
     "password": "Nova senha",
     "confirm": "Confirmar senha",

@@ -56,6 +56,7 @@ export default function Auth() {
   const { t } = useTranslation();
   const [mode, setMode] = useState<"login" | "signup">("login");
   const [loading, setLoading] = useState(false);
+  const [sendingReset, setSendingReset] = useState(false);
   const [form, setForm] = useState({ full_name: "", email: "", password: "" });
 
   useEffect(() => {
@@ -115,6 +116,28 @@ export default function Auth() {
       }
     } finally {
       setLoading(false);
+    }
+  };
+
+  const handleForgotPassword = async () => {
+    const parsed = createRealEmailField(t).safeParse(form.email);
+    if (!parsed.success) {
+      toast.error(t("login.forgot.invalidEmail"));
+      return;
+    }
+
+    setSendingReset(true);
+    try {
+      const { error } = await supabase.auth.resetPasswordForEmail(parsed.data, {
+        redirectTo: `${window.location.origin}/auth`,
+      });
+      if (error) {
+        toast.error(t("login.forgot.error") + error.message);
+        return;
+      }
+      toast.success(t("login.forgot.success"));
+    } finally {
+      setSendingReset(false);
     }
   };
 
@@ -202,6 +225,16 @@ export default function Auth() {
                 required
               />
             </div>
+            {mode === "login" && (
+              <button
+                type="button"
+                onClick={handleForgotPassword}
+                disabled={loading || sendingReset}
+                className="text-xs text-primary hover:underline disabled:opacity-60"
+              >
+                {sendingReset ? t("login.forgot.sending") : t("login.forgot.link")}
+              </button>
+            )}
 
             <Button
               type="submit"
