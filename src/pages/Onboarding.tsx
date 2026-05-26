@@ -163,10 +163,6 @@ export default function Onboarding() {
       );
       return;
     }
-    if (!parsed.data.can_swim) {
-      toast.error(t("onboarding.errors.swimRequired"));
-      return;
-    }
     setLoading(true);
     const { error } = await supabase
       .from("profiles")

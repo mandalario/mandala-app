@@ -609,6 +609,7 @@ export type Database = {
           id: string
           medical_conditions: string | null
           phone: string | null
+          phone_digits: string | null
           profile_completed: boolean
           push_token: string | null
           stance: Database["public"]["Enums"]["surf_stance"] | null
@@ -637,6 +638,7 @@ export type Database = {
           id: string
           medical_conditions?: string | null
           phone?: string | null
+          phone_digits?: string | null
           profile_completed?: boolean
           push_token?: string | null
           stance?: Database["public"]["Enums"]["surf_stance"] | null
@@ -665,6 +667,7 @@ export type Database = {
           id?: string
           medical_conditions?: string | null
           phone?: string | null
+          phone_digits?: string | null
           profile_completed?: boolean
           push_token?: string | null
           stance?: Database["public"]["Enums"]["surf_stance"] | null
@@ -978,6 +981,13 @@ export type Database = {
       [_ in never]: never
     }
     Functions: {
+      check_phone_available: {
+        Args: {
+          p_phone: string
+          p_user_id: string
+        }
+        Returns: boolean
+      }
       apply_active_templates_to_range: {
         Args: {
           _start_date: string

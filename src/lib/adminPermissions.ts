@@ -60,9 +60,9 @@ export function canAccessAdminArea(
 export function firstAllowedAdminPath(
   isSuperAdmin: boolean,
   areas: AdminArea[] | null,
-): string {
+): string | null {
   for (const a of ADMIN_AREAS) {
     if (canAccessAdminArea(a.id, isSuperAdmin, areas)) return a.path;
   }
-  return "/admin";
+  return null;
 }

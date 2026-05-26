@@ -2,7 +2,7 @@ import { supabase } from "@/integrations/supabase/client";
 import { phoneDigits } from "@/lib/phone";
 
 /** Normaliza como `public.normalize_phone_digits` no Postgres. */
-export function normalizePhoneDigits(phone: string): string {
+function normalizePhoneDigits(phone: string): string {
   const digits = phoneDigits(phone);
   return digits.length > 0 ? digits : "";
 }

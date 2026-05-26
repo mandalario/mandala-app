@@ -4,7 +4,8 @@ import { useAuth } from "@/hooks/useAuth";
 import { OceanBackground } from "@/components/OceanBackground";
 import { Brand } from "@/components/Brand";
 import { NotificationsBell } from "@/components/NotificationsBell";
-import { LayoutDashboard, Users, CalendarDays, ScrollText, Video, MessageCircle, LogOut, Package, Wind, Image as ImageIcon, DollarSign, ShieldCheck, Bell, KeyRound, Loader2, GraduationCap, RotateCcw } from "lucide-react";
+import { LayoutDashboard, Users, CalendarDays, ScrollText, Video, MessageCircle, LogOut, Package, Wind, Image as ImageIcon, DollarSign, ShieldCheck, Bell, KeyRound, Loader2, GraduationCap, RotateCcw, ShieldAlert } from "lucide-react";
+import { Button } from "@/components/ui/button";
 import logoMandala from "@/assets/logo-mandala.png";
 import { useTranslation } from "@/i18n/LanguageContext";
 import { adminAreaFromPath, firstAllowedAdminPath, type AdminArea } from "@/lib/adminPermissions";
@@ -54,11 +55,14 @@ export default function AdminLayout() {
   }, [user, isAdmin, loading, navigate]);
 
   useEffect(() => {
-    if (loading || !isAdmin) return;
+    if (loading || !isAdmin || nav.length === 0) return;
     const area = adminAreaFromPath(location.pathname);
     if (!area || hasAdminArea(area)) return;
-    navigate(firstAllowedAdminPath(isSuperAdmin, adminAreas), { replace: true });
-  }, [location.pathname, loading, isAdmin, hasAdminArea, isSuperAdmin, adminAreas, navigate]);
+    const target = firstAllowedAdminPath(isSuperAdmin, adminAreas);
+    if (target && target !== location.pathname) {
+      navigate(target, { replace: true });
+    }
+  }, [location.pathname, loading, isAdmin, hasAdminArea, isSuperAdmin, adminAreas, navigate, nav.length]);
 
   if (loading || !user || !isAdmin) {
     return (
@@ -73,7 +77,17 @@ export default function AdminLayout() {
     return (
       <div className="relative min-h-screen flex items-center justify-center p-6">
         <OceanBackground />
-        <p className="text-sm text-muted-foreground text-center">{t("admin.access.noAreas")}</p>
+        <div className="glass-strong rounded-3xl p-8 max-w-md w-full text-center space-y-4 shadow-elevated">
+          <ShieldAlert className="w-10 h-10 text-primary mx-auto" />
+          <p className="text-sm text-muted-foreground">{t("admin.access.noAreas")}</p>
+          {profile?.email && (
+            <p className="text-xs text-muted-foreground/80">{profile.email}</p>
+          )}
+          <Button type="button" variant="outline" className="w-full rounded-xl" onClick={signOut}>
+            <LogOut className="w-4 h-4 mr-2" />
+            {t("common.signOut")}
+          </Button>
+        </div>
       </div>
     );
   }
