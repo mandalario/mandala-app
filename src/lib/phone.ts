@@ -18,6 +18,17 @@ export function phoneDigits(value: string): string {
   return value.replace(/\D/g, "");
 }
 
+/**
+ * Mesma regra que `public.normalize_phone_digits`: só dígitos;
+ * números BR com +55 viram DDD + número (10–11 dígitos).
+ */
+export function canonicalPhoneDigits(value: string): string {
+  const digits = phoneDigits(value);
+  if (!digits) return "";
+  if (/^55\d{10,11}$/.test(digits)) return digits.slice(2);
+  return digits;
+}
+
 /** DDDs válidos no Brasil (ANATEL). */
 const VALID_BRAZIL_DDD = new Set([
   11, 12, 13, 14, 15, 16, 17, 18, 19,

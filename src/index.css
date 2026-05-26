@@ -138,18 +138,9 @@
     color: transparent;
   }
 
-  /* Ocean video overlay shell */
-  .ocean-shell {
-    position: relative;
+  /* Keep ocean video above body background but below page content */
+  .relative.min-h-screen:has(> .ocean-bg) {
     isolation: isolate;
-  }
-  .ocean-shell::before {
-    content: "";
-    position: fixed;
-    inset: 0;
-    z-index: -1;
-    background: var(--gradient-deep);
-    pointer-events: none;
   }
 }
 

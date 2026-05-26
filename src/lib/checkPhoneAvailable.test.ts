@@ -74,7 +74,7 @@ describe("checkPhoneAvailable", () => {
     expect(result).toEqual({ ok: true, available: true });
   });
 
-  it("returns error for unexpected RPC failures", async () => {
+  it("falls back to available on unexpected RPC failures (unique index on save)", async () => {
     rpcMock.mockResolvedValue({
       data: null,
       error: { code: "42501", message: "permission denied" },
@@ -82,9 +82,7 @@ describe("checkPhoneAvailable", () => {
 
     const result = await checkPhoneAvailable("(11) 99999-9999", USER_ID);
 
-    expect(result).toEqual({
-      ok: false,
-      error: { message: "permission denied" },
-    });
+    expect(result).toEqual({ ok: true, available: true });
+    expect(rpcMock).toHaveBeenCalledTimes(2);
   });
 });
