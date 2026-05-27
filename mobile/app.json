@@ -1,0 +1,16 @@
+{
+  "expo": {
+    "name": "Mandalario",
+    "slug": "mandalario",
+    "version": "1.0.0",
+    "orientation": "portrait",
+    "userInterfaceStyle": "automatic",
+    "ios": {
+      "supportsTablet": true,
+      "bundleIdentifier": "com.mandalario.app"
+    },
+    "android": {
+      "package": "com.mandalario.app"
+    }
+  }
+}
