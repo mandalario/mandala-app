@@ -12,8 +12,27 @@ import { WebView, WebViewNavigation } from "react-native-webview";
 
 const DEFAULT_WEB_URL = "https://mandalario.vercel.app";
 
-function normalizeBaseUrl(rawUrl: string): string {
-  return rawUrl.replace(/\/+$/, "");
+function getSafeBaseUrl(raw?: string): string {
+  const candidate = (raw ?? "").trim() || DEFAULT_WEB_URL;
+  try {
+    const parsed = new URL(candidate);
+    if (parsed.protocol !== "https:") return DEFAULT_WEB_URL;
+    return parsed.toString().replace(/\/+$/, "");
+  } catch {
+    return DEFAULT_WEB_URL;
+  }
+}
+
+function getAllowedOrigins(baseUrl: string): string[] {
+  const url = new URL(baseUrl);
+  const origins = new Set<string>([url.origin]);
+  const host = url.hostname;
+  if (host.startsWith("www.")) {
+    origins.add(`${url.protocol}//${host.slice(4)}`);
+  } else {
+    origins.add(`${url.protocol}//www.${host}`);
+  }
+  return [...origins];
 }
 
 export default function App() {
@@ -21,10 +40,8 @@ export default function App() {
   const [canGoBack, setCanGoBack] = useState(false);
   const [isLoading, setIsLoading] = useState(true);
 
-  const appUrl = useMemo(() => {
-    const envUrl = process.env.EXPO_PUBLIC_WEB_URL;
-    return normalizeBaseUrl(envUrl && envUrl.trim().length > 0 ? envUrl : DEFAULT_WEB_URL);
-  }, []);
+  const appUrl = useMemo(() => getSafeBaseUrl(process.env.EXPO_PUBLIC_WEB_URL), []);
+  const allowedOrigins = useMemo(() => getAllowedOrigins(appUrl), [appUrl]);
 
   const handleNavigationStateChange = useCallback((navState: WebViewNavigation) => {
     setCanGoBack(navState.canGoBack);
@@ -48,9 +65,12 @@ export default function App() {
       <WebView
         ref={webViewRef}
         source={{ uri: appUrl }}
+        originWhitelist={allowedOrigins}
         onNavigationStateChange={handleNavigationStateChange}
         javaScriptEnabled
         domStorageEnabled
+        setSupportMultipleWindows={false}
+        allowsBackForwardNavigationGestures={false}
         startInLoadingState
         onLoadStart={() => setIsLoading(true)}
         onLoadEnd={() => setIsLoading(false)}
@@ -60,27 +80,15 @@ export default function App() {
           </View>
         )}
         onShouldStartLoadWithRequest={(request) => {
-          if (!request.url) {
-            return true;
-          }
-
-          const isHttp = request.url.startsWith("http://") || request.url.startsWith("https://");
-          if (!isHttp) {
+          if (!request.url) return false;
+          try {
+            const u = new URL(request.url);
+            if (allowedOrigins.includes(u.origin)) return true;
             Linking.openURL(request.url).catch(() => undefined);
             return false;
+          } catch {
+            return false;
           }
-
-          const normalizedRequestUrl = normalizeBaseUrl(request.url);
-          const isSameDomain =
-            normalizedRequestUrl.startsWith(appUrl) ||
-            normalizedRequestUrl.startsWith(`${appUrl}/`);
-
-          if (isSameDomain) {
-            return true;
-          }
-
-          Linking.openURL(request.url).catch(() => undefined);
-          return false;
         }}
       />
 
