@@ -1,5 +1,5 @@
 import { useState, useEffect } from "react";
-import { useNavigate } from "react-router-dom";
+import { Link, useNavigate } from "react-router-dom";
 import { z } from "zod";
 import { supabase } from "@/integrations/supabase/client";
 
@@ -299,9 +299,9 @@ export default function Auth() {
           </p>
 
           <div className="text-center text-xs text-muted-foreground mt-4 space-x-2">
-            <a href="/terms" className="hover:text-foreground underline-offset-2 hover:underline">Termos de Uso</a>
+            <Link to="/terms" className="hover:text-foreground underline-offset-2 hover:underline">Termos de Uso</Link>
             <span>·</span>
-            <a href="/privacy" className="hover:text-foreground underline-offset-2 hover:underline">Política de Privacidade</a>
+            <Link to="/privacy" className="hover:text-foreground underline-offset-2 hover:underline">Política de Privacidade</Link>
           </div>
 
         </div>

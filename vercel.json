@@ -2,7 +2,11 @@
   "$schema": "https://openapi.vercel.sh/vercel.json",
   "buildCommand": "npm run build",
   "outputDirectory": "dist",
-  "framework": "vite",
+  "trailingSlash": false,
+  "routes": [
+    { "handle": "filesystem" },
+    { "src": "/.*", "dest": "/index.html" }
+  ],
   "headers": [
     {
       "source": "/assets/(.*)",
@@ -24,6 +28,12 @@
     },
     {
       "source": "/og-image.png",
+      "headers": [
+        { "key": "Cache-Control", "value": "public, max-age=86400" }
+      ]
+    },
+    {
+      "source": "/manifest.webmanifest",
       "headers": [
         { "key": "Cache-Control", "value": "public, max-age=86400" }
       ]
