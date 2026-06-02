@@ -8,9 +8,9 @@ Use este guia na ordem. Marque cada item antes de enviar para **produção**.
 |------|--------|
 | Pacote Android | `com.mandalario.app` |
 | Nome na loja | Mandalario |
-| WebView / site | `https://mandalario.vercel.app` |
-| Política de privacidade | `https://mandalario.vercel.app/privacy` |
-| Termos | `https://mandalario.vercel.app/terms` |
+| WebView / site | `https://mandalario.app` |
+| Política de privacidade | `https://mandalario.app/privacy` |
+| Termos | `https://mandalario.app/terms` |
 | EAS project ID | `e0d3b661-b855-4ca1-98d5-e65af5907953` |
 | Canal de push (Android) | `mandalario-alerts` |
 
@@ -85,11 +85,11 @@ eas build -p android --profile preview
   - Perfil ou notificações
 - [ ] **Categoria**: Esportes ou Educação (escolha a mais fiel).
 - [ ] **E-mail de contato** do desenvolvedor (visível na loja).
-- [ ] **Site** (opcional): `https://mandalario.vercel.app`
+- [ ] **Site** (opcional): `https://mandalario.app`
 
 ### Política de privacidade (obrigatório)
 
-- [ ] URL: `https://mandalario.vercel.app/privacy`
+- [ ] URL: `https://mandalario.app/privacy`
 - [ ] Deve abrir em navegador sem erro 404.
 - [ ] Mencionar: conta, e-mail, telefone, pagamentos, tokens de push, cookies/localStorage do WebView.
 
@@ -187,7 +187,7 @@ Play Console → **Testar e publicar** → **Teste interno** (ou Produção) →
 
 Execute em **dispositivo físico** com build de loja (não Expo Go):
 
-- [ ] App abre e carrega `https://mandalario.vercel.app`.
+- [ ] App abre e carrega `https://mandalario.app`.
 - [ ] Login e logout funcionam.
 - [ ] Links externos (ex.: pagamento MP) abrem no navegador; voltar ao app ok.
 - [ ] Botão voltar Android navega no histórico do WebView.

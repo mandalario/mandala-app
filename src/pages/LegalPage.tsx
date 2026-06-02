@@ -75,11 +75,6 @@ export default function LegalPage({ kind }: { kind: "terms" | "privacy" }) {
           )}
         </article>
 
-        <footer className="text-center text-xs text-muted-foreground mt-8 space-x-3">
-          <Link to="/terms" className="hover:text-foreground">{t("legal.termsTitle")}</Link>
-          <span>·</span>
-          <Link to="/privacy" className="hover:text-foreground">{t("legal.privacyTitle")}</Link>
-        </footer>
       </div>
     </div>
   );

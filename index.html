@@ -7,35 +7,13 @@
     <style>
       html, body { margin: 0; min-height: 100%; background: hsl(210 60% 6%); color: hsl(200 30% 98%); }
       #root { min-height: 100dvh; }
-      #site-legal-footer {
-        position: fixed;
-        inset-inline: 0;
-        bottom: 0;
-        z-index: 40;
-        display: flex;
-        justify-content: center;
-        align-items: center;
-        gap: 0.5rem;
-        padding: 0.5rem 1rem calc(0.5rem + env(safe-area-inset-bottom));
-        font: 12px/1.4 system-ui, sans-serif;
-        color: hsl(200 20% 75%);
-        background: linear-gradient(to top, hsl(210 60% 6% / 0.95), transparent);
-        pointer-events: none;
-      }
-      #site-legal-footer a {
-        color: inherit;
-        text-decoration: underline;
-        text-underline-offset: 2px;
-        pointer-events: auto;
-      }
-      #site-legal-footer a:hover { color: hsl(200 30% 98%); }
     </style>
 
     <title>Mandala Rio · Surf School — Aulas de surf no Rio</title>
     <meta name="description" content="Mandala Rio Surf School: agende aulas de surf, gerencie créditos e acompanhe condições do mar. Plataforma oficial da escola." />
     <meta name="author" content="Mandala Rio Surf School" />
     <meta name="keywords" content="surf, aulas de surf, escola de surf, Rio de Janeiro, Mandala Rio, agendamento de surf" />
-    <link rel="canonical" href="https://mandalario.vercel.app/" />
+    <link rel="canonical" href="https://mandalario.app/" />
 
     <link rel="icon" type="image/png" href="/favicon.png" />
     <link rel="apple-touch-icon" href="/favicon.png" />
@@ -73,11 +51,6 @@
 
   <body>
     <div id="root"></div>
-    <footer id="site-legal-footer" aria-label="Links legais">
-      <a href="/privacy">Política de Privacidade</a>
-      <span aria-hidden="true">·</span>
-      <a href="/terms">Termos de Uso</a>
-    </footer>
     <script type="module" src="/src/main.tsx"></script>
   </body>
 </html>

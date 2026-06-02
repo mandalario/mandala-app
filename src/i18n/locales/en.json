@@ -535,10 +535,22 @@
     "save": "Save changes",
     "blocks": {
       "access": "Account access",
+      "account": "Account",
       "personal": "Personal info",
       "surf": "Surf",
       "emergency": "Emergency & health",
       "about": "About you"
+    },
+    "deleteAccount": {
+      "description": "Permanently deletes your account, profile, bookings, payments, messages, and all associated data. This cannot be undone.",
+      "button": "Delete my account",
+      "confirmTitle": "Delete account?",
+      "confirmDescription": "All your data will be permanently deleted, including unused credits. You will need to create a new account to use the app again.",
+      "confirm": "Yes, delete account",
+      "deleting": "Deleting...",
+      "success": "Account deleted",
+      "error": "Could not delete account: ",
+      "errorUnknown": "Could not delete account. Please try again."
     },
     "fields": {
       "fullName": "Full name",

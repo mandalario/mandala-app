@@ -14,7 +14,7 @@ import Constants from "expo-constants";
 import * as Notifications from "expo-notifications";
 import { WebView, WebViewNavigation } from "react-native-webview";
 
-const DEFAULT_WEB_URL = "https://mandalario.vercel.app";
+const DEFAULT_WEB_URL = "https://mandalario.app";
 export const PUSH_CHANNEL_ID = "mandalario-alerts";
 
 Notifications.setNotificationHandler({
@@ -58,6 +58,10 @@ function isAllowedUrl(rawUrl: string, appUrl: string, allowedOrigins: string[]):
   }
 }
 
+function isExpoGoRuntime(): boolean {
+  return Constants.appOwnership === "expo";
+}
+
 export default function App() {
   const webViewRef = useRef<WebView>(null);
   const [canGoBack, setCanGoBack] = useState(false);
@@ -92,6 +96,7 @@ export default function App() {
 
   const registerPushToken = useCallback(async () => {
     if (!Device.isDevice || pushSetupStartedRef.current) return;
+    if (isExpoGoRuntime()) return;
     pushSetupStartedRef.current = true;
 
     try {

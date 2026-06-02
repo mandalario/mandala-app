@@ -535,10 +535,22 @@
     "save": "Guardar cambios",
     "blocks": {
       "access": "Acceso a la cuenta",
+      "account": "Cuenta",
       "personal": "Datos personales",
       "surf": "Surf",
       "emergency": "Emergencia & salud",
       "about": "Sobre ti"
+    },
+    "deleteAccount": {
+      "description": "Elimina permanentemente tu cuenta, perfil, reservas, pagos, mensajes y todos los datos asociados. Esta acción no se puede deshacer.",
+      "button": "Eliminar mi cuenta",
+      "confirmTitle": "¿Eliminar cuenta?",
+      "confirmDescription": "Todos tus datos se borrarán de forma permanente, incluidos los créditos no utilizados. Tendrás que crear una cuenta nueva para volver a usar la app.",
+      "confirm": "Sí, eliminar cuenta",
+      "deleting": "Eliminando...",
+      "success": "Cuenta eliminada",
+      "error": "No se pudo eliminar la cuenta: ",
+      "errorUnknown": "No se pudo eliminar la cuenta. Inténtalo de nuevo."
     },
     "fields": {
       "fullName": "Nombre completo",

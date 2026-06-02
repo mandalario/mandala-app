@@ -1,26 +1,12 @@
 // Admin-only: delete student auth account and all related data
-import { createClient, type SupabaseClient } from "https://esm.sh/@supabase/supabase-js@2.45.0";
+import { createClient } from "https://esm.sh/@supabase/supabase-js@2.45.0";
+import { deleteAuthUserAndProfile, deleteUserData } from "../_shared/deleteUserData.ts";
 
 const corsHeaders = {
   "Access-Control-Allow-Origin": "*",
   "Access-Control-Allow-Headers": "authorization, x-client-info, apikey, content-type",
   "Access-Control-Allow-Methods": "POST, OPTIONS",
 };
-
-const USER_DATA_TABLES = [
-  "bookings",
-  "notifications",
-  "payments",
-  "terms_acceptances",
-  "privacy_acceptances",
-  "user_push_tokens",
-  "teacher_reviews",
-  "user_roles",
-] as const;
-
-function isMissingTableError(message: string) {
-  return /Could not find the table|schema cache/i.test(message);
-}
 
 Deno.serve(async (req) => {
   if (req.method === "OPTIONS") return new Response(null, { headers: corsHeaders });
@@ -59,38 +45,11 @@ Deno.serve(async (req) => {
       .maybeSingle();
     if (targetRole) return json({ error: "Não é possível excluir um administrador" }, 400);
 
-    // Release phone lock early so the number can be reused even if later steps fail.
-    const { error: clearPhoneErr } = await admin
-      .from("profiles")
-      .update({ phone: null, phone_digits: null })
-      .eq("id", userId);
-    if (clearPhoneErr) {
-      return json({ error: `Falha ao liberar telefone: ${clearPhoneErr.message}` }, 400);
-    }
+    const dataResult = await deleteUserData(admin, userId);
+    if (!dataResult.ok) return json({ error: dataResult.error }, dataResult.status);
 
-    for (const table of USER_DATA_TABLES) {
-      const { error } = await admin.from(table).delete().eq("user_id", userId);
-      if (error && !isMissingTableError(error.message)) {
-        return json({ error: `Falha ao limpar ${table}: ${error.message}` }, 400);
-      }
-    }
-
-    const { error: chatConvErr } = await admin.from("chat_messages").delete().eq("conversation_user", userId);
-    if (chatConvErr) return json({ error: `Falha ao limpar chat: ${chatConvErr.message}` }, 400);
-    const { error: chatSendErr } = await admin.from("chat_messages").delete().eq("sender_id", userId);
-    if (chatSendErr) return json({ error: `Falha ao limpar chat: ${chatSendErr.message}` }, 400);
-
-    await removeStorageFolder(admin, "avatars", userId);
-    await removeStorageFolder(admin, "payment-proofs", userId);
-
-    const { error: deleteErr } = await admin.auth.admin.deleteUser(userId);
-    if (deleteErr) return json({ error: deleteErr.message }, 400);
-
-    const { data: leftover } = await admin.from("profiles").select("id").eq("id", userId).maybeSingle();
-    if (leftover) {
-      const { error: profileErr } = await admin.from("profiles").delete().eq("id", userId);
-      if (profileErr) return json({ error: `Perfil não removido: ${profileErr.message}` }, 400);
-    }
+    const authResult = await deleteAuthUserAndProfile(admin, userId);
+    if (!authResult.ok) return json({ error: authResult.error }, authResult.status);
 
     return json({ ok: true });
   } catch (e: unknown) {
@@ -98,13 +57,6 @@ Deno.serve(async (req) => {
     return json({ error: msg }, 500);
   }
 });
-
-async function removeStorageFolder(admin: SupabaseClient, bucket: string, userId: string) {
-  const { data: files, error: listErr } = await admin.storage.from(bucket).list(userId);
-  if (listErr || !files?.length) return;
-  const paths = files.map((f) => `${userId}/${f.name}`);
-  await admin.storage.from(bucket).remove(paths);
-}
 
 function json(b: unknown, status = 200) {
   return new Response(JSON.stringify(b), {

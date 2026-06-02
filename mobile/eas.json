@@ -11,13 +11,13 @@
     "preview": {
       "distribution": "internal",
       "env": {
-        "EXPO_PUBLIC_WEB_URL": "https://mandalario.vercel.app"
+        "EXPO_PUBLIC_WEB_URL": "https://mandalario.app"
       }
     },
     "production": {
       "distribution": "store",
       "env": {
-        "EXPO_PUBLIC_WEB_URL": "https://mandalario.vercel.app"
+        "EXPO_PUBLIC_WEB_URL": "https://mandalario.app"
       },
       "android": {
         "buildType": "app-bundle"

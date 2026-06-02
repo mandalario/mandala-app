@@ -8,8 +8,19 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+  AlertDialogTrigger,
+} from "@/components/ui/alert-dialog";
 import { toast } from "sonner";
-import { ArrowLeft, Camera, Loader2, LogOut, User as UserIcon } from "lucide-react";
+import { ArrowLeft, Camera, Loader2, LogOut, Trash2, User as UserIcon } from "lucide-react";
 import { useTranslation } from "@/i18n/LanguageContext";
 import { SetPasswordForm } from "@/components/SetPasswordForm";
 import { ExperienceNotesField } from "@/components/ExperienceNotesField";
@@ -33,6 +44,8 @@ export default function Profile() {
   const fileRef = useRef<HTMLInputElement>(null);
   const [saving, setSaving] = useState(false);
   const [uploading, setUploading] = useState(false);
+  const [deletingAccount, setDeletingAccount] = useState(false);
+  const [deleteDialogOpen, setDeleteDialogOpen] = useState(false);
   const [hasPasswordLogin, setHasPasswordLogin] = useState(false);
   const [form, setForm] = useState({
     full_name: "", phone: "", height_cm: "" as string, weight_kg: "" as string,
@@ -175,6 +188,38 @@ export default function Profile() {
     if (error) return toast.error(error.message);
     toast.success(t("profile.photoUpdated"));
     await refreshProfile();
+  };
+
+  const deleteAccount = async () => {
+    if (!user) return;
+    setDeletingAccount(true);
+    const { data, error } = await supabase.functions.invoke("delete-account");
+    setDeletingAccount(false);
+    if (error) {
+      let msg = error.message;
+      try {
+        if (error.context) {
+          const body = await error.context.json();
+          msg = body?.error || msg;
+        }
+      } catch {
+        /* use default */
+      }
+      toast.error(t("profile.deleteAccount.error") + msg);
+      return;
+    }
+    if (data?.error) {
+      toast.error(t("profile.deleteAccount.error") + data.error);
+      return;
+    }
+    if (!data?.ok) {
+      toast.error(t("profile.deleteAccount.errorUnknown"));
+      return;
+    }
+    setDeleteDialogOpen(false);
+    toast.success(t("profile.deleteAccount.success"));
+    await signOut();
+    navigate("/auth", { replace: true });
   };
 
   if (loading || !profile) {
@@ -359,6 +404,53 @@ export default function Profile() {
         <Button onClick={save} disabled={saving} className="w-full h-12 rounded-xl bg-gradient-to-r from-primary to-accent text-primary-foreground font-semibold">
           {saving ? <Loader2 className="w-4 h-4 animate-spin mr-2" /> : null} {t("profile.save")}
         </Button>
+
+        <Block title={t("profile.blocks.account")}>
+          <p className="text-sm text-muted-foreground">{t("profile.deleteAccount.description")}</p>
+          <AlertDialog open={deleteDialogOpen} onOpenChange={setDeleteDialogOpen}>
+            <AlertDialogTrigger asChild>
+              <Button
+                type="button"
+                variant="outline"
+                disabled={deletingAccount}
+                className="w-full h-11 rounded-xl border-destructive/40 text-destructive hover:bg-destructive/10 hover:text-destructive"
+              >
+                {deletingAccount ? (
+                  <Loader2 className="w-4 h-4 animate-spin mr-2" />
+                ) : (
+                  <Trash2 className="w-4 h-4 mr-2" />
+                )}
+                {t("profile.deleteAccount.button")}
+              </Button>
+            </AlertDialogTrigger>
+            <AlertDialogContent>
+              <AlertDialogHeader>
+                <AlertDialogTitle>{t("profile.deleteAccount.confirmTitle")}</AlertDialogTitle>
+                <AlertDialogDescription>{t("profile.deleteAccount.confirmDescription")}</AlertDialogDescription>
+              </AlertDialogHeader>
+              <AlertDialogFooter>
+                <AlertDialogCancel disabled={deletingAccount}>{t("common.cancel")}</AlertDialogCancel>
+                <AlertDialogAction
+                  disabled={deletingAccount}
+                  onClick={(e) => {
+                    e.preventDefault();
+                    void deleteAccount();
+                  }}
+                  className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
+                >
+                  {deletingAccount ? (
+                    <>
+                      <Loader2 className="w-4 h-4 animate-spin mr-2" />
+                      {t("profile.deleteAccount.deleting")}
+                    </>
+                  ) : (
+                    t("profile.deleteAccount.confirm")
+                  )}
+                </AlertDialogAction>
+              </AlertDialogFooter>
+            </AlertDialogContent>
+          </AlertDialog>
+        </Block>
       </section>
     </div>
   );
