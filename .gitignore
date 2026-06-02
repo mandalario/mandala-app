@@ -6,3 +6,4 @@ npm-debug.*
 *.jks
 *.p12
 *.mobileprovision
+*-firebase-adminsdk-*.json
