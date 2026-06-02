@@ -81,6 +81,8 @@ Deno.serve(async (req) => {
     const messages = tokens.map((to) => ({
       to,
       sound: "default",
+      channelId: "whatsapp-style",
+      priority: "high",
       title,
       body,
       data: url ? { url } : {},

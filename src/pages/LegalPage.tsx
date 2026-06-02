@@ -17,14 +17,18 @@ export default function LegalPage({ kind }: { kind: "terms" | "privacy" }) {
 
   useEffect(() => {
     (async () => {
+      setLoading(true);
       const table = kind === "terms" ? "terms_of_service" : "privacy_policy";
-      const { data } = await supabase
+      const { data, error } = await supabase
         .from(table)
         .select("title, version, content, updated_at")
         .eq("is_active", true)
         .order("created_at", { ascending: false })
         .limit(1)
         .maybeSingle();
+      if (error) {
+        console.error(`[LegalPage] failed to load ${table}:`, error.message);
+      }
       setDoc(data as Doc | null);
       setLoading(false);
     })();

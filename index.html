@@ -7,6 +7,28 @@
     <style>
       html, body { margin: 0; min-height: 100%; background: hsl(210 60% 6%); color: hsl(200 30% 98%); }
       #root { min-height: 100dvh; }
+      #site-legal-footer {
+        position: fixed;
+        inset-inline: 0;
+        bottom: 0;
+        z-index: 40;
+        display: flex;
+        justify-content: center;
+        align-items: center;
+        gap: 0.5rem;
+        padding: 0.5rem 1rem calc(0.5rem + env(safe-area-inset-bottom));
+        font: 12px/1.4 system-ui, sans-serif;
+        color: hsl(200 20% 75%);
+        background: linear-gradient(to top, hsl(210 60% 6% / 0.95), transparent);
+        pointer-events: none;
+      }
+      #site-legal-footer a {
+        color: inherit;
+        text-decoration: underline;
+        text-underline-offset: 2px;
+        pointer-events: auto;
+      }
+      #site-legal-footer a:hover { color: hsl(200 30% 98%); }
     </style>
 
     <title>Mandala Rio · Surf School — Aulas de surf no Rio</title>
@@ -51,6 +73,11 @@
 
   <body>
     <div id="root"></div>
+    <footer id="site-legal-footer" aria-label="Links legais">
+      <a href="/privacy">Política de Privacidade</a>
+      <span aria-hidden="true">·</span>
+      <a href="/terms">Termos de Uso</a>
+    </footer>
     <script type="module" src="/src/main.tsx"></script>
   </body>
 </html>
