@@ -51,7 +51,7 @@
         "foregroundImage": "./assets/adaptive-icon.png",
         "backgroundColor": "#ffffff"
       },
-      "package": "com.mandalario.app",
+      "package": "app.mandalario",
       "allowBackup": false,
       "blockedPermissions": [
         "android.permission.RECORD_AUDIO",
