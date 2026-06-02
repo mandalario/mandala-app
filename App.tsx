@@ -15,7 +15,7 @@ import * as Notifications from "expo-notifications";
 import { WebView, WebViewNavigation } from "react-native-webview";
 
 const DEFAULT_WEB_URL = "https://mandalario.vercel.app";
-const WHATSAPP_STYLE_CHANNEL = "whatsapp-style";
+export const PUSH_CHANNEL_ID = "mandalario-alerts";
 
 Notifications.setNotificationHandler({
   handleNotification: async () => ({
@@ -49,11 +49,21 @@ function getAllowedOrigins(baseUrl: string): string[] {
   return [...origins];
 }
 
+function isAllowedUrl(rawUrl: string, appUrl: string, allowedOrigins: string[]): boolean {
+  try {
+    const absolute = new URL(rawUrl, appUrl);
+    return absolute.protocol === "https:" && allowedOrigins.includes(absolute.origin);
+  } catch {
+    return false;
+  }
+}
+
 export default function App() {
   const webViewRef = useRef<WebView>(null);
   const [canGoBack, setCanGoBack] = useState(false);
   const [isLoading, setIsLoading] = useState(true);
   const pushTokenRef = useRef<string | null>(null);
+  const pushSetupStartedRef = useRef(false);
 
   const appUrl = useMemo(() => getSafeBaseUrl(process.env.EXPO_PUBLIC_WEB_URL), []);
   const allowedOrigins = useMemo(() => getAllowedOrigins(appUrl), [appUrl]);
@@ -72,67 +82,74 @@ export default function App() {
   const openInAppUrl = useCallback(
     (rawUrl?: string) => {
       if (!rawUrl || !webViewRef.current) return;
-      try {
-        const absolute = new URL(rawUrl, appUrl).toString();
-        const js = `window.location.href = ${JSON.stringify(absolute)}; true;`;
-        webViewRef.current.injectJavaScript(js);
-      } catch {
-        // Ignore invalid URLs from payloads.
-      }
+      if (!isAllowedUrl(rawUrl, appUrl, allowedOrigins)) return;
+      const absolute = new URL(rawUrl, appUrl).toString();
+      const js = `window.location.href = ${JSON.stringify(absolute)}; true;`;
+      webViewRef.current.injectJavaScript(js);
     },
-    [appUrl],
+    [appUrl, allowedOrigins],
   );
 
-  useEffect(() => {
-    async function setupPush() {
-      if (!Device.isDevice) return;
+  const registerPushToken = useCallback(async () => {
+    if (!Device.isDevice || pushSetupStartedRef.current) return;
+    pushSetupStartedRef.current = true;
 
-      if (Platform.OS === "android") {
-        await Notifications.setNotificationChannelAsync(WHATSAPP_STYLE_CHANNEL, {
-          name: "Mensagens estilo WhatsApp",
-          importance: Notifications.AndroidImportance.MAX,
-          vibrationPattern: [0, 250, 250, 250],
-          lightColor: "#22c55e",
-          sound: "default",
-        });
-      }
-
+    try {
       const { status: existingStatus } = await Notifications.getPermissionsAsync();
       let finalStatus = existingStatus;
 
       if (existingStatus !== "granted") {
-        const { status } = await Notifications.requestPermissionsAsync();
+        const { status } = await Notifications.requestPermissionsAsync({
+          ios: {
+            allowAlert: true,
+            allowBadge: false,
+            allowSound: true,
+          },
+        });
         finalStatus = status;
       }
       if (finalStatus !== "granted") return;
 
       const projectId =
-        Constants.expoConfig?.extra?.eas?.projectId ??
-        Constants.easConfig?.projectId;
+        Constants.expoConfig?.extra?.eas?.projectId ?? Constants.easConfig?.projectId;
       const tokenData = await Notifications.getExpoPushTokenAsync(
         projectId ? { projectId } : undefined,
       );
       pushTokenRef.current = tokenData.data;
       postPushTokenToWeb();
+    } catch {
+      pushSetupStartedRef.current = false;
+    }
+  }, [postPushTokenToWeb]);
+
+  useEffect(() => {
+    async function setupNotificationChannel() {
+      if (Platform.OS !== "android") return;
+      await Notifications.setNotificationChannelAsync(PUSH_CHANNEL_ID, {
+        name: "Avisos do Mandalario",
+        description: "Aulas, agendamentos e mensagens da escola.",
+        importance: Notifications.AndroidImportance.HIGH,
+        vibrationPattern: [0, 200, 100, 200],
+        lightColor: "#22c55e",
+        sound: "default",
+      });
     }
 
-    const receivedSubscription = Notifications.addNotificationReceivedListener(() => {
-      // no-op; UI handled by OS notification tray
-    });
-    const responseSubscription = Notifications.addNotificationResponseReceivedListener((response) => {
-      const url = response.notification.request.content.data?.url;
-      if (typeof url === "string") {
-        openInAppUrl(url);
-      }
-    });
+    const responseSubscription = Notifications.addNotificationResponseReceivedListener(
+      (response) => {
+        const url = response.notification.request.content.data?.url;
+        if (typeof url === "string") {
+          openInAppUrl(url);
+        }
+      },
+    );
 
-    setupPush().catch(() => undefined);
+    setupNotificationChannel().catch(() => undefined);
 
     return () => {
-      receivedSubscription.remove();
       responseSubscription.remove();
     };
-  }, [openInAppUrl, postPushTokenToWeb]);
+  }, [openInAppUrl]);
 
   useEffect(() => {
     const subscription = BackHandler.addEventListener("hardwareBackPress", () => {
@@ -140,10 +157,8 @@ export default function App() {
         webViewRef.current.goBack();
         return true;
       }
-
       return false;
     });
-
     return () => subscription.remove();
   }, [canGoBack]);
 
@@ -156,8 +171,16 @@ export default function App() {
         onNavigationStateChange={handleNavigationStateChange}
         javaScriptEnabled
         domStorageEnabled
+        thirdPartyCookiesEnabled={false}
+        sharedCookiesEnabled
+        geolocationEnabled={false}
+        allowFileAccess={false}
+        allowUniversalAccessFromFileURLs={false}
+        mixedContentMode="never"
         setSupportMultipleWindows={false}
         allowsBackForwardNavigationGestures={false}
+        mediaPlaybackRequiresUserAction
+        allowsLinkPreview={false}
         startInLoadingState
         onLoadStart={() => setIsLoading(true)}
         onLoadEnd={() => {
@@ -168,7 +191,7 @@ export default function App() {
           try {
             const payload = JSON.parse(event.nativeEvent.data);
             if (payload?.type === "GET_PUSH_TOKEN") {
-              postPushTokenToWeb();
+              registerPushToken();
             }
           } catch {
             // ignore malformed payload
@@ -181,14 +204,9 @@ export default function App() {
         )}
         onShouldStartLoadWithRequest={(request) => {
           if (!request.url) return false;
-          try {
-            const u = new URL(request.url);
-            if (allowedOrigins.includes(u.origin)) return true;
-            Linking.openURL(request.url).catch(() => undefined);
-            return false;
-          } catch {
-            return false;
-          }
+          if (isAllowedUrl(request.url, appUrl, allowedOrigins)) return true;
+          Linking.openURL(request.url).catch(() => undefined);
+          return false;
         }}
       />
 

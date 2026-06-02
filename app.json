@@ -7,6 +7,8 @@
     "userInterfaceStyle": "automatic",
     "scheme": "mandalario",
     "icon": "./assets/icon.png",
+    "description": "App oficial Mandalario para alunos: aulas, agenda, pagamentos e avisos da escola.",
+    "primaryColor": "#22c55e",
     "plugins": [
       [
         "expo-splash-screen",
@@ -15,14 +17,34 @@
           "resizeMode": "contain",
           "backgroundColor": "#ffffff"
         }
+      ],
+      [
+        "expo-notifications",
+        {
+          "defaultChannel": "mandalario-alerts",
+          "color": "#22c55e",
+          "enableBackgroundRemoteNotifications": true
+        }
+      ],
+      [
+        "expo-build-properties",
+        {
+          "android": {
+            "compileSdkVersion": 35,
+            "targetSdkVersion": 35,
+            "minSdkVersion": 24,
+            "usesCleartextTraffic": false
+          }
+        }
       ]
     ],
     "ios": {
       "supportsTablet": true,
       "bundleIdentifier": "com.mandalario.app",
-      "associatedDomains": [
-        "applinks:mandalario.vercel.app"
-      ]
+      "associatedDomains": ["applinks:mandalario.vercel.app"],
+      "infoPlist": {
+        "NSUserNotificationsUsageDescription": "Receba avisos sobre suas aulas, agendamentos e mensagens da escola Mandalario."
+      }
     },
     "android": {
       "adaptiveIcon": {
@@ -30,6 +52,26 @@
         "backgroundColor": "#ffffff"
       },
       "package": "com.mandalario.app",
+      "allowBackup": false,
+      "blockedPermissions": [
+        "android.permission.RECORD_AUDIO",
+        "android.permission.CAMERA",
+        "android.permission.ACCESS_FINE_LOCATION",
+        "android.permission.ACCESS_COARSE_LOCATION",
+        "android.permission.ACCESS_BACKGROUND_LOCATION",
+        "android.permission.READ_CONTACTS",
+        "android.permission.WRITE_CONTACTS",
+        "android.permission.READ_CALENDAR",
+        "android.permission.WRITE_CALENDAR",
+        "android.permission.READ_MEDIA_IMAGES",
+        "android.permission.READ_MEDIA_VIDEO",
+        "android.permission.READ_MEDIA_AUDIO",
+        "android.permission.READ_EXTERNAL_STORAGE",
+        "android.permission.WRITE_EXTERNAL_STORAGE",
+        "android.permission.SYSTEM_ALERT_WINDOW",
+        "android.permission.ACTIVITY_RECOGNITION",
+        "android.permission.BODY_SENSORS"
+      ],
       "intentFilters": [
         {
           "action": "VIEW",
@@ -41,10 +83,7 @@
               "pathPrefix": "/"
             }
           ],
-          "category": [
-            "BROWSABLE",
-            "DEFAULT"
-          ]
+          "category": ["BROWSABLE", "DEFAULT"]
         }
       ]
     },
@@ -52,6 +91,7 @@
       "favicon": "./assets/favicon.png"
     },
     "extra": {
+      "privacyPolicyUrl": "https://mandalario.vercel.app/privacy",
       "eas": {
         "projectId": "e0d3b661-b855-4ca1-98d5-e65af5907953"
       }
