@@ -52,6 +52,7 @@
         "backgroundColor": "#ffffff"
       },
       "package": "app.mandalario",
+      "googleServicesFile": "./google-services.json",
       "allowBackup": false,
       "blockedPermissions": [
         "android.permission.RECORD_AUDIO",

@@ -1,0 +1,29 @@
+{
+  "project_info": {
+    "project_number": "122683018658",
+    "project_id": "mandala-rio-surf-school",
+    "storage_bucket": "mandala-rio-surf-school.firebasestorage.app"
+  },
+  "client": [
+    {
+      "client_info": {
+        "mobilesdk_app_id": "1:122683018658:android:b30532242a7b5a756636fb",
+        "android_client_info": {
+          "package_name": "app.mandalario"
+        }
+      },
+      "oauth_client": [],
+      "api_key": [
+        {
+          "current_key": "AIzaSyD9xPk1uN4v_8M8XOZHFhlsZ-53Ua3iIj0"
+        }
+      ],
+      "services": {
+        "appinvite_service": {
+          "other_platform_oauth_client": []
+        }
+      }
+    }
+  ],
+  "configuration_version": "1"
+}
