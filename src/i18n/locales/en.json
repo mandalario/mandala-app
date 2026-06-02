@@ -22,6 +22,12 @@
     "name": "Mandala Rio",
     "tagline": "Surf School"
   },
+  "appDownload": {
+    "title": "Download the Mandalario app",
+    "subtitle": "Available for Android — install directly via APK.",
+    "subtitleAndroid": "Install the native app for classes, schedule and alerts.",
+    "button": "Download APK"
+  },
   "board": {
     "type": "Board type",
     "size": "Board size",

@@ -11,6 +11,25 @@ import { Send, Search, Users, Smartphone, BellRing } from "lucide-react";
 
 type Student = { id: string; full_name: string | null; email: string; avatar_url: string | null };
 
+function toastPushResult(data: {
+  ok?: boolean;
+  sent?: number;
+  attempted?: number;
+  error?: string;
+} | null) {
+  if (!data?.ok) {
+    toast.error(data?.error ?? "Falha ao enviar push");
+    return false;
+  }
+  const attempted = data.attempted ?? data.sent ?? 0;
+  if (attempted > (data.sent ?? 0)) {
+    toast.warning(`Push entregue em ${data.sent} de ${attempted} dispositivo(s)`);
+  } else {
+    toast.success(`Push enviado para ${data.sent} dispositivo(s)`);
+  }
+  return true;
+}
+
 export default function AdminNotifications() {
   const { user } = useAuth();
   const [students, setStudents] = useState<Student[]>([]);
@@ -101,14 +120,10 @@ export default function AdminNotifications() {
         }
         throw new Error(errorMessage);
       }
-      if (!data?.ok) {
-        toast.error(data?.error ?? "Falha ao enviar push");
-      } else {
-        toast.success(`Push enviado para ${data.sent} dispositivo(s)`);
-        setPushTitle("");
-        setPushBody("");
-        setPushUrl("");
-      }
+      if (!toastPushResult(data)) return;
+      setPushTitle("");
+      setPushBody("");
+      setPushUrl("");
     } catch (e) {
       toast.error((e as Error).message);
     } finally {
@@ -140,8 +155,7 @@ export default function AdminNotifications() {
         }
         throw new Error(errorMessage);
       }
-      if (data?.ok) toast.success("Push enviado! Verifique seu celular.");
-      else toast.error(data?.error ?? "Falha ao enviar push");
+      if (toastPushResult(data)) toast.message("Verifique seu celular.");
     } catch (e) {
       toast.error((e as Error).message);
     } finally {

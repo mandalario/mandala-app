@@ -14,6 +14,7 @@ import { Loader2 } from "lucide-react";
 import logoMandala from "@/assets/logo-mandala.png";
 import { useTranslation } from "@/i18n/LanguageContext";
 import { LanguageSwitcher } from "@/components/LanguageSwitcher";
+import { DownloadAppBanner } from "@/components/DownloadAppBanner";
 import { createRealEmailField, stripInvalidEmailInput } from "@/lib/email";
 
 const AUTH_FIELD_KEYS: Record<string, string> = {
@@ -150,6 +151,8 @@ export default function Auth() {
       </div>
 
       <div className="w-full max-w-md">
+        <DownloadAppBanner />
+
         {/* Brand */}
         <div className="text-center mb-8">
           <div className="inline-flex items-center justify-center w-20 h-20 rounded-3xl glow-primary mb-4 animate-float p-2 shadow-elevated bg-white">

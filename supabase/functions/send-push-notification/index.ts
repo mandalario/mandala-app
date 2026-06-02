@@ -115,7 +115,43 @@ Deno.serve(async (req) => {
     });
 
     const result = await res.json();
-    return json({ ok: res.ok, sent: tokens.length, result }, res.ok ? 200 : 400);
+    const tickets = Array.isArray(result?.data) ? result.data : [];
+    const delivered = tickets.filter((t: { status?: string }) => t.status === "ok").length;
+    const ticketErrors = tickets
+      .filter((t: { status?: string }) => t.status === "error")
+      .map((t: { message?: string; details?: { error?: string } }) => ({
+        message: t.message ?? "Erro desconhecido",
+        code: t.details?.error ?? null,
+      }));
+
+    if (delivered === 0 && ticketErrors.length > 0) {
+      const fcmHint =
+        ticketErrors.some((e) =>
+          e.code === "InvalidCredentials" ||
+          e.code === "MismatchSenderId" ||
+          /FCM|credentials/i.test(e.message)
+        )
+          ? " Configure FCM V1 em expo.dev → Credentials → Android e gere um novo build."
+          : "";
+      return json({
+        ok: false,
+        sent: 0,
+        attempted: tokens.length,
+        delivered: 0,
+        errors: ticketErrors,
+        error: `${ticketErrors[0].message}${fcmHint}`,
+        result,
+      }, 200);
+    }
+
+    return json({
+      ok: delivered > 0,
+      sent: delivered,
+      attempted: tokens.length,
+      delivered,
+      errors: ticketErrors,
+      result,
+    }, 200);
   } catch (e) {
     return json({ error: (e as Error).message }, 500);
   }
