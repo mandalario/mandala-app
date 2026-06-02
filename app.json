@@ -41,7 +41,7 @@
     "ios": {
       "supportsTablet": true,
       "bundleIdentifier": "com.mandalario.app",
-      "associatedDomains": ["applinks:mandalario.vercel.app"],
+      "associatedDomains": ["applinks:mandalario.app"],
       "infoPlist": {
         "NSUserNotificationsUsageDescription": "Receba avisos sobre suas aulas, agendamentos e mensagens da escola Mandalario."
       }
@@ -79,7 +79,7 @@
           "data": [
             {
               "scheme": "https",
-              "host": "mandalario.vercel.app",
+              "host": "mandalario.app",
               "pathPrefix": "/"
             }
           ],
@@ -91,7 +91,7 @@
       "favicon": "./assets/favicon.png"
     },
     "extra": {
-      "privacyPolicyUrl": "https://mandalario.vercel.app/privacy",
+      "privacyPolicyUrl": "https://mandalario.app/privacy",
       "eas": {
         "projectId": "e0d3b661-b855-4ca1-98d5-e65af5907953"
       }
