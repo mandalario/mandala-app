@@ -4,10 +4,10 @@ project_id = "wlajbpbcmmwuvmqokbsd"
 verify_jwt = false
 
 [functions.register-push-token]
-verify_jwt = false
+verify_jwt = true
 
 [functions.send-push-notification]
-verify_jwt = false
+verify_jwt = true
 
 [functions.admin-delete-student]
 verify_jwt = true
