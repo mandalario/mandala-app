@@ -53,6 +53,17 @@ const condClr: Record<CondKey, string> = {
   bad: "bg-destructive/15 text-destructive border-destructive/30",
   flat: "bg-muted/40 text-muted-foreground border-muted",
 };
+const condLabel: Record<CondKey, string> = {
+  good: "Mar bom",
+  medium: "Mar médio",
+  bad: "Mar ruim",
+  flat: "Sem ondas",
+};
+const LEVEL_LABEL: Record<Level, string> = {
+  iniciante: "Iniciante",
+  intermediario: "Intermediário",
+  avancado: "Avançado",
+};
 const WEEKDAYS = ["Dom", "Seg", "Ter", "Qua", "Qui", "Sex", "Sáb"];
 const WEEKDAYS_LONG = ["Domingo", "Segunda", "Terça", "Quarta", "Quinta", "Sexta", "Sábado"];
 
