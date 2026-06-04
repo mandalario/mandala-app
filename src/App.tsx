@@ -5,7 +5,11 @@ import { Toaster } from "@/components/ui/toaster";
 import { TooltipProvider } from "@/components/ui/tooltip";
 import { AuthProvider, useAuth } from "@/hooks/useAuth";
 import { LanguageProvider } from "@/i18n/LanguageContext";
-import { userHasOAuthLogin, userHasPasswordLogin } from "@/lib/auth";
+import {
+  userHasOAuthLogin,
+  userHasPasswordLogin,
+  userSkippedSetPassword,
+} from "@/lib/auth";
 import { BottomNav } from "@/components/BottomNav";
 import { PushNotificationManager } from "@/components/PushNotificationManager";
 import { OceanBackground } from "@/components/OceanBackground";
@@ -71,7 +75,10 @@ function useAccessRedirect(): { loading: boolean; redirectTo: string | null } {
 
   if (!profile) return { loading: true, redirectTo: null };
 
-  const mustSetPasswordFirst = userHasOAuthLogin(user) && !userHasPasswordLogin(user);
+  const mustSetPasswordFirst =
+    userHasOAuthLogin(user) &&
+    !userHasPasswordLogin(user) &&
+    !userSkippedSetPassword(user);
   if (mustSetPasswordFirst) {
     if (path !== "/set-password" && !isPublicPath) {
       return { loading: false, redirectTo: "/set-password" };

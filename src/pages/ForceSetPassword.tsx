@@ -6,7 +6,12 @@ import { SetPasswordForm } from "@/components/SetPasswordForm";
 import { Button } from "@/components/ui/button";
 import { useTranslation } from "@/i18n/LanguageContext";
 import { useAuth } from "@/hooks/useAuth";
-import { userHasOAuthLogin, userHasPasswordLogin } from "@/lib/auth";
+import {
+  dismissSetPasswordPrompt,
+  userHasOAuthLogin,
+  userHasPasswordLogin,
+  userSkippedSetPassword,
+} from "@/lib/auth";
 
 export default function ForceSetPassword() {
   const navigate = useNavigate();
@@ -15,10 +20,19 @@ export default function ForceSetPassword() {
 
   useEffect(() => {
     if (loading || !user) return;
-    if (!userHasOAuthLogin(user) || userHasPasswordLogin(user)) {
+    if (
+      !userHasOAuthLogin(user) ||
+      userHasPasswordLogin(user) ||
+      userSkippedSetPassword(user)
+    ) {
       navigate("/", { replace: true });
     }
   }, [loading, user, navigate]);
+
+  const skipForNow = () => {
+    if (user) dismissSetPasswordPrompt(user.id);
+    navigate("/", { replace: true });
+  };
 
   if (loading || !user) {
     return (
@@ -44,6 +58,9 @@ export default function ForceSetPassword() {
           submitLabel={t("setPassword.submit")}
           onSuccess={() => navigate("/", { replace: true })}
         />
+        <Button type="button" variant="ghost" className="w-full" onClick={skipForNow}>
+          {t("setPassword.later")}
+        </Button>
         <Button type="button" variant="ghost" className="w-full" onClick={signOut}>
           {t("common.signOut")}
         </Button>

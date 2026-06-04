@@ -7,6 +7,10 @@ import { Label } from "@/components/ui/label";
 import { toast } from "sonner";
 import { Loader2 } from "lucide-react";
 import { useTranslation } from "@/i18n/LanguageContext";
+import {
+  markPasswordLoginConfigured,
+  PASSWORD_LOGIN_METADATA_KEY,
+} from "@/lib/auth";
 
 const passwordSchema = z
   .object({
@@ -44,23 +48,45 @@ export function SetPasswordForm({ onSuccess, submitLabel }: SetPasswordFormProps
 
     setLoading(true);
     try {
-      const { error } = await supabase.auth.updateUser({ password: parsed.data.password });
+      const finishSuccess = async (userId: string) => {
+        markPasswordLoginConfigured(userId);
+        await supabase.auth.refreshSession();
+        toast.success(t("setPassword.success"));
+        setPassword("");
+        setConfirm("");
+        onSuccess?.();
+      };
+
+      const { data, error } = await supabase.auth.updateUser({
+        password: parsed.data.password,
+        data: { [PASSWORD_LOGIN_METADATA_KEY]: true },
+      });
       if (error) {
         const msg = error.message.toLowerCase();
         if (msg.includes("weak") || msg.includes("pwned") || msg.includes("compromised") || msg.includes("breach")) {
           toast.error(t("login.errors.weakPassword"));
         } else if (msg.includes("same") && msg.includes("password")) {
-          toast.error(t("setPassword.errors.sameAsOld"));
+          const userId = (await supabase.auth.getUser()).data.user?.id;
+          if (!userId) {
+            toast.error(t("setPassword.errors.sameAsOld"));
+            return;
+          }
+          const { error: metaError } = await supabase.auth.updateUser({
+            data: { [PASSWORD_LOGIN_METADATA_KEY]: true },
+          });
+          if (metaError) {
+            toast.error(t("setPassword.errors.generic") + metaError.message);
+            return;
+          }
+          await finishSuccess(userId);
         } else {
           toast.error(t("setPassword.errors.generic") + error.message);
         }
         return;
       }
-      await supabase.auth.refreshSession();
-      toast.success(t("setPassword.success"));
-      setPassword("");
-      setConfirm("");
-      onSuccess?.();
+      const userId = data.user?.id ?? (await supabase.auth.getUser()).data.user?.id;
+      if (!userId) return;
+      await finishSuccess(userId);
     } finally {
       setLoading(false);
     }

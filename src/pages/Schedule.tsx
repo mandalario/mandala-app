@@ -23,6 +23,7 @@ import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover
 import { format, startOfDay } from "date-fns";
 import { dateFnsLocaleFor } from "@/i18n/dateLocale";
 import { isCancellationRefundable } from "@/lib/bookingCancellation";
+import { isSlotStartInPast } from "@/lib/slotSchedule";
 
 type Slot = { id: string; date: string; start_time: string; end_time: string; capacity: number; location: string | null; notes: string | null; is_open: boolean; class_type: "avulsa_grupo" | "avulsa_particular" | "aluguel" };
 type Cond = { date: string; condition: "good" | "medium" | "bad" | "flat"; notes: string | null };
@@ -153,8 +154,8 @@ export default function Schedule() {
   }), [conds]);
 
   const book = async (slot: Slot) => {
-    if (slot.date < today) {
-      toast.error("Não é possível agendar aulas em datas passadas.");
+    if (isSlotStartInPast(slot.date, slot.start_time)) {
+      toast.error(t("schedule.errors.pastSlot"));
       return;
     }
 
@@ -396,7 +397,7 @@ export default function Schedule() {
                   {ds.map((s) => {
                     const taken = counts[s.id] ?? 0;
                     const isMine = myBooked.has(s.id);
-                    const isPast = s.date < today;
+                    const isPast = isSlotStartInPast(s.date, s.start_time);
                     const refundAvailable = isCancellationRefundable(s.date);
                     const full = taken >= s.capacity;
                     const isConfirmed = s.notes?.includes("[CONFIRMADA]") ?? false;

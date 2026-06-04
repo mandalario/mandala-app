@@ -387,6 +387,9 @@
     "bookConfirmNoRefundSameDay": "Cancellation on the class day or later: no credit refund.",
     "bookConfirmChatHint": "For exceptional circumstances, contact us via",
     "bookConfirmAction": "Confirm booking",
+    "errors": {
+      "pastSlot": "This time slot has already passed. Choose a future time."
+    },
     "confirmed": "✓ Confirmed",
     "noCreditsForType": "You have no {{type}} credits. Top up in Buy Credits.",
     "creditsShort": {

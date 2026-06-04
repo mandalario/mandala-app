@@ -387,6 +387,9 @@
     "bookConfirmNoRefundSameDay": "Cancelación el día de la clase o después: no hay devolución del crédito.",
     "bookConfirmChatHint": "En casos de fuerza mayor, contáctanos por el",
     "bookConfirmAction": "Confirmar reserva",
+    "errors": {
+      "pastSlot": "Este horario ya pasó. Elige un horario futuro."
+    },
     "confirmed": "✓ Confirmada",
     "noCreditsForType": "No tienes créditos de {{type}}. Recarga en Comprar Créditos.",
     "creditsShort": {

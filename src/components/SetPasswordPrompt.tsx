@@ -12,9 +12,10 @@ import { Button } from "@/components/ui/button";
 import { SetPasswordForm } from "@/components/SetPasswordForm";
 import { useTranslation } from "@/i18n/LanguageContext";
 import {
-  setPasswordDismissKey,
+  dismissSetPasswordPrompt,
   userHasOAuthLogin,
   userHasPasswordLogin,
+  userSkippedSetPassword,
 } from "@/lib/auth";
 import { supabase } from "@/integrations/supabase/client";
 
@@ -42,7 +43,7 @@ export function SetPasswordPrompt() {
       return;
     }
 
-    if (localStorage.getItem(setPasswordDismissKey(user.id)) === "1") {
+    if (userSkippedSetPassword(user)) {
       setOpen(false);
       return;
     }
@@ -51,7 +52,7 @@ export function SetPasswordPrompt() {
   }, [user, loading, isAdmin, location.pathname, passwordSet]);
 
   const dismiss = () => {
-    if (user) localStorage.setItem(setPasswordDismissKey(user.id), "1");
+    if (user) dismissSetPasswordPrompt(user.id);
     setOpen(false);
   };
 

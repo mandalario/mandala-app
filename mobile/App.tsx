@@ -4,11 +4,11 @@ import {
   BackHandler,
   Linking,
   Platform,
-  SafeAreaView,
   StyleSheet,
   Text,
   View,
 } from "react-native";
+import { SafeAreaView } from "react-native-safe-area-context";
 import * as Device from "expo-device";
 import Constants from "expo-constants";
 import * as Notifications from "expo-notifications";
@@ -66,8 +66,15 @@ export default function App() {
   const webViewRef = useRef<WebView>(null);
   const [canGoBack, setCanGoBack] = useState(false);
   const [isLoading, setIsLoading] = useState(true);
+  const loadFinishedRef = useRef(false);
   const pushTokenRef = useRef<string | null>(null);
   const pushSetupStartedRef = useRef(false);
+
+  const finishInitialLoad = useCallback(() => {
+    if (loadFinishedRef.current) return;
+    loadFinishedRef.current = true;
+    setIsLoading(false);
+  }, []);
 
   const appUrl = useMemo(() => getSafeBaseUrl(process.env.EXPO_PUBLIC_WEB_URL), []);
   const allowedOrigins = useMemo(() => getAllowedOrigins(appUrl), [appUrl]);
@@ -167,10 +174,16 @@ export default function App() {
     return () => subscription.remove();
   }, [canGoBack]);
 
+  useEffect(() => {
+    const timeout = setTimeout(finishInitialLoad, 12_000);
+    return () => clearTimeout(timeout);
+  }, [finishInitialLoad]);
+
   return (
-    <SafeAreaView style={styles.container}>
+    <SafeAreaView style={styles.container} edges={["top", "bottom"]}>
       <WebView
         ref={webViewRef}
+        style={styles.webView}
         source={{ uri: appUrl }}
         originWhitelist={allowedOrigins}
         onNavigationStateChange={handleNavigationStateChange}
@@ -186,10 +199,11 @@ export default function App() {
         allowsBackForwardNavigationGestures={false}
         mediaPlaybackRequiresUserAction
         allowsLinkPreview={false}
-        startInLoadingState
-        onLoadStart={() => setIsLoading(true)}
+        onLoadProgress={({ nativeEvent }) => {
+          if (nativeEvent.progress >= 0.9) finishInitialLoad();
+        }}
         onLoadEnd={() => {
-          setIsLoading(false);
+          finishInitialLoad();
           postPushTokenToWeb();
         }}
         onMessage={(event) => {
@@ -202,11 +216,6 @@ export default function App() {
             // ignore malformed payload
           }
         }}
-        renderLoading={() => (
-          <View style={styles.loader}>
-            <ActivityIndicator size="large" />
-          </View>
-        )}
         onShouldStartLoadWithRequest={(request) => {
           if (!request.url) return false;
           if (isAllowedUrl(request.url, appUrl, allowedOrigins)) return true;
@@ -230,13 +239,13 @@ const styles = StyleSheet.create({
     flex: 1,
     backgroundColor: "#ffffff",
   },
-  loader: {
+  webView: {
     flex: 1,
-    alignItems: "center",
-    justifyContent: "center",
   },
   loadingOverlay: {
     ...StyleSheet.absoluteFillObject,
+    zIndex: 10,
+    elevation: 10,
     alignItems: "center",
     justifyContent: "center",
     backgroundColor: "rgba(255, 255, 255, 0.85)",
