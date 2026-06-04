@@ -36,12 +36,15 @@
             "usesCleartextTraffic": false
           }
         }
-      ]
+      ],
+      "expo-web-browser"
     ],
     "ios": {
       "supportsTablet": true,
       "bundleIdentifier": "com.mandalario.app",
-      "associatedDomains": ["applinks:mandalario.app"],
+      "associatedDomains": [
+        "applinks:mandalario.app"
+      ],
       "infoPlist": {
         "NSUserNotificationsUsageDescription": "Receba avisos sobre suas aulas, agendamentos e mensagens da escola Mandalario."
       }
@@ -84,7 +87,10 @@
               "pathPrefix": "/"
             }
           ],
-          "category": ["BROWSABLE", "DEFAULT"]
+          "category": [
+            "BROWSABLE",
+            "DEFAULT"
+          ]
         }
       ]
     },

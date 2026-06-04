@@ -1,9 +1,17 @@
 import { useEffect, useState } from "react";
 import { Link } from "react-router-dom";
+import { format, subDays } from "date-fns";
 import { supabase } from "@/integrations/supabase/client";
 import { Users, CheckCircle2, Hourglass, TrendingUp, DollarSign, CalendarDays } from "lucide-react";
 
-type TodayBooking = { id: string; user_id: string; class_slots: { start_time: string; location: string | null } | null; profiles: { full_name: string | null } | null };
+const ymd = (d: Date) => format(d, "yyyy-MM-dd");
+
+type TodayBooking = {
+  id: string;
+  user_id: string;
+  class_slots: { start_time: string; location: string | null; date: string } | null;
+  profiles: { full_name: string | null } | null;
+};
 
 export default function AdminDashboard() {
   const [stats, setStats] = useState({ total: 0, approved: 0, pending: 0, payPending: 0, todayClasses: 0, monthRevenue: 0 });
@@ -12,44 +20,71 @@ export default function AdminDashboard() {
 
   useEffect(() => {
     (async () => {
-      const todayStr = new Date().toISOString().slice(0, 10);
+      const todayStr = ymd(new Date());
+      const weekStartStr = ymd(subDays(new Date(), 6));
       const monthStart = new Date(); monthStart.setDate(1);
-      const monthStartStr = monthStart.toISOString().slice(0, 10);
+      const monthStartStr = ymd(monthStart);
 
-      const [{ count: total }, { count: approved }, { count: pending }, { count: payPending }, todayBk, monthPay, last7] = await Promise.all([
+      const [
+        { count: total },
+        { count: approved },
+        { count: pending },
+        { count: payPending },
+        { data: todaySlots },
+        monthPay,
+        { data: weekBookings },
+      ] = await Promise.all([
         supabase.from("profiles").select("*", { count: "exact", head: true }),
         supabase.from("profiles").select("*", { count: "exact", head: true }).eq("approval_status", "approved"),
         supabase.from("profiles").select("*", { count: "exact", head: true }).eq("approval_status", "pending").eq("profile_completed", true),
         supabase.from("payments").select("*", { count: "exact", head: true }).eq("status", "pending"),
-        supabase.from("bookings").select("id, user_id, class_slots!inner(start_time, location, date)").eq("status", "confirmed").eq("class_slots.date", todayStr),
+        supabase.from("class_slots").select("id, start_time, location, date").eq("date", todayStr),
         supabase.from("payments").select("amount_cents").eq("status", "approved").gte("created_at", monthStartStr),
-        supabase.from("bookings").select("created_at").gte("created_at", new Date(Date.now() - 7 * 86400000).toISOString()),
+        supabase.from("bookings").select("slot_id, class_slots!inner(date)").eq("status", "confirmed").gte("class_slots.date", weekStartStr).lte("class_slots.date", todayStr),
       ]);
 
-      // Buscar nomes dos alunos das aulas de hoje
-      const todayBookings = (todayBk.data ?? []) as any[];
+      const slotById = Object.fromEntries((todaySlots ?? []).map((s) => [s.id, s]));
+      const todaySlotIds = Object.keys(slotById);
+
+      let todayBookings: { id: string; user_id: string; slot_id: string }[] = [];
+      if (todaySlotIds.length > 0) {
+        const { data: bk } = await supabase
+          .from("bookings")
+          .select("id, user_id, slot_id")
+          .eq("status", "confirmed")
+          .in("slot_id", todaySlotIds);
+        todayBookings = bk ?? [];
+      }
+
       const userIds = [...new Set(todayBookings.map((b) => b.user_id))];
-      let nameMap: Record<string, string | null> = {};
+      const nameMap: Record<string, string | null> = {};
       if (userIds.length > 0) {
         const { data: profs } = await supabase.from("profiles").select("id, full_name").in("id", userIds);
-        (profs ?? []).forEach((p: any) => { nameMap[p.id] = p.full_name; });
+        (profs ?? []).forEach((p) => { nameMap[p.id] = p.full_name; });
       }
-      const todayWithNames: TodayBooking[] = todayBookings.map((b) => ({
-        id: b.id, user_id: b.user_id, class_slots: b.class_slots,
-        profiles: { full_name: nameMap[b.user_id] ?? null },
-      }));
+      const todayWithNames: TodayBooking[] = todayBookings
+        .map((b) => {
+          const slot = slotById[b.slot_id];
+          if (!slot) return null;
+          return {
+            id: b.id,
+            user_id: b.user_id,
+            class_slots: { start_time: slot.start_time, location: slot.location, date: slot.date },
+            profiles: { full_name: nameMap[b.user_id] ?? null },
+          };
+        })
+        .filter((b): b is TodayBooking => b !== null)
+        .sort((a, b) => (a.class_slots?.start_time ?? "").localeCompare(b.class_slots?.start_time ?? ""));
 
       const monthRevenue = (monthPay.data ?? []).reduce((s: number, p: any) => s + (p.amount_cents ?? 0), 0);
 
-      // série últimos 7 dias
       const days: Record<string, number> = {};
       for (let i = 6; i >= 0; i--) {
-        const d = new Date(Date.now() - i * 86400000).toISOString().slice(0, 10);
-        days[d] = 0;
+        days[ymd(subDays(new Date(), i))] = 0;
       }
-      (last7.data ?? []).forEach((r: any) => {
-        const d = new Date(r.created_at).toISOString().slice(0, 10);
-        if (d in days) days[d]++;
+      (weekBookings ?? []).forEach((r) => {
+        const d = (r as { class_slots: { date: string } | null }).class_slots?.date;
+        if (d && d in days) days[d]++;
       });
       setSeries(Object.entries(days).map(([date, count]) => ({ date, count })));
       setToday(todayWithNames);
@@ -84,14 +119,23 @@ export default function AdminDashboard() {
             <h2 className="font-bold">Agendamentos · 7 dias</h2>
             <span className="text-xs text-muted-foreground">{series.reduce((s, x) => s + x.count, 0)} no total</span>
           </div>
-          <div className="flex items-end gap-3 h-40">
-            {series.map((s) => (
-              <div key={s.date} className="flex-1 flex flex-col items-center gap-2">
-                <div className="w-full rounded-t-lg bg-gradient-to-t from-primary/60 to-accent transition-all"
-                  style={{ height: `${(s.count / max) * 100}%`, minHeight: 4 }} />
-                <div className="text-[10px] text-muted-foreground">{new Date(s.date + "T12:00:00").toLocaleDateString("pt-BR", { weekday: "short" }).slice(0, 3)}</div>
-              </div>
-            ))}
+          <div className="flex gap-3 h-40">
+            {series.map((s) => {
+              const barPct = max > 0 ? (s.count / max) * 100 : 0;
+              return (
+                <div key={s.date} className="flex-1 h-full flex flex-col items-center gap-2 min-w-0">
+                  <div className="flex-1 w-full flex flex-col justify-end min-h-0">
+                    <div
+                      className="w-full rounded-t-lg bg-gradient-to-t from-primary/60 to-accent transition-all duration-300"
+                      style={{ height: s.count > 0 ? `${barPct}%` : 0, minHeight: s.count > 0 ? 4 : 0 }}
+                    />
+                  </div>
+                  <div className="text-[10px] text-muted-foreground shrink-0">
+                    {new Date(s.date + "T12:00:00").toLocaleDateString("pt-BR", { weekday: "short" }).slice(0, 3)}
+                  </div>
+                </div>
+              );
+            })}
           </div>
         </div>
 

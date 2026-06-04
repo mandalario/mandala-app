@@ -10,12 +10,14 @@ import {
   userHasPasswordLogin,
   userSkippedSetPassword,
 } from "@/lib/auth";
+import { isReactNativeWebView } from "@/lib/nativeApp";
 import { BottomNav } from "@/components/BottomNav";
 import { PushNotificationManager } from "@/components/PushNotificationManager";
 import { OceanBackground } from "@/components/OceanBackground";
 import { Loader2 } from "lucide-react";
 import Index from "./pages/Index.tsx";
 import Auth from "./pages/Auth.tsx";
+import AuthCallback from "./pages/AuthCallback.tsx";
 import Onboarding from "./pages/Onboarding.tsx";
 import PendingApproval from "./pages/PendingApproval.tsx";
 import ForceSetPassword from "./pages/ForceSetPassword.tsx";
@@ -46,7 +48,7 @@ import NotFound from "./pages/NotFound.tsx";
 
 const queryClient = new QueryClient();
 
-const PUBLIC_PATHS = ["/auth", "/terms", "/privacy"];
+const PUBLIC_PATHS = ["/auth", "/auth/callback", "/terms", "/privacy"];
 const AUTH_ONLY_PATHS = ["/auth", "/onboarding", "/pending", "/set-password"];
 
 const PageLoader = () => (
@@ -76,6 +78,7 @@ function useAccessRedirect(): { loading: boolean; redirectTo: string | null } {
   if (!profile) return { loading: true, redirectTo: null };
 
   const mustSetPasswordFirst =
+    !isReactNativeWebView() &&
     userHasOAuthLogin(user) &&
     !userHasPasswordLogin(user) &&
     !userSkippedSetPassword(user);
@@ -135,6 +138,7 @@ function AppRoutes() {
       <Routes>
         <Route path="/" element={<Index />} />
         <Route path="/auth" element={<Auth />} />
+        <Route path="/auth/callback" element={<AuthCallback />} />
         <Route path="/set-password" element={<ForceSetPassword />} />
         <Route path="/onboarding" element={<Onboarding />} />
         <Route path="/pending" element={<PendingApproval />} />

@@ -12,7 +12,10 @@ import { SafeAreaView } from "react-native-safe-area-context";
 import * as Device from "expo-device";
 import Constants from "expo-constants";
 import * as Notifications from "expo-notifications";
+import * as WebBrowser from "expo-web-browser";
 import { WebView, WebViewNavigation } from "react-native-webview";
+
+WebBrowser.maybeCompleteAuthSession();
 
 const DEFAULT_WEB_URL = "https://mandalario.app";
 export const PUSH_CHANNEL_ID = "mandalario-alerts";
@@ -58,6 +61,27 @@ function isAllowedUrl(rawUrl: string, appUrl: string, allowedOrigins: string[]):
   }
 }
 
+/** Google / Supabase OAuth must stay in-app (or use the auth session browser). */
+function isOAuthProviderUrl(rawUrl: string): boolean {
+  try {
+    const { hostname } = new URL(rawUrl);
+    if (hostname === "accounts.google.com") return true;
+    if (hostname.endsWith(".supabase.co")) return true;
+    return false;
+  } catch {
+    return false;
+  }
+}
+
+function isAppAuthCallback(rawUrl: string, appUrl: string): boolean {
+  try {
+    const absolute = new URL(rawUrl, appUrl);
+    return absolute.pathname === "/auth/callback" || absolute.pathname.startsWith("/auth/callback");
+  } catch {
+    return false;
+  }
+}
+
 function isExpoGoRuntime(): boolean {
   return Constants.appOwnership === "expo";
 }
@@ -93,12 +117,26 @@ export default function App() {
   const openInAppUrl = useCallback(
     (rawUrl?: string) => {
       if (!rawUrl || !webViewRef.current) return;
-      if (!isAllowedUrl(rawUrl, appUrl, allowedOrigins)) return;
+      if (!isAllowedUrl(rawUrl, appUrl, allowedOrigins) && !isAppAuthCallback(rawUrl, appUrl)) return;
       const absolute = new URL(rawUrl, appUrl).toString();
-      const js = `window.location.href = ${JSON.stringify(absolute)}; true;`;
+      const js = `window.location.replace(${JSON.stringify(absolute)}); true;`;
       webViewRef.current.injectJavaScript(js);
     },
     [appUrl, allowedOrigins],
+  );
+
+  const startOAuthInAppBrowser = useCallback(
+    async (authUrl: string, redirectTo: string) => {
+      try {
+        const result = await WebBrowser.openAuthSessionAsync(authUrl, redirectTo);
+        if (result.type === "success" && result.url) {
+          openInAppUrl(result.url);
+        }
+      } catch {
+        // user dismissed browser
+      }
+    },
+    [openInAppUrl],
   );
 
   const registerPushToken = useCallback(async () => {
@@ -179,6 +217,23 @@ export default function App() {
     return () => clearTimeout(timeout);
   }, [finishInitialLoad]);
 
+  useEffect(() => {
+    const handleDeepLink = (event: { url: string }) => {
+      if (isAllowedUrl(event.url, appUrl, allowedOrigins) || isAppAuthCallback(event.url, appUrl)) {
+        openInAppUrl(event.url);
+      }
+    };
+
+    Linking.getInitialURL()
+      .then((url) => {
+        if (url) handleDeepLink({ url });
+      })
+      .catch(() => undefined);
+
+    const subscription = Linking.addEventListener("url", handleDeepLink);
+    return () => subscription.remove();
+  }, [appUrl, allowedOrigins, openInAppUrl]);
+
   return (
     <SafeAreaView style={styles.container} edges={["top", "bottom"]}>
       <WebView
@@ -211,6 +266,12 @@ export default function App() {
             const payload = JSON.parse(event.nativeEvent.data);
             if (payload?.type === "GET_PUSH_TOKEN") {
               registerPushToken();
+            } else if (payload?.type === "OAUTH_URL" && typeof payload.url === "string") {
+              const redirectTo =
+                typeof payload.redirectTo === "string"
+                  ? payload.redirectTo
+                  : `${appUrl}/auth/callback`;
+              void startOAuthInAppBrowser(payload.url, redirectTo);
             }
           } catch {
             // ignore malformed payload
@@ -219,6 +280,8 @@ export default function App() {
         onShouldStartLoadWithRequest={(request) => {
           if (!request.url) return false;
           if (isAllowedUrl(request.url, appUrl, allowedOrigins)) return true;
+          if (isAppAuthCallback(request.url, appUrl)) return true;
+          if (isOAuthProviderUrl(request.url)) return true;
           Linking.openURL(request.url).catch(() => undefined);
           return false;
         }}

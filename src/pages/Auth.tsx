@@ -15,6 +15,7 @@ import logoMandala from "@/assets/logo-mandala.png";
 import { useTranslation } from "@/i18n/LanguageContext";
 import { LanguageSwitcher } from "@/components/LanguageSwitcher";
 import { createRealEmailField, stripInvalidEmailInput } from "@/lib/email";
+import { getOAuthRedirectUrl, isReactNativeWebView } from "@/lib/nativeApp";
 
 const AUTH_FIELD_KEYS: Record<string, string> = {
   full_name: "login.fullName",
@@ -267,15 +268,26 @@ export default function Auth() {
             onClick={async () => {
               setLoading(true);
               try {
-                const { error } = await supabase.auth.signInWithOAuth({
+                const redirectTo = getOAuthRedirectUrl();
+                const inNativeApp = isReactNativeWebView();
+                const { data, error } = await supabase.auth.signInWithOAuth({
                   provider: "google",
                   options: {
-                    redirectTo: `${window.location.origin}/`,
+                    redirectTo,
+                    skipBrowserRedirect: inNativeApp,
                     queryParams: { prompt: "select_account" },
                   },
                 });
                 if (error) {
                   toast.error(t("login.googleError") + error.message);
+                  return;
+                }
+                if (inNativeApp && data?.url) {
+                  const bridge = (window as Window & { ReactNativeWebView?: { postMessage: (msg: string) => void } })
+                    .ReactNativeWebView;
+                  bridge?.postMessage(
+                    JSON.stringify({ type: "OAUTH_URL", url: data.url, redirectTo }),
+                  );
                 }
               } catch (e: unknown) {
                 toast.error(t("login.googleError") + getErrorMessage(e));
