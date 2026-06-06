@@ -23,7 +23,7 @@ import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover
 import { format, startOfDay } from "date-fns";
 import { dateFnsLocaleFor } from "@/i18n/dateLocale";
 import { isCancellationRefundable } from "@/lib/bookingCancellation";
-import { isSlotStartInPast } from "@/lib/slotSchedule";
+import { getDefaultScheduleViewDate, getScheduleNowParts, isSlotStartInPast } from "@/lib/slotSchedule";
 
 type Slot = { id: string; date: string; start_time: string; end_time: string; capacity: number; location: string | null; notes: string | null; is_open: boolean; class_type: "avulsa_grupo" | "avulsa_particular" | "aluguel" };
 type Cond = { date: string; condition: "good" | "medium" | "bad" | "flat"; notes: string | null };
@@ -131,6 +131,15 @@ export default function Schedule() {
     }
     loadSlots();
   }, [user, filterDate, classTypeFilter]);
+
+  useEffect(() => {
+    if (loading || !classTypeFilter || filterDate) return;
+    const defaultDate = getDefaultScheduleViewDate(slots);
+    const { date: today } = getScheduleNowParts();
+    if (defaultDate !== today) {
+      setFilterDate(defaultDate);
+    }
+  }, [loading, classTypeFilter, filterDate, slots]);
 
   const condByDate = useMemo(() => {
     const m: Record<string, Cond> = {};

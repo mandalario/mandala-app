@@ -33,3 +33,33 @@ export function isSlotStartInPast(date: string, startTime: string, now = new Dat
   if (date > today) return false;
   return parseTimeToMinutes(startTime) < nowMinutes;
 }
+
+export type SlotDateTime = { date: string; start_time: string };
+
+export function addDaysToYmd(ymd: string, days: number): string {
+  const d = new Date(ymd + "T12:00:00");
+  d.setDate(d.getDate() + days);
+  const y = d.getFullYear();
+  const m = String(d.getMonth() + 1).padStart(2, "0");
+  const day = String(d.getDate()).padStart(2, "0");
+  return `${y}-${m}-${day}`;
+}
+
+/** True when the day has at least one slot and its latest start time is already past. */
+export function isLastSlotOfDayPassed(slots: SlotDateTime[], day: string, now = new Date()): boolean {
+  const daySlots = slots.filter((s) => s.date === day);
+  if (daySlots.length === 0) return false;
+
+  const latestMinutes = Math.max(...daySlots.map((s) => parseTimeToMinutes(s.start_time)));
+  const latestSlot = daySlots.find((s) => parseTimeToMinutes(s.start_time) === latestMinutes)!;
+  return isSlotStartInPast(day, latestSlot.start_time, now);
+}
+
+/** Default calendar day: today, or tomorrow once today's last slot has passed. */
+export function getDefaultScheduleViewDate(slots: SlotDateTime[], now = new Date()): string {
+  const { date: today } = getScheduleNowParts(now);
+  if (isLastSlotOfDayPassed(slots, today, now)) {
+    return addDaysToYmd(today, 1);
+  }
+  return today;
+}

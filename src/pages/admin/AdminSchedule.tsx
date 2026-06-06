@@ -21,6 +21,7 @@ import { Modal } from "./AdminStudents";
 import { Link } from "react-router-dom";
 import { ForecastWidget } from "@/components/ForecastWidget";
 import { BookingRefundPanel } from "@/components/admin/BookingRefundPanel";
+import { getDefaultScheduleViewDate, getScheduleNowParts } from "@/lib/slotSchedule";
 
 type Level = "iniciante" | "intermediario" | "avancado";
 type ClassType = "avulsa_grupo" | "avulsa_particular" | "aluguel";
@@ -117,6 +118,16 @@ export default function AdminSchedule() {
     setLoading(false);
   };
   useEffect(() => { load(); }, []);
+
+  useEffect(() => {
+    if (loading) return;
+    const { date: today } = getScheduleNowParts();
+    if (ymd(selectedDate) !== today) return;
+    const defaultDate = getDefaultScheduleViewDate(slots);
+    if (defaultDate !== today) {
+      setSelectedDate(new Date(defaultDate + "T12:00:00"));
+    }
+  }, [loading, slots, selectedDate]);
 
   const slotsByDate = useMemo(() => {
     const m: Record<string, Slot[]> = {};
