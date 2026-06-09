@@ -183,6 +183,12 @@
       "bad": "Poor",
       "flat": "Flat"
     },
+    "calendarCondition": {
+      "good": "Good surf",
+      "medium": "Fair surf",
+      "bad": "Poor surf",
+      "flat": "No waves"
+    },
     "defaults": {
       "spot": "Barra da Tijuca, Rio de Janeiro, Brazil",
       "summary": "Clear sky, glassy sea. Great for beginners.",
@@ -664,7 +670,14 @@
       "confirmRemove": "Remove this instructor and all reviews?",
       "nameRequired": "Enter the instructor name.",
       "noRanking": "No reviews in this period.",
-      "photoUploaded": "Photo uploaded. Click Save to store the instructor."
+      "photoUploaded": "Photo uploaded. Click Save to store the instructor.",
+      "uploadingPhoto": "Uploading photo…",
+      "uploadFailed": "Could not upload the photo. Please try again.",
+      "viewReviews": "View reviews and students",
+      "reviewsTitle": "Student feedback",
+      "noReviews": "No reviews for this instructor yet.",
+      "evaluatedBy": "Reviewed by",
+      "noComment": "No comment."
     },
     "shared": {
       "active": "Active",

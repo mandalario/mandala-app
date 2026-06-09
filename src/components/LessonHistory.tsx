@@ -3,7 +3,7 @@ import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/hooks/useAuth";
 import { useTranslation } from "@/i18n/LanguageContext";
 import { intlLocaleFor } from "@/i18n/dateLocale";
-import { History, Loader2 } from "lucide-react";
+import { ChevronDown, History, Loader2 } from "lucide-react";
 
 type HistoryRow = {
   id: string;
@@ -26,6 +26,7 @@ export function LessonHistory({ userId }: LessonHistoryProps = {}) {
   const { t, language } = useTranslation();
   const [rows, setRows] = useState<HistoryRow[]>([]);
   const [loading, setLoading] = useState(true);
+  const [open, setOpen] = useState(false);
   const locale = intlLocaleFor(language);
   const targetUserId = userId ?? user?.id;
 
@@ -68,11 +69,18 @@ export function LessonHistory({ userId }: LessonHistoryProps = {}) {
 
   return (
     <section>
-      <h2 className="text-sm uppercase tracking-widest text-primary/80 mb-3 flex items-center gap-2">
-        <History className="w-4 h-4" />
-        {t("dashboard.lessonHistory.title")}
-      </h2>
-      {loading ? (
+      <button
+        type="button"
+        onClick={() => setOpen((v) => !v)}
+        className="text-sm uppercase tracking-widest text-primary/80 mb-3 flex items-center gap-2 w-full text-left hover:text-primary transition-colors"
+      >
+        <History className="w-4 h-4 shrink-0" />
+        <span className="flex-1">{t("dashboard.lessonHistory.title")}</span>
+        <ChevronDown
+          className={`w-4 h-4 shrink-0 transition-transform duration-200 ${open ? "rotate-180" : ""}`}
+        />
+      </button>
+      {open && (loading ? (
         <div className="glass rounded-2xl p-8 text-center">
           <Loader2 className="w-5 h-5 animate-spin mx-auto text-primary" />
         </div>
@@ -98,7 +106,7 @@ export function LessonHistory({ userId }: LessonHistoryProps = {}) {
             </div>
           ))}
         </div>
-      )}
+      ))}
     </section>
   );
 }

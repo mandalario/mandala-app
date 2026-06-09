@@ -22,6 +22,12 @@ import { Link } from "react-router-dom";
 import { ForecastWidget } from "@/components/ForecastWidget";
 import { BookingRefundPanel } from "@/components/admin/BookingRefundPanel";
 import { getDefaultScheduleViewDate, getScheduleNowParts } from "@/lib/slotSchedule";
+import {
+  CALENDAR_CONDITION_DOT_CLASSES,
+  getForecastCalendarModifiers,
+  parseWeeklySeaForecast,
+  type WeeklySeaForecast,
+} from "@/lib/seaForecastCalendar";
 
 type Level = "iniciante" | "intermediario" | "avancado";
 type ClassType = "avulsa_grupo" | "avulsa_particular" | "aluguel";
@@ -90,14 +96,16 @@ export default function AdminSchedule() {
   const [selectedSlotIds, setSelectedSlotIds] = useState<Set<string>>(new Set());
   const [expandedSlot, setExpandedSlot] = useState<string | null>(null);
   const [imprevistoSlot, setImprevistoSlot] = useState<Slot | null>(null);
+  const [weeklyForecast, setWeeklyForecast] = useState<WeeklySeaForecast | null>(null);
 
   const load = async () => {
     setLoading(true);
     const today = ymd(new Date());
-    const [{ data: s }, { data: c }, { data: t }] = await Promise.all([
+    const [{ data: s }, { data: c }, { data: t }, { data: forecastSetting }] = await Promise.all([
       supabase.from("class_slots").select("*").gte("date", today).order("date").order("start_time").order("class_type"),
       supabase.from("surf_conditions").select("*").gte("date", today).order("date"),
       supabase.from("weekly_schedule_templates").select("*").order("weekday").order("start_time"),
+      supabase.from("app_settings").select("value").eq("key", "sea_condition_card").maybeSingle(),
     ]);
 
     const { data: bData, error: bErr } = await supabase.from("bookings").select("*").eq("status", "confirmed");
@@ -115,9 +123,25 @@ export default function AdminSchedule() {
     setConds((c ?? []) as Cond[]);
     setTemplates((t ?? []) as Template[]);
     setBookings((b ?? []) as any as BookingRow[]);
+    setWeeklyForecast(parseWeeklySeaForecast(forecastSetting?.value));
     setLoading(false);
   };
   useEffect(() => { load(); }, []);
+
+  useEffect(() => {
+    const channel = supabase
+      .channel("admin-schedule-sea-forecast")
+      .on(
+        "postgres_changes",
+        { event: "*", schema: "public", table: "app_settings", filter: "key=eq.sea_condition_card" },
+        (payload) => {
+          const value = (payload.new as { value?: string } | null)?.value;
+          if (value) setWeeklyForecast(parseWeeklySeaForecast(value));
+        },
+      )
+      .subscribe();
+    return () => { supabase.removeChannel(channel); };
+  }, []);
 
   useEffect(() => {
     if (loading) return;
@@ -362,12 +386,12 @@ export default function AdminSchedule() {
     }
   };
 
-  // Calendar modifiers
+  const forecastCalendarModifiers = useMemo(
+    () => getForecastCalendarModifiers(weeklyForecast),
+    [weeklyForecast],
+  );
+
   const daysWithSlots = Object.keys(slotsByDate).map((d) => new Date(d + "T12:00:00"));
-  const daysGood = conds.filter((c) => c.condition === "good").map((c) => new Date(c.date + "T12:00:00"));
-  const daysMedium = conds.filter((c) => c.condition === "medium").map((c) => new Date(c.date + "T12:00:00"));
-  const daysBad = conds.filter((c) => c.condition === "bad").map((c) => new Date(c.date + "T12:00:00"));
-  const daysFlat = conds.filter((c) => c.condition === "flat").map((c) => new Date(c.date + "T12:00:00"));
 
   return (
     <div className="space-y-6">
@@ -422,14 +446,11 @@ export default function AdminSchedule() {
                   weekStartsOn={0}
                   modifiers={{
                     hasSlots: daysWithSlots,
-                    good: daysGood, medium: daysMedium, bad: daysBad, flat: daysFlat,
+                    ...forecastCalendarModifiers,
                   }}
                   modifiersClassNames={{
                     hasSlots: "font-bold",
-                    good: "ring-1 ring-success/40",
-                    medium: "ring-1 ring-warning/40",
-                    bad: "ring-1 ring-destructive/40 line-through",
-                    flat: "ring-1 ring-muted-foreground/30 line-through",
+                    ...CALENDAR_CONDITION_DOT_CLASSES,
                   }}
                   className={cn("p-2 pointer-events-auto")}
                   classNames={{

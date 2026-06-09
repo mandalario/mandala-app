@@ -6,7 +6,17 @@ import { Label } from "@/components/ui/label";
 import { Switch } from "@/components/ui/switch";
 import { Textarea } from "@/components/ui/textarea";
 import { toast } from "sonner";
-import { Wind, Loader2, Plus, Trash2, ExternalLink, Globe, Waves, Star } from "lucide-react";
+import { Wind, Loader2, Plus, Trash2, ExternalLink, Globe, Waves, Star, CalendarDays } from "lucide-react";
+import {
+  CALENDAR_CONDITION_DOT_COLORS,
+  CALENDAR_CONDITION_LABELS,
+  FORECAST_DAY_IDS,
+  FORECAST_DAY_LABELS,
+  getDayCalendarCondition,
+  seaStatusToCondition,
+  type SeaStatus,
+  type SurfConditionKey,
+} from "@/lib/seaForecastCalendar";
 
 type Provider = { id: string; kind: string; label: string; config: any; is_active: boolean };
 const sb = supabase as any;
@@ -180,16 +190,26 @@ const daysOfWeekList = [
 const defaultCondition = {
   location: "Arpoador, Rio de Janeiro, Brasil",
   summary: "Céu limpo e mar glass",
-  stars: 4,
-  status: "excelente",
+  calendar_condition: "good" as SurfConditionKey,
   waves: "1.2m",
   period: "10s",
   wave_dir: "SSE",
   wind: "Leste",
   water_temp: "25°C",
   air_temp: "Seca",
-  ideal_for: "Todos os Níveis"
+  ideal_for: "Todos os Níveis",
 };
+
+function enrichDayEntry(entry: Record<string, unknown> | undefined) {
+  const legacyStatus = entry?.status as SeaStatus | undefined;
+  return {
+    ...defaultCondition,
+    ...entry,
+    calendar_condition:
+      (entry?.calendar_condition as SurfConditionKey | undefined) ??
+      (legacyStatus ? seaStatusToCondition(legacyStatus) : defaultCondition.calendar_condition),
+  };
+}
 
 function SeaConditionCardEditor() {
   const [weekData, setWeekData] = useState<Record<string, any>>({});
@@ -206,30 +226,32 @@ function SeaConditionCardEditor() {
         .maybeSingle();
         
       const initial = {} as Record<string, any>;
-      daysOfWeekList.forEach(d => initial[d.id] = { ...defaultCondition });
+      daysOfWeekList.forEach((d) => { initial[d.id] = { ...defaultCondition }; });
 
       if (data?.value) {
         try {
           const parsed = JSON.parse(data.value);
           if (parsed.seg) {
-            setWeekData({ ...initial, ...parsed });
+            const merged = { ...initial, ...parsed };
+            daysOfWeekList.forEach((d) => {
+              merged[d.id] = enrichDayEntry(merged[d.id]);
+            });
+            setWeekData(merged);
           } else {
-            // Migrate old flat format to weekly
             const migrated = { ...initial };
-            daysOfWeekList.forEach(d => {
-              migrated[d.id] = {
-                location: parsed.location || defaultCondition.location,
-                summary: parsed.summary || defaultCondition.summary,
-                stars: parsed.stars || defaultCondition.stars,
-                status: parsed.status || defaultCondition.status,
-                waves: parsed.waves || defaultCondition.waves,
-                period: parsed.period || defaultCondition.period,
-                wave_dir: parsed.wave_dir || defaultCondition.wave_dir,
-                wind: parsed.wind || defaultCondition.wind,
-                water_temp: parsed.water_temp || defaultCondition.water_temp,
-                air_temp: parsed.air_temp || defaultCondition.air_temp,
-                ideal_for: parsed.ideal_for || defaultCondition.ideal_for
-              };
+            daysOfWeekList.forEach((d) => {
+              migrated[d.id] = enrichDayEntry({
+                location: parsed.location,
+                summary: parsed.summary,
+                status: parsed.status,
+                waves: parsed.waves,
+                period: parsed.period,
+                wave_dir: parsed.wave_dir,
+                wind: parsed.wind,
+                water_temp: parsed.water_temp,
+                air_temp: parsed.air_temp,
+                ideal_for: parsed.ideal_for,
+              });
             });
             setWeekData(migrated);
           }
@@ -263,12 +285,22 @@ function SeaConditionCardEditor() {
   };
 
   const handleChange = (key: string, val: any) => {
-    setWeekData(prev => ({
+    setWeekData((prev) => ({
       ...prev,
       [activeDay]: {
         ...(prev[activeDay] || defaultCondition),
-        [key]: val
-      }
+        [key]: val,
+      },
+    }));
+  };
+
+  const handleDayChange = (dayId: string, key: string, val: unknown) => {
+    setWeekData((prev) => ({
+      ...prev,
+      [dayId]: {
+        ...(prev[dayId] || defaultCondition),
+        [key]: val,
+      },
     }));
   };
 
@@ -295,17 +327,57 @@ function SeaConditionCardEditor() {
       </div>
 
       <div className="flex gap-2 overflow-x-auto pb-2 scrollbar-hide">
-        {daysOfWeekList.map(d => (
-          <Button
-            key={d.id}
-            variant={activeDay === d.id ? "default" : "outline"}
-            size="sm"
-            onClick={() => setActiveDay(d.id)}
-            className={`rounded-xl px-4 ${activeDay === d.id ? "bg-primary text-primary-foreground" : "bg-background/50"}`}
-          >
-            {d.label}
-          </Button>
-        ))}
+        {daysOfWeekList.map((d) => {
+          const dayEntry = weekData[d.id] || defaultCondition;
+          const calendarCond = getDayCalendarCondition(dayEntry) ?? "good";
+          return (
+            <Button
+              key={d.id}
+              variant={activeDay === d.id ? "default" : "outline"}
+              size="sm"
+              onClick={() => setActiveDay(d.id)}
+              className={`rounded-xl px-4 gap-1.5 ${activeDay === d.id ? "bg-primary text-primary-foreground" : "bg-background/50"}`}
+            >
+              <span className={`w-2 h-2 rounded-full shrink-0 ${CALENDAR_CONDITION_DOT_COLORS[calendarCond]}`} />
+              {d.label}
+            </Button>
+          );
+        })}
+      </div>
+
+      <div className="rounded-2xl border border-white/10 bg-background/30 p-4 space-y-3">
+        <div className="flex items-center gap-2">
+          <CalendarDays className="w-4 h-4 text-primary" />
+          <div>
+            <p className="text-sm font-semibold">Cores no calendário</p>
+            <p className="text-[11px] text-muted-foreground">
+              Define a marcação de cada dia na agenda após salvar a previsão.
+            </p>
+          </div>
+        </div>
+        <div className="grid grid-cols-2 sm:grid-cols-4 lg:grid-cols-7 gap-2">
+          {FORECAST_DAY_IDS.map((dayId) => {
+            const dayEntry = weekData[dayId] || defaultCondition;
+            const calendarCond = getDayCalendarCondition(dayEntry) ?? "good";
+            return (
+              <div key={dayId} className="space-y-1">
+                <div className="flex items-center gap-1.5">
+                  <span className={`w-2 h-2 rounded-full shrink-0 ${CALENDAR_CONDITION_DOT_COLORS[calendarCond]}`} />
+                  <span className="text-[11px] font-semibold text-muted-foreground">{FORECAST_DAY_LABELS[dayId]}</span>
+                </div>
+                <select
+                  value={calendarCond}
+                  onChange={(e) => handleDayChange(dayId, "calendar_condition", e.target.value as SurfConditionKey)}
+                  className="w-full h-9 rounded-xl border border-white/10 bg-background/50 px-2 text-xs focus:outline-none focus:ring-1 focus:ring-primary"
+                >
+                  {(Object.keys(CALENDAR_CONDITION_LABELS) as SurfConditionKey[]).map((key) => (
+                    <option key={key} value={key}>{CALENDAR_CONDITION_LABELS[key]}</option>
+                  ))}
+                </select>
+              </div>
+            );
+          })}
+        </div>
       </div>
 
       <div className="space-y-4 border-t border-white/5 pt-4">
@@ -328,38 +400,6 @@ function SeaConditionCardEditor() {
               placeholder="Ex: Céu limpo e mar glass"
               className="bg-input/60 border-0 h-10 rounded-xl"
             />
-          </div>
-        </div>
-
-        {/* Avaliação e Classificação */}
-        <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-          <div className="space-y-1.5">
-            <Label className="text-xs font-semibold">Avaliação (1 a 5 Estrelas)</Label>
-            <select
-              value={currentData.stars}
-              onChange={(e) => handleChange("stars", Number(e.target.value))}
-              className="w-full h-10 rounded-xl border border-white/10 bg-background/50 px-3 text-sm focus:outline-none focus:ring-1 focus:ring-primary"
-            >
-              <option value={1}>⭐ (Muito Ruim)</option>
-              <option value={2}>⭐⭐ (Regular)</option>
-              <option value={3}>⭐⭐⭐ (Bom)</option>
-              <option value={4}>⭐⭐⭐⭐ (Muito Bom)</option>
-              <option value={5}>⭐⭐⭐⭐⭐ (Excelente)</option>
-            </select>
-          </div>
-          <div className="space-y-1.5">
-            <Label className="text-xs font-semibold">Destaque do Mar</Label>
-            <select
-              value={currentData.status}
-              onChange={(e) => handleChange("status", e.target.value)}
-              className="w-full h-10 rounded-xl border border-white/10 bg-background/50 px-3 text-sm focus:outline-none focus:ring-1 focus:ring-primary"
-            >
-              <option value="excelente">Excelente ✨</option>
-              <option value="bom">Bom 👍</option>
-              <option value="medio">Médio / Atenção ⚠️</option>
-              <option value="ruim">Ruim / Ressaca 🚩</option>
-              <option value="flat">Sem Ondas / Flat 🏖️</option>
-            </select>
           </div>
         </div>
 

@@ -12,11 +12,13 @@ import { TeacherAvatar } from "@/components/teachers/TeacherAvatar";
 import { StarRating } from "@/components/teachers/StarRating";
 import { toast } from "sonner";
 import {
+  averageRating,
   buildRanking,
   currentYearMonth,
   nextYearMonth,
   prevYearMonth,
   type Teacher,
+  type TeacherReview,
 } from "@/lib/teacherRatings";
 import { useTranslation } from "@/i18n/LanguageContext";
 import { dateFnsLocaleFor } from "@/i18n/dateLocale";
@@ -30,6 +32,7 @@ import {
   Trash2,
   Trophy,
   Upload,
+  X,
 } from "lucide-react";
 
 const sb = supabase as any;
@@ -89,6 +92,7 @@ function ManageTeachersTab() {
   const { t } = useTranslation();
   const { teachers, loading, reload } = useTeachers({ activeOnly: false });
   const [editing, setEditing] = useState<TeacherForm | null>(null);
+  const [selected, setSelected] = useState<Teacher | null>(null);
 
   const remove = async (id: string) => {
     if (!confirm(t("admin.teachers.confirmRemove"))) return;
@@ -141,31 +145,41 @@ function ManageTeachersTab() {
             const count = teacher.reviews?.length ?? 0;
             return (
               <div key={teacher.id} className="glass-strong rounded-2xl p-4 flex gap-3">
-                <TeacherAvatar teacher={teacher} />
-                <div className="flex-1 min-w-0">
-                  <div className="flex items-center gap-2">
-                    <div className="font-semibold truncate">{teacher.name}</div>
-                    <span
-                      className={`text-[10px] uppercase px-2 py-0.5 rounded-full ${
-                        teacher.is_active
-                          ? "bg-success/15 text-success"
-                          : "bg-muted/40 text-muted-foreground"
-                      }`}
-                    >
-                      {teacher.is_active ? t("admin.shared.active") : t("admin.shared.inactive")}
-                    </span>
+                <button
+                  type="button"
+                  onClick={() => setSelected(teacher)}
+                  className="flex flex-1 gap-3 min-w-0 text-left hover:opacity-90 transition-opacity"
+                >
+                  <TeacherAvatar teacher={teacher} />
+                  <div className="flex-1 min-w-0">
+                    <div className="flex items-center gap-2">
+                      <div className="font-semibold truncate">{teacher.name}</div>
+                      <span
+                        className={`text-[10px] uppercase px-2 py-0.5 rounded-full ${
+                          teacher.is_active
+                            ? "bg-success/15 text-success"
+                            : "bg-muted/40 text-muted-foreground"
+                        }`}
+                      >
+                        {teacher.is_active ? t("admin.shared.active") : t("admin.shared.inactive")}
+                      </span>
+                    </div>
+                    <div className="flex items-center gap-2 mt-1">
+                      <StarRating value={score} size="sm" />
+                      <span className="text-xs font-semibold text-primary">
+                        {count > 0 ? score.toFixed(2) : "—"}
+                      </span>
+                      <span className="text-xs text-muted-foreground">
+                        ({count})
+                      </span>
+                    </div>
+                    <p className="text-[11px] text-primary/80 mt-1.5">
+                      {t("admin.teachers.viewReviews")}
+                    </p>
                   </div>
-                  <div className="flex items-center gap-2 mt-1">
-                    <StarRating value={score} size="sm" />
-                    <span className="text-xs font-semibold text-primary">
-                      {count > 0 ? score.toFixed(2) : "—"}
-                    </span>
-                    <span className="text-xs text-muted-foreground">
-                      ({count})
-                    </span>
-                  </div>
-                </div>
-                <div className="flex flex-col items-end gap-2">
+                  <ChevronRight className="w-5 h-5 text-muted-foreground shrink-0 self-center" />
+                </button>
+                <div className="flex flex-col items-end gap-2 shrink-0" onClick={(e) => e.stopPropagation()}>
                   <Switch checked={teacher.is_active} onCheckedChange={() => toggle(teacher)} />
                   <button
                     type="button"
@@ -196,6 +210,10 @@ function ManageTeachersTab() {
         </div>
       )}
 
+      {selected && (
+        <TeacherReviewsSheet teacher={selected} onClose={() => setSelected(null)} />
+      )}
+
       {editing && (
         <TeacherEditor
           form={editing}
@@ -205,6 +223,108 @@ function ManageTeachersTab() {
           }}
         />
       )}
+    </div>
+  );
+}
+
+function TeacherReviewsSheet({
+  teacher,
+  onClose,
+}: {
+  teacher: Teacher;
+  onClose: () => void;
+}) {
+  const { t, language } = useTranslation();
+  const locale = dateFnsLocaleFor(language);
+  const reviews = [...(teacher.reviews ?? [])].sort((a, b) =>
+    b.created_at.localeCompare(a.created_at),
+  );
+  const overall = averageRating(reviews);
+  const total = reviews.length;
+
+  return (
+    <div className="fixed inset-0 z-50 bg-black/50 flex items-center justify-center p-4" onClick={onClose}>
+      <div
+        className="glass-strong rounded-2xl w-full max-w-lg max-h-[90vh] flex flex-col"
+        onClick={(e) => e.stopPropagation()}
+      >
+        <div className="flex items-center justify-between gap-3 p-5 border-b border-border/40">
+          <div className="flex items-center gap-3 min-w-0">
+            <TeacherAvatar teacher={teacher} />
+            <div className="min-w-0">
+              <h2 className="font-bold truncate">{teacher.name}</h2>
+              <div className="flex items-center gap-2 mt-0.5">
+                <StarRating value={overall} size="sm" />
+                <span className="text-sm font-semibold text-primary">
+                  {total > 0 ? overall.toFixed(2) : "—"}
+                </span>
+                <span className="text-xs text-muted-foreground">
+                  {t(total === 1 ? "teacherRatings.reviewOne" : "teacherRatings.reviewMany", {
+                    count: total,
+                  })}
+                </span>
+              </div>
+            </div>
+          </div>
+          <button
+            type="button"
+            onClick={onClose}
+            className="w-9 h-9 rounded-xl hover:bg-secondary/60 flex items-center justify-center shrink-0"
+          >
+            <X className="w-5 h-5" />
+          </button>
+        </div>
+
+        <div className="p-5 overflow-y-auto space-y-3">
+          <h3 className="text-xs uppercase tracking-widest text-primary/80">
+            {t("admin.teachers.reviewsTitle")}
+          </h3>
+          {total === 0 ? (
+            <p className="text-sm text-muted-foreground text-center py-8">
+              {t("admin.teachers.noReviews")}
+            </p>
+          ) : (
+            reviews.map((review) => (
+              <AdminReviewCard key={review.id} review={review} locale={locale} t={t} />
+            ))
+          )}
+        </div>
+      </div>
+    </div>
+  );
+}
+
+function AdminReviewCard({
+  review,
+  locale,
+  t,
+}: {
+  review: TeacherReview;
+  locale: ReturnType<typeof dateFnsLocaleFor>;
+  t: (key: string) => string;
+}) {
+  const dateLabel = format(parseISO(review.created_at), "d MMM yyyy", { locale });
+  return (
+    <div className="glass rounded-2xl p-4">
+      <div className="flex justify-between items-start gap-2">
+        <div className="min-w-0">
+          <p className="text-[10px] uppercase tracking-widest text-muted-foreground">
+            {t("admin.teachers.evaluatedBy")}
+          </p>
+          <p className="font-semibold text-sm truncate">
+            {review.student_name ?? t("admin.shared.noName")}
+          </p>
+        </div>
+        <StarRating value={review.rating} size="sm" />
+      </div>
+      {review.comment?.trim() ? (
+        <p className="text-sm text-muted-foreground mt-2">{review.comment}</p>
+      ) : (
+        <p className="text-sm text-muted-foreground/60 mt-2 italic">
+          {t("admin.teachers.noComment")}
+        </p>
+      )}
+      <p className="text-[11px] text-muted-foreground/80 mt-2">{dateLabel}</p>
     </div>
   );
 }
@@ -220,6 +340,7 @@ function TeacherEditor({
   const [form, setForm] = useState(initial);
   const [saving, setSaving] = useState(false);
   const [uploading, setUploading] = useState(false);
+  const [previewUrl, setPreviewUrl] = useState<string | null>(null);
   const fileRef = useRef<HTMLInputElement>(null);
 
   const save = async () => {
@@ -244,16 +365,32 @@ function TeacherEditor({
   };
 
   const upload = async (file: File) => {
+    const localPreview = URL.createObjectURL(file);
+    setPreviewUrl((prev) => {
+      if (prev) URL.revokeObjectURL(prev);
+      return localPreview;
+    });
     setUploading(true);
-    const result = await uploadTeacherAvatar(file);
-    setUploading(false);
-    if (fileRef.current) fileRef.current.value = "";
-    if ("error" in result) {
-      toast.error(result.error);
-      return;
+    try {
+      const result = await uploadTeacherAvatar(file);
+      if ("error" in result) {
+        URL.revokeObjectURL(localPreview);
+        setPreviewUrl(null);
+        toast.error(result.error);
+        return;
+      }
+      URL.revokeObjectURL(localPreview);
+      setPreviewUrl(null);
+      setForm((f) => ({ ...f, avatar_url: result.publicUrl }));
+      toast.success(t("admin.teachers.photoUploaded"));
+    } catch {
+      URL.revokeObjectURL(localPreview);
+      setPreviewUrl(null);
+      toast.error(t("admin.teachers.uploadFailed"));
+    } finally {
+      setUploading(false);
+      if (fileRef.current) fileRef.current.value = "";
     }
-    setForm((f) => ({ ...f, avatar_url: result.publicUrl }));
-    toast.success(t("admin.teachers.photoUploaded"));
   };
 
   return (
@@ -262,8 +399,17 @@ function TeacherEditor({
         <h2 className="text-lg font-bold">
           {form.id ? t("admin.teachers.editTeacher") : t("admin.teachers.newTeacher")}
         </h2>
-        <div className="flex justify-center">
-          <TeacherAvatar teacher={form} size="lg" />
+        <div className="flex flex-col items-center gap-2">
+          <TeacherAvatar
+            teacher={previewUrl ? { ...form, avatar_url: previewUrl } : form}
+            size="lg"
+          />
+          {uploading && (
+            <p className="text-xs text-muted-foreground flex items-center gap-1.5">
+              <Loader2 className="w-3.5 h-3.5 animate-spin" />
+              {t("admin.teachers.uploadingPhoto")}
+            </p>
+          )}
         </div>
         <input
           ref={fileRef}

@@ -1,17 +1,21 @@
 import { useEffect, useMemo, useState } from "react";
 import { supabase } from "@/integrations/supabase/client";
-import { Waves, Timer, Navigation, Wind, Thermometer, Star, Droplets } from "lucide-react";
+import { Waves, Timer, Navigation, Wind, Thermometer, Droplets } from "lucide-react";
 import { useTranslation } from "@/i18n/LanguageContext";
 import { intlLocaleFor } from "@/i18n/dateLocale";
 import { translateStudentContent } from "@/i18n/studentContent";
-
-type SeaStatus = "excelente" | "bom" | "medio" | "ruim" | "flat";
+import { cn } from "@/lib/utils";
+import {
+  CALENDAR_CONDITION_LEGEND_CLASSES,
+  CALENDAR_CONDITION_DOT_COLORS,
+  getDayCalendarCondition,
+  type SurfConditionKey,
+} from "@/lib/seaForecastCalendar";
 
 type SeaCondition = {
   location: string;
   summary: string;
-  stars: number;
-  status: SeaStatus;
+  calendar_condition?: SurfConditionKey;
   waves: string;
   period: string;
   wave_dir: string;
@@ -22,24 +26,8 @@ type SeaCondition = {
   updated_at?: string;
 };
 
-const statusColors: Record<SeaStatus, string> = {
-  excelente: "bg-emerald-500/35 text-emerald-100 border-emerald-400/40",
-  bom: "bg-teal-500/35 text-teal-100 border-teal-400/40",
-  medio: "bg-amber-500/35 text-amber-100 border-amber-400/40",
-  ruim: "bg-rose-500/35 text-rose-100 border-rose-400/40",
-  flat: "bg-sky-500/35 text-sky-100 border-sky-400/40",
-};
-
 const DAY_IDS = ["dom", "seg", "ter", "qua", "qui", "sex", "sab"] as const;
 const DAY_LOCALE_KEYS = ["sun", "mon", "tue", "wed", "thu", "fri", "sat"] as const;
-
-const STATUS_LOCALE_KEYS: Record<SeaStatus, string> = {
-  excelente: "excellent",
-  bom: "good",
-  medio: "medium",
-  ruim: "bad",
-  flat: "flat",
-};
 
 export function SeaConditionCard() {
   const { t, language } = useTranslation();
@@ -49,8 +37,6 @@ export function SeaConditionCard() {
     () => ({
       location: t("seaCondition.defaults.spot"),
       summary: t("seaCondition.defaults.summary"),
-      stars: 4,
-      status: "excelente",
       waves: "1.2m",
       period: "10s",
       wave_dir: "SSE",
@@ -71,8 +57,6 @@ export function SeaConditionCard() {
       })),
     [t],
   );
-
-  const statusLabel = (status: SeaStatus) => t(`seaCondition.status.${STATUS_LOCALE_KEYS[status]}`);
 
   const [data, setData] = useState<Record<string, SeaCondition> | SeaCondition | null>(null);
   const [loading, setLoading] = useState(true);
@@ -139,6 +123,10 @@ export function SeaConditionCard() {
 
   const summary = translateStudentContent("seaSummary", activeData.summary, language);
   const idealFor = translateStudentContent("seaIdealFor", activeData.ideal_for, language);
+  const calendarCondition = getDayCalendarCondition(activeData) ?? "good";
+
+  const calendarConditionLabel = (key: SurfConditionKey) =>
+    t(`seaCondition.calendarCondition.${key}`);
 
   const updatedAtFormatted =
     data && typeof data === "object" && "updated_at" in data && data.updated_at
@@ -160,26 +148,20 @@ export function SeaConditionCard() {
         <h3 className="text-xl font-bold mt-1.5 text-white tracking-tight">{activeData.location}</h3>
         <p className="text-xs text-sky-100/80 mt-1 italic font-medium">{summary}</p>
 
-        <div className="flex items-center justify-between mt-4">
-          <div className="flex gap-1">
-            {[1, 2, 3, 4, 5].map((s) => (
-              <Star
-                key={s}
-                className={`w-5 h-5 ${
-                  s <= (activeData.stars ?? 4)
-                    ? "fill-amber-400 text-amber-400"
-                    : "text-sky-300/40 fill-sky-300/10"
-                }`}
-              />
-            ))}
-          </div>
-
+        <div className="mt-4">
           <span
-            className={`text-[10px] uppercase font-bold tracking-wider px-3 py-1 rounded-full border ${
-              statusColors[activeData.status] ?? statusColors.excelente
-            }`}
+            className={cn(
+              "inline-flex items-center gap-2 text-xs font-semibold px-3 py-1.5 rounded-full border",
+              CALENDAR_CONDITION_LEGEND_CLASSES[calendarCondition].active,
+            )}
           >
-            {statusLabel(activeData.status)}
+            <span
+              className={cn(
+                "w-2.5 h-2.5 rounded-full shrink-0",
+                CALENDAR_CONDITION_LEGEND_CLASSES[calendarCondition].dot,
+              )}
+            />
+            {calendarConditionLabel(calendarCondition)}
           </span>
         </div>
       </div>
@@ -190,17 +172,22 @@ export function SeaConditionCard() {
             {daysOfWeekList.map((d) => {
               const isSelected = selectedDay === d.id;
               const isToday = d.id === DAY_IDS[todayIndex];
+              const dayData = isWeeklyFormat
+                ? ((stored as Record<string, SeaCondition>)[d.id] ?? defaultData)
+                : defaultData;
+              const dayCond = getDayCalendarCondition(dayData) ?? "good";
               return (
                 <button
                   key={d.id}
                   type="button"
                   onClick={() => setSelectedDay(d.id)}
-                  className={`px-3 py-1.5 rounded-xl text-xs font-bold transition-all ${
+                  className={`inline-flex items-center gap-1.5 px-3 py-1.5 rounded-xl text-xs font-bold transition-all ${
                     isSelected
                       ? "bg-sky-400 text-[#092942] shadow-sm shadow-sky-400/20 scale-105"
                       : "bg-white/5 text-sky-200/60 hover:bg-white/10 hover:text-sky-100"
                   }`}
                 >
+                  <span className={`w-1.5 h-1.5 rounded-full shrink-0 ${CALENDAR_CONDITION_DOT_COLORS[dayCond]}`} />
                   {isToday ? t("seaCondition.today") : d.label}
                 </button>
               );

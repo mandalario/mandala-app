@@ -1,4 +1,9 @@
 import { supabase } from "@/integrations/supabase/client";
+import { compressImageFile, isLikelyImageFile } from "@/lib/compressImage";
+import { withTimeout } from "@/lib/withTimeout";
+
+const COMPRESS_TIMEOUT_MS = 12_000;
+const UPLOAD_TIMEOUT_MS = 25_000;
 
 function extensionFromFile(file: File): string {
   const fromName = file.name.split(".").pop()?.toLowerCase();
@@ -17,49 +22,79 @@ function extensionFromFile(file: File): string {
   }
 }
 
-function isBucketMissing(message: string) {
-  const m = message.toLowerCase();
-  return m.includes("bucket") && (m.includes("not found") || m.includes("does not exist"));
+async function prepareImage(file: File): Promise<File | { error: string }> {
+  if (file.size <= 400 * 1024) {
+    return file;
+  }
+
+  try {
+    return await withTimeout(
+      compressImageFile(file),
+      COMPRESS_TIMEOUT_MS,
+      "COMPRESS_TIMEOUT",
+    );
+  } catch {
+    if (file.size <= 2 * 1024 * 1024) {
+      return file;
+    }
+    return {
+      error:
+        "Não foi possível processar esta imagem. Use JPG ou PNG (fotos HEIC podem não funcionar no navegador).",
+    };
+  }
 }
 
-/** Uploads a teacher avatar; falls back to partners/teachers/ if bucket teachers is missing. */
+async function uploadToBucket(bucket: "teachers" | "partners", path: string, file: File) {
+  const ext = extensionFromFile(file);
+  return withTimeout(
+    supabase.storage.from(bucket).upload(path, file, {
+      contentType: file.type || `image/${ext}`,
+      cacheControl: "3600",
+      upsert: true,
+    }),
+    UPLOAD_TIMEOUT_MS,
+    "O envio demorou demais. Verifique sua conexão e tente novamente.",
+  );
+}
+
+/** Uploads a teacher avatar to storage (partners bucket, same as other admin uploads). */
 export async function uploadTeacherAvatar(file: File): Promise<{ publicUrl: string } | { error: string }> {
-  const maxBytes = 5 * 1024 * 1024;
-  if (file.size > maxBytes) {
-    return { error: "Imagem muito grande (máx. 5 MB)." };
+  const maxInputBytes = 15 * 1024 * 1024;
+  if (file.size > maxInputBytes) {
+    return { error: "Imagem muito grande (máx. 15 MB)." };
   }
-  if (!file.type.startsWith("image/")) {
+  if (!isLikelyImageFile(file)) {
     return { error: "Selecione um arquivo de imagem (JPG, PNG ou WebP)." };
   }
 
-  const ext = extensionFromFile(file);
-  const fileName = `${crypto.randomUUID()}.${ext}`;
-  const opts = {
-    contentType: file.type || `image/${ext}`,
-    cacheControl: "3600",
-    upsert: false,
-  };
+  const prepared = await prepareImage(file);
+  if ("error" in prepared) {
+    return prepared;
+  }
 
-  const primary = await supabase.storage.from("teachers").upload(fileName, file, opts);
-  if (!primary.error) {
+  const fileName = `${crypto.randomUUID()}.jpg`;
+  const partnersPath = `teachers/${fileName}`;
+
+  try {
+    const primary = await uploadToBucket("partners", partnersPath, prepared);
+    if (!primary.error) {
+      const { data } = supabase.storage.from("partners").getPublicUrl(partnersPath);
+      return { publicUrl: data.publicUrl };
+    }
+
+    const fallback = await uploadToBucket("teachers", fileName, prepared);
+    if (fallback.error) {
+      return {
+        error:
+          "Não foi possível enviar a foto. Verifique se você está logado como admin e tente novamente. " +
+          fallback.error.message,
+      };
+    }
+
     const { data } = supabase.storage.from("teachers").getPublicUrl(fileName);
     return { publicUrl: data.publicUrl };
+  } catch (err) {
+    const message = err instanceof Error ? err.message : "Erro desconhecido ao enviar a foto.";
+    return { error: message };
   }
-
-  if (!isBucketMissing(primary.error.message)) {
-    return { error: primary.error.message };
-  }
-
-  const fallbackPath = `teachers/${fileName}`;
-  const fallback = await supabase.storage.from("partners").upload(fallbackPath, file, opts);
-  if (fallback.error) {
-    return {
-      error:
-        "Não foi possível enviar a foto. Aplique a migration do Supabase (bucket teachers) ou tente novamente. " +
-        fallback.error.message,
-    };
-  }
-
-  const { data } = supabase.storage.from("partners").getPublicUrl(fallbackPath);
-  return { publicUrl: data.publicUrl };
 }

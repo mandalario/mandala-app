@@ -24,6 +24,12 @@ import { format, startOfDay } from "date-fns";
 import { dateFnsLocaleFor } from "@/i18n/dateLocale";
 import { isCancellationRefundable } from "@/lib/bookingCancellation";
 import { getDefaultScheduleViewDate, getScheduleNowParts, isSlotStartInPast } from "@/lib/slotSchedule";
+import {
+  CALENDAR_CONDITION_DOT_CLASSES,
+  getForecastCalendarModifiers,
+  parseWeeklySeaForecast,
+  type WeeklySeaForecast,
+} from "@/lib/seaForecastCalendar";
 
 type Slot = { id: string; date: string; start_time: string; end_time: string; capacity: number; location: string | null; notes: string | null; is_open: boolean; class_type: "avulsa_grupo" | "avulsa_particular" | "aluguel" };
 type Cond = { date: string; condition: "good" | "medium" | "bad" | "flat"; notes: string | null };
@@ -56,6 +62,7 @@ export default function Schedule() {
   const [pendingBookSlot, setPendingBookSlot] = useState<Slot | null>(null);
   const [filterDate, setFilterDate] = useState<string>("");
   const [classTypeFilter, setClassTypeFilter] = useState<ClassTypeFilter | null>(null);
+  const [weeklyForecast, setWeeklyForecast] = useState<WeeklySeaForecast | null>(null);
 
   const today = format(new Date(), "yyyy-MM-dd");
   const todayStart = startOfDay(new Date());
@@ -74,11 +81,12 @@ export default function Schedule() {
   };
 
   const loadConditions = async () => {
-    const { data: c } = await supabase
-      .from("surf_conditions")
-      .select("date, condition, notes")
-      .gte("date", today);
+    const [{ data: c }, { data: forecastSetting }] = await Promise.all([
+      supabase.from("surf_conditions").select("date, condition, notes").gte("date", today),
+      supabase.from("app_settings").select("value").eq("key", "sea_condition_card").maybeSingle(),
+    ]);
     setConds((c ?? []) as Cond[]);
+    setWeeklyForecast(parseWeeklySeaForecast(forecastSetting?.value));
   };
 
   const loadSlots = async () => {
@@ -155,12 +163,10 @@ export default function Schedule() {
 
   const myBooked = useMemo(() => new Set(bookings.map((b) => b.slot_id)), [bookings]);
 
-  const calendarModifiers = useMemo(() => ({
-    good: conds.filter(c => c.condition === 'good').map(c => new Date(c.date + 'T12:00:00')),
-    medium: conds.filter(c => c.condition === 'medium').map(c => new Date(c.date + 'T12:00:00')),
-    bad: conds.filter(c => c.condition === 'bad').map(c => new Date(c.date + 'T12:00:00')),
-    flat: conds.filter(c => c.condition === 'flat').map(c => new Date(c.date + 'T12:00:00')),
-  }), [conds]);
+  const calendarModifiers = useMemo(
+    () => getForecastCalendarModifiers(weeklyForecast),
+    [weeklyForecast],
+  );
 
   const book = async (slot: Slot) => {
     if (isSlotStartInPast(slot.date, slot.start_time)) {
@@ -286,12 +292,7 @@ export default function Schedule() {
             locale={dateFnsLocale}
             className="w-full flex justify-center p-2"
             modifiers={calendarModifiers}
-            modifiersClassNames={{
-              good: "relative after:absolute after:bottom-0.5 after:left-1/2 after:-translate-x-1/2 after:w-1 after:h-1 after:bg-success after:rounded-full",
-              medium: "relative after:absolute after:bottom-0.5 after:left-1/2 after:-translate-x-1/2 after:w-1 after:h-1 after:bg-warning after:rounded-full",
-              bad: "relative after:absolute after:bottom-0.5 after:left-1/2 after:-translate-x-1/2 after:w-1 after:h-1 after:bg-destructive after:rounded-full",
-              flat: "relative after:absolute after:bottom-0.5 after:left-1/2 after:-translate-x-1/2 after:w-1 after:h-1 after:bg-muted-foreground after:rounded-full",
-            }}
+            modifiersClassNames={CALENDAR_CONDITION_DOT_CLASSES}
             classNames={{
               months: "w-full",
               month: "w-full space-y-2",

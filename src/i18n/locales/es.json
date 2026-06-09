@@ -183,6 +183,12 @@
       "bad": "Malo",
       "flat": "Sin olas"
     },
+    "calendarCondition": {
+      "good": "Mar bueno",
+      "medium": "Mar medio",
+      "bad": "Mar malo",
+      "flat": "Sin olas"
+    },
     "defaults": {
       "spot": "Barra da Tijuca, Río de Janeiro, Brasil",
       "summary": "Cielo despejado, mar liso. Ideal para principiantes.",
@@ -664,7 +670,14 @@
       "confirmRemove": "¿Eliminar este profesor y todas las valoraciones?",
       "nameRequired": "Indica el nombre del profesor.",
       "noRanking": "Sin valoraciones en este período.",
-      "photoUploaded": "Foto subida. Pulsa Guardar para guardar el profesor."
+      "photoUploaded": "Foto subida. Pulsa Guardar para guardar el profesor.",
+      "uploadingPhoto": "Subiendo foto…",
+      "uploadFailed": "No se pudo subir la foto. Inténtalo de nuevo.",
+      "viewReviews": "Ver valoraciones y alumnos",
+      "reviewsTitle": "Comentarios de alumnos",
+      "noReviews": "Ninguna valoración registrada para este profesor.",
+      "evaluatedBy": "Valorado por",
+      "noComment": "Sin comentario."
     },
     "shared": {
       "active": "Activo",

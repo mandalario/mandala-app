@@ -1,27 +1,47 @@
-import { useEffect, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { Link } from "react-router-dom";
-import { format, subDays } from "date-fns";
+import { addDays, format, isSameDay, startOfWeek } from "date-fns";
+import { ptBR } from "date-fns/locale";
 import { supabase } from "@/integrations/supabase/client";
-import { Users, CheckCircle2, Hourglass, TrendingUp, DollarSign, CalendarDays } from "lucide-react";
+import { Users, CheckCircle2, Hourglass, TrendingUp, DollarSign, CalendarDays, ChevronLeft, ChevronRight } from "lucide-react";
+import { Button } from "@/components/ui/button";
+import { cn } from "@/lib/utils";
 
 const ymd = (d: Date) => format(d, "yyyy-MM-dd");
 
-type TodayBooking = {
+const TYPE_LABELS: Record<string, string> = {
+  avulsa_grupo: "Grupo",
+  avulsa_particular: "Particular",
+  aluguel: "Aluguel",
+};
+const TYPE_COLORS: Record<string, string> = {
+  avulsa_grupo: "bg-blue-500/10 text-blue-400 border-blue-500/20",
+  avulsa_particular: "bg-purple-500/10 text-purple-400 border-purple-500/20",
+  aluguel: "bg-amber-500/10 text-amber-400 border-amber-500/20",
+};
+
+type ClassBooking = {
   id: string;
   user_id: string;
-  class_slots: { start_time: string; location: string | null; date: string } | null;
+  class_slots: { start_time: string; location: string | null; date: string; class_type: string } | null;
   profiles: { full_name: string | null } | null;
 };
 
 export default function AdminDashboard() {
   const [stats, setStats] = useState({ total: 0, approved: 0, pending: 0, payPending: 0, todayClasses: 0, monthRevenue: 0 });
-  const [today, setToday] = useState<TodayBooking[]>([]);
+  const [weekClasses, setWeekClasses] = useState<ClassBooking[]>([]);
   const [series, setSeries] = useState<{ date: string; count: number }[]>([]);
+  const [selectedDate, setSelectedDate] = useState(() => new Date());
+  const [weekBounds, setWeekBounds] = useState({ start: new Date(), end: new Date() });
 
   useEffect(() => {
     (async () => {
-      const todayStr = ymd(new Date());
-      const weekStartStr = ymd(subDays(new Date(), 6));
+      const now = new Date();
+      const todayStr = ymd(now);
+      const weekStart = startOfWeek(now, { weekStartsOn: 0 });
+      const weekEnd = addDays(weekStart, 6);
+      const chartWeekStartStr = ymd(weekStart);
+      const chartWeekEndStr = ymd(weekEnd);
       const monthStart = new Date(); monthStart.setDate(1);
       const monthStartStr = ymd(monthStart);
 
@@ -30,7 +50,7 @@ export default function AdminDashboard() {
         { count: approved },
         { count: pending },
         { count: payPending },
-        { data: todaySlots },
+        { data: weekSlots },
         monthPay,
         { data: weekBookings },
       ] = await Promise.all([
@@ -38,56 +58,68 @@ export default function AdminDashboard() {
         supabase.from("profiles").select("*", { count: "exact", head: true }).eq("approval_status", "approved"),
         supabase.from("profiles").select("*", { count: "exact", head: true }).eq("approval_status", "pending").eq("profile_completed", true),
         supabase.from("payments").select("*", { count: "exact", head: true }).eq("status", "pending"),
-        supabase.from("class_slots").select("id, start_time, location, date").eq("date", todayStr),
+        supabase.from("class_slots").select("id, start_time, location, date, class_type").gte("date", chartWeekStartStr).lte("date", chartWeekEndStr),
         supabase.from("payments").select("amount_cents").eq("status", "approved").gte("created_at", monthStartStr),
-        supabase.from("bookings").select("slot_id, class_slots!inner(date)").eq("status", "confirmed").gte("class_slots.date", weekStartStr).lte("class_slots.date", todayStr),
+        supabase.from("bookings").select("slot_id, class_slots!inner(date)").eq("status", "confirmed").gte("class_slots.date", chartWeekStartStr).lte("class_slots.date", chartWeekEndStr),
       ]);
 
-      const slotById = Object.fromEntries((todaySlots ?? []).map((s) => [s.id, s]));
-      const todaySlotIds = Object.keys(slotById);
+      const slotById = Object.fromEntries((weekSlots ?? []).map((s) => [s.id, s]));
+      const weekSlotIds = Object.keys(slotById);
 
-      let todayBookings: { id: string; user_id: string; slot_id: string }[] = [];
-      if (todaySlotIds.length > 0) {
+      let weekBookingsList: { id: string; user_id: string; slot_id: string }[] = [];
+      if (weekSlotIds.length > 0) {
         const { data: bk } = await supabase
           .from("bookings")
           .select("id, user_id, slot_id")
           .eq("status", "confirmed")
-          .in("slot_id", todaySlotIds);
-        todayBookings = bk ?? [];
+          .in("slot_id", weekSlotIds);
+        weekBookingsList = bk ?? [];
       }
 
-      const userIds = [...new Set(todayBookings.map((b) => b.user_id))];
+      const userIds = [...new Set(weekBookingsList.map((b) => b.user_id))];
       const nameMap: Record<string, string | null> = {};
       if (userIds.length > 0) {
         const { data: profs } = await supabase.from("profiles").select("id, full_name").in("id", userIds);
         (profs ?? []).forEach((p) => { nameMap[p.id] = p.full_name; });
       }
-      const todayWithNames: TodayBooking[] = todayBookings
+      const weekWithNames: ClassBooking[] = weekBookingsList
         .map((b) => {
           const slot = slotById[b.slot_id];
           if (!slot) return null;
           return {
             id: b.id,
             user_id: b.user_id,
-            class_slots: { start_time: slot.start_time, location: slot.location, date: slot.date },
+            class_slots: {
+              start_time: slot.start_time,
+              location: slot.location,
+              date: slot.date,
+              class_type: slot.class_type ?? "avulsa_grupo",
+            },
             profiles: { full_name: nameMap[b.user_id] ?? null },
           };
         })
-        .filter((b): b is TodayBooking => b !== null)
-        .sort((a, b) => (a.class_slots?.start_time ?? "").localeCompare(b.class_slots?.start_time ?? ""));
+        .filter((b): b is ClassBooking => b !== null)
+        .sort((a, b) => {
+          const dateCmp = (a.class_slots?.date ?? "").localeCompare(b.class_slots?.date ?? "");
+          if (dateCmp !== 0) return dateCmp;
+          return (a.class_slots?.start_time ?? "").localeCompare(b.class_slots?.start_time ?? "");
+        });
+
+      const todayWithNames = weekWithNames.filter((b) => b.class_slots?.date === todayStr);
 
       const monthRevenue = (monthPay.data ?? []).reduce((s: number, p: any) => s + (p.amount_cents ?? 0), 0);
 
       const days: Record<string, number> = {};
-      for (let i = 6; i >= 0; i--) {
-        days[ymd(subDays(new Date(), i))] = 0;
+      for (let i = 0; i < 7; i++) {
+        days[ymd(addDays(weekStart, i))] = 0;
       }
       (weekBookings ?? []).forEach((r) => {
         const d = (r as { class_slots: { date: string } | null }).class_slots?.date;
         if (d && d in days) days[d]++;
       });
       setSeries(Object.entries(days).map(([date, count]) => ({ date, count })));
-      setToday(todayWithNames);
+      setWeekClasses(weekWithNames);
+      setWeekBounds({ start: weekStart, end: weekEnd });
       setStats({
         total: total ?? 0, approved: approved ?? 0, pending: pending ?? 0,
         payPending: payPending ?? 0, todayClasses: todayWithNames.length, monthRevenue,
@@ -96,6 +128,20 @@ export default function AdminDashboard() {
   }, []);
 
   const max = Math.max(1, ...series.map((s) => s.count));
+
+  const selectedStr = ymd(selectedDate);
+  const dayClasses = useMemo(
+    () => weekClasses.filter((b) => b.class_slots?.date === selectedStr),
+    [weekClasses, selectedStr],
+  );
+
+  const atWeekStart = ymd(selectedDate) <= ymd(weekBounds.start);
+  const atWeekEnd = ymd(selectedDate) >= ymd(weekBounds.end);
+  const isToday = isSameDay(selectedDate, new Date());
+
+  const dayLabel = isToday
+    ? "Hoje"
+    : format(selectedDate, "EEEE, d 'de' MMMM", { locale: ptBR });
 
   return (
     <div className="space-y-8">
@@ -122,40 +168,90 @@ export default function AdminDashboard() {
           <div className="flex gap-3 h-40">
             {series.map((s) => {
               const barPct = max > 0 ? (s.count / max) * 100 : 0;
+              const isSelected = selectedStr === s.date;
               return (
-                <div key={s.date} className="flex-1 h-full flex flex-col items-center gap-2 min-w-0">
-                  <div className="flex-1 w-full flex flex-col justify-end min-h-0">
+                <button
+                  key={s.date}
+                  type="button"
+                  onClick={() => setSelectedDate(new Date(s.date + "T12:00:00"))}
+                  className={cn(
+                    "flex-1 h-full flex flex-col items-center gap-2 min-w-0 rounded-xl transition-colors cursor-pointer",
+                    "hover:bg-secondary/40 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary/50",
+                    isSelected && "bg-primary/10 ring-1 ring-primary/30",
+                  )}
+                  aria-pressed={isSelected}
+                  aria-label={`${s.count} agendamento(s) em ${format(new Date(s.date + "T12:00:00"), "EEEE", { locale: ptBR })}`}
+                >
+                  <div className="flex-1 w-full flex flex-col justify-end min-h-0 px-1">
                     <div
-                      className="w-full rounded-t-lg bg-gradient-to-t from-primary/60 to-accent transition-all duration-300"
+                      className={cn(
+                        "w-full rounded-t-lg bg-gradient-to-t transition-all duration-300",
+                        isSelected ? "from-primary to-accent" : "from-primary/60 to-accent",
+                      )}
                       style={{ height: s.count > 0 ? `${barPct}%` : 0, minHeight: s.count > 0 ? 4 : 0 }}
                     />
                   </div>
-                  <div className="text-[10px] text-muted-foreground shrink-0">
+                  <div className={cn("text-[10px] shrink-0 capitalize", isSelected ? "text-primary font-semibold" : "text-muted-foreground")}>
                     {new Date(s.date + "T12:00:00").toLocaleDateString("pt-BR", { weekday: "short" }).slice(0, 3)}
                   </div>
-                </div>
+                </button>
               );
             })}
           </div>
         </div>
 
-        <div className="glass-strong rounded-3xl p-6">
-          <h2 className="font-bold mb-4">Aulas de hoje</h2>
-          {today.length === 0 ? (
-            <p className="text-sm text-muted-foreground">Nenhuma aula agendada hoje.</p>
+        <div className="glass-strong rounded-3xl p-6 flex flex-col">
+          <div className="flex items-center justify-between gap-2 mb-4">
+            <h2 className="font-bold">Agenda</h2>
+            <div className="flex items-center gap-1">
+              <Button
+                variant="ghost"
+                size="icon"
+                className="h-8 w-8 rounded-lg"
+                disabled={atWeekStart}
+                onClick={() => setSelectedDate((d) => addDays(d, -1))}
+                aria-label="Dia anterior"
+              >
+                <ChevronLeft className="w-4 h-4" />
+              </Button>
+              <span className="text-xs font-medium capitalize min-w-[7rem] text-center">{dayLabel}</span>
+              <Button
+                variant="ghost"
+                size="icon"
+                className="h-8 w-8 rounded-lg"
+                disabled={atWeekEnd}
+                onClick={() => setSelectedDate((d) => addDays(d, 1))}
+                aria-label="Próximo dia"
+              >
+                <ChevronRight className="w-4 h-4" />
+              </Button>
+            </div>
+          </div>
+          {dayClasses.length === 0 ? (
+            <p className="text-sm text-muted-foreground">Nenhuma aula agendada neste dia.</p>
           ) : (
-            <div className="space-y-2">
-              {today.map((b) => (
-                <div key={b.id} className="flex items-center gap-3 p-2 rounded-xl bg-secondary/30">
-                  <div className="w-10 h-10 rounded-lg bg-primary/15 text-primary flex items-center justify-center text-xs font-bold">
-                    {b.class_slots?.start_time.slice(0, 5)}
+            <div className="space-y-2 flex-1 overflow-y-auto max-h-64">
+              {dayClasses.map((b) => {
+                const classType = (b.class_slots?.class_type ?? "avulsa_grupo") in TYPE_LABELS
+                  ? b.class_slots!.class_type
+                  : "avulsa_grupo";
+                return (
+                  <div key={b.id} className="flex items-start gap-3 p-3 rounded-xl bg-secondary/30">
+                    <div className="w-12 shrink-0 text-center">
+                      <div className="text-sm font-bold text-primary">{b.class_slots?.start_time.slice(0, 5)}</div>
+                    </div>
+                    <div className="w-px self-stretch bg-border/60 shrink-0" />
+                    <div className="flex-1 min-w-0">
+                      <div className="flex items-center gap-2 mb-0.5">
+                        <span className={`text-[10px] uppercase font-bold px-2 py-0.5 rounded-full border ${TYPE_COLORS[classType]}`}>
+                          {TYPE_LABELS[classType]}
+                        </span>
+                      </div>
+                      <div className="text-sm font-semibold truncate">{b.profiles?.full_name ?? "Aluno"}</div>
+                    </div>
                   </div>
-                  <div className="flex-1 min-w-0">
-                    <div className="text-sm font-semibold truncate">{b.profiles?.full_name ?? "Aluno"}</div>
-                    <div className="text-xs text-muted-foreground truncate">{b.class_slots?.location ?? "Local a definir"}</div>
-                  </div>
-                </div>
-              ))}
+                );
+              })}
             </div>
           )}
         </div>
