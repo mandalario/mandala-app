@@ -1,8 +1,13 @@
 import { describe, expect, it } from "vitest";
 import { format } from "date-fns";
 import {
+  formatForecastDayLabel,
+  getDefaultForecastDay,
   getForecastCalendarModifiers,
+  getForecastDayDate,
   getForecastWeekStart,
+  getRotatedForecastDays,
+  isRotatedForecastDayToday,
   seaStatusToCondition,
 } from "./seaForecastCalendar";
 
@@ -30,6 +35,76 @@ describe("getForecastWeekStart", () => {
   });
 });
 
+describe("getRotatedForecastDays", () => {
+  const fmt = (entry: { dayId: string; date: Date }) =>
+    `${entry.dayId} ${format(entry.date, "dd/MM")}`;
+
+  it("starts from today and moves passed days to the end on the next week", () => {
+    const weekStart = getForecastWeekStart(new Date(2026, 5, 10));
+    const rotated = getRotatedForecastDays(weekStart, new Date(2026, 5, 10));
+
+    expect(rotated.map(fmt)).toEqual([
+      "qua 10/06",
+      "qui 11/06",
+      "sex 12/06",
+      "sab 13/06",
+      "dom 14/06",
+      "seg 15/06",
+      "ter 16/06",
+    ]);
+  });
+
+  it("keeps chronological order when today is before the target week", () => {
+    const weekStart = getForecastWeekStart(new Date(2026, 5, 13));
+    const rotated = getRotatedForecastDays(weekStart, new Date(2026, 5, 13));
+
+    expect(rotated.map(fmt)).toEqual([
+      "dom 14/06",
+      "seg 15/06",
+      "ter 16/06",
+      "qua 17/06",
+      "qui 18/06",
+      "sex 19/06",
+      "sab 20/06",
+    ]);
+  });
+});
+
+describe("formatForecastDayLabel", () => {
+  it("includes day and month next to the weekday label", () => {
+    const weekStart = getForecastWeekStart(new Date(2026, 5, 9));
+    expect(formatForecastDayLabel("seg", getForecastDayDate("seg", weekStart))).toBe("Seg 08/06");
+    expect(formatForecastDayLabel("sab", getForecastDayDate("sab", weekStart))).toBe("Sáb 13/06");
+  });
+});
+
+describe("getDefaultForecastDay", () => {
+  const currentWeekForecast = {
+    updated_at: "2026-06-09T15:00:00.000Z",
+    seg: { status: "bom" as const },
+  };
+  const nextWeekForecast = {
+    updated_at: "2026-06-13T15:00:00.000Z",
+    seg: { status: "bom" as const },
+  };
+
+  it("selects today when inside the target week", () => {
+    expect(getDefaultForecastDay(currentWeekForecast, new Date(2026, 5, 9))).toBe("ter");
+  });
+
+  it("selects the first day when today is Saturday before the next target week", () => {
+    expect(getDefaultForecastDay(nextWeekForecast, new Date(2026, 5, 13))).toBe("dom");
+  });
+
+  it("marks today only on the rotated date", () => {
+    const weekStart = getForecastWeekStart(new Date(2026, 5, 13));
+    const rotated = getRotatedForecastDays(weekStart, new Date(2026, 5, 13));
+    const sunday = rotated[0];
+    expect(isRotatedForecastDayToday(sunday, new Date(2026, 5, 13))).toBe(false);
+    expect(isRotatedForecastDayToday(sunday, new Date(2026, 5, 14))).toBe(true);
+  });
+});
+
 describe("getForecastCalendarModifiers", () => {
   it("returns empty modifiers without updated_at", () => {
     const result = getForecastCalendarModifiers({
@@ -38,7 +113,7 @@ describe("getForecastCalendarModifiers", () => {
     expect(result.good).toHaveLength(0);
   });
 
-  it("marks only the week containing updated_at", () => {
+  it("rotates calendar marks from the update day", () => {
     const data = {
       updated_at: "2026-06-09T15:00:00.000Z",
       dom: { status: "flat" as const },
@@ -53,8 +128,8 @@ describe("getForecastCalendarModifiers", () => {
     const result = getForecastCalendarModifiers(data);
     const fmt = (d: Date) => format(d, "yyyy-MM-dd");
 
-    expect(result.flat.map(fmt)).toEqual(["2026-06-07", "2026-06-13"]);
-    expect(result.good.map(fmt)).toEqual(["2026-06-08", "2026-06-11", "2026-06-12"]);
+    expect(result.flat.map(fmt)).toEqual(["2026-06-13", "2026-06-14"]);
+    expect(result.good.map(fmt)).toEqual(["2026-06-11", "2026-06-12", "2026-06-15"]);
     expect(result.medium.map(fmt)).toEqual(["2026-06-09"]);
     expect(result.bad.map(fmt)).toEqual(["2026-06-10"]);
   });
@@ -89,6 +164,6 @@ describe("getForecastCalendarModifiers", () => {
 
     const result = getForecastCalendarModifiers(data);
     expect(result.bad.map((d) => format(d, "yyyy-MM-dd"))).toEqual(["2026-06-09"]);
-    expect(result.good.map((d) => format(d, "yyyy-MM-dd"))).toEqual(["2026-06-08"]);
+    expect(result.good.map((d) => format(d, "yyyy-MM-dd"))).toEqual(["2026-06-15"]);
   });
 });

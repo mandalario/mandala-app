@@ -10,9 +10,12 @@ import { Wind, Loader2, Plus, Trash2, ExternalLink, Globe, Waves, Star, Calendar
 import {
   CALENDAR_CONDITION_DOT_COLORS,
   CALENDAR_CONDITION_LABELS,
-  FORECAST_DAY_IDS,
-  FORECAST_DAY_LABELS,
+  FORECAST_EDITOR_DAY_IDS,
+  formatForecastDayLabel,
   getDayCalendarCondition,
+  getForecastWeekStart,
+  getRotatedForecastDays,
+  isRotatedForecastDayToday,
   seaStatusToCondition,
   type SeaStatus,
   type SurfConditionKey,
@@ -177,15 +180,20 @@ function defaultConfig(kind: string) {
   return { lat: -23.0, lon: -43.5 };
 }
 
-const daysOfWeekList = [
-  { id: "seg", label: "Segunda" },
-  { id: "ter", label: "Terça" },
-  { id: "qua", label: "Quarta" },
-  { id: "qui", label: "Quinta" },
-  { id: "sex", label: "Sexta" },
-  { id: "sab", label: "Sábado" },
-  { id: "dom", label: "Domingo" }
-];
+const FORECAST_EDITOR_DAY_LABELS: Record<(typeof FORECAST_EDITOR_DAY_IDS)[number], string> = {
+  seg: "Segunda",
+  ter: "Terça",
+  qua: "Quarta",
+  qui: "Quinta",
+  sex: "Sexta",
+  sab: "Sábado",
+  dom: "Domingo",
+};
+
+const daysOfWeekList = FORECAST_EDITOR_DAY_IDS.map((id) => ({
+  id,
+  label: FORECAST_EDITOR_DAY_LABELS[id],
+}));
 
 const defaultCondition = {
   location: "Arpoador, Rio de Janeiro, Brasil",
@@ -304,6 +312,8 @@ function SeaConditionCardEditor() {
     }));
   };
 
+  const rotatedDays = getRotatedForecastDays(getForecastWeekStart(new Date()), new Date());
+
   if (loading) {
     return (
       <div className="glass rounded-2xl p-6 text-center animate-pulse text-sm text-muted-foreground">
@@ -327,19 +337,20 @@ function SeaConditionCardEditor() {
       </div>
 
       <div className="flex gap-2 overflow-x-auto pb-2 scrollbar-hide">
-        {daysOfWeekList.map((d) => {
-          const dayEntry = weekData[d.id] || defaultCondition;
+        {rotatedDays.map(({ dayId, date }) => {
+          const dayEntry = weekData[dayId] || defaultCondition;
           const calendarCond = getDayCalendarCondition(dayEntry) ?? "good";
+          const isToday = isRotatedForecastDayToday({ dayId, date });
           return (
             <Button
-              key={d.id}
-              variant={activeDay === d.id ? "default" : "outline"}
+              key={`${dayId}-${formatForecastDayLabel(dayId, date)}`}
+              variant={activeDay === dayId ? "default" : "outline"}
               size="sm"
-              onClick={() => setActiveDay(d.id)}
-              className={`rounded-xl px-4 gap-1.5 ${activeDay === d.id ? "bg-primary text-primary-foreground" : "bg-background/50"}`}
+              onClick={() => setActiveDay(dayId)}
+              className={`rounded-xl px-4 gap-1.5 ${activeDay === dayId ? "bg-primary text-primary-foreground" : "bg-background/50"}`}
             >
               <span className={`w-2 h-2 rounded-full shrink-0 ${CALENDAR_CONDITION_DOT_COLORS[calendarCond]}`} />
-              {d.label}
+              {isToday ? "Hoje" : FORECAST_EDITOR_DAY_LABELS[dayId]}
             </Button>
           );
         })}
@@ -356,14 +367,16 @@ function SeaConditionCardEditor() {
           </div>
         </div>
         <div className="grid grid-cols-2 sm:grid-cols-4 lg:grid-cols-7 gap-2">
-          {FORECAST_DAY_IDS.map((dayId) => {
+          {rotatedDays.map(({ dayId, date }) => {
             const dayEntry = weekData[dayId] || defaultCondition;
             const calendarCond = getDayCalendarCondition(dayEntry) ?? "good";
             return (
-              <div key={dayId} className="space-y-1">
+              <div key={`${dayId}-${date.toISOString()}`} className="space-y-1">
                 <div className="flex items-center gap-1.5">
                   <span className={`w-2 h-2 rounded-full shrink-0 ${CALENDAR_CONDITION_DOT_COLORS[calendarCond]}`} />
-                  <span className="text-[11px] font-semibold text-muted-foreground">{FORECAST_DAY_LABELS[dayId]}</span>
+                  <span className="text-[11px] font-semibold text-muted-foreground">
+                    {formatForecastDayLabel(dayId, date)}
+                  </span>
                 </div>
                 <select
                   value={calendarCond}

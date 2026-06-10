@@ -1,10 +1,12 @@
 import { useEffect, useMemo, useState } from "react";
 import { Link } from "react-router-dom";
-import { addDays, format, isSameDay, startOfWeek } from "date-fns";
+import { addDays, format } from "date-fns";
 import { ptBR } from "date-fns/locale";
 import { supabase } from "@/integrations/supabase/client";
 import { Users, CheckCircle2, Hourglass, TrendingUp, DollarSign, CalendarDays, ChevronLeft, ChevronRight } from "lucide-react";
 import { Button } from "@/components/ui/button";
+import { getRollingWeekBounds, ymdToLocalNoon } from "@/lib/rollingWeek";
+import { getScheduleNowParts } from "@/lib/slotSchedule";
 import { cn } from "@/lib/utils";
 
 const ymd = (d: Date) => format(d, "yyyy-MM-dd");
@@ -37,11 +39,14 @@ export default function AdminDashboard() {
   useEffect(() => {
     (async () => {
       const now = new Date();
-      const todayStr = ymd(now);
-      const weekStart = startOfWeek(now, { weekStartsOn: 0 });
-      const weekEnd = addDays(weekStart, 6);
-      const chartWeekStartStr = ymd(weekStart);
-      const chartWeekEndStr = ymd(weekEnd);
+      const {
+        startYmd: todayStr,
+        startYmd: chartWeekStartStr,
+        endYmd: chartWeekEndStr,
+        dates: chartDates,
+        start: chartStart,
+        end: chartEnd,
+      } = getRollingWeekBounds(now);
       const monthStart = new Date(); monthStart.setDate(1);
       const monthStartStr = ymd(monthStart);
 
@@ -109,17 +114,14 @@ export default function AdminDashboard() {
 
       const monthRevenue = (monthPay.data ?? []).reduce((s: number, p: any) => s + (p.amount_cents ?? 0), 0);
 
-      const days: Record<string, number> = {};
-      for (let i = 0; i < 7; i++) {
-        days[ymd(addDays(weekStart, i))] = 0;
-      }
+      const days: Record<string, number> = Object.fromEntries(chartDates.map((date) => [date, 0]));
       (weekBookings ?? []).forEach((r) => {
         const d = (r as { class_slots: { date: string } | null }).class_slots?.date;
         if (d && d in days) days[d]++;
       });
       setSeries(Object.entries(days).map(([date, count]) => ({ date, count })));
       setWeekClasses(weekWithNames);
-      setWeekBounds({ start: weekStart, end: weekEnd });
+      setWeekBounds({ start: chartStart, end: chartEnd });
       setStats({
         total: total ?? 0, approved: approved ?? 0, pending: pending ?? 0,
         payPending: payPending ?? 0, todayClasses: todayWithNames.length, monthRevenue,
@@ -137,7 +139,8 @@ export default function AdminDashboard() {
 
   const atWeekStart = ymd(selectedDate) <= ymd(weekBounds.start);
   const atWeekEnd = ymd(selectedDate) >= ymd(weekBounds.end);
-  const isToday = isSameDay(selectedDate, new Date());
+  const todayYmd = getScheduleNowParts().date;
+  const isToday = ymd(selectedDate) === todayYmd;
 
   const dayLabel = isToday
     ? "Hoje"
@@ -173,14 +176,14 @@ export default function AdminDashboard() {
                 <button
                   key={s.date}
                   type="button"
-                  onClick={() => setSelectedDate(new Date(s.date + "T12:00:00"))}
+                  onClick={() => setSelectedDate(ymdToLocalNoon(s.date))}
                   className={cn(
                     "flex-1 h-full flex flex-col items-center gap-2 min-w-0 rounded-xl transition-colors cursor-pointer",
                     "hover:bg-secondary/40 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary/50",
                     isSelected && "bg-primary/10 ring-1 ring-primary/30",
                   )}
                   aria-pressed={isSelected}
-                  aria-label={`${s.count} agendamento(s) em ${format(new Date(s.date + "T12:00:00"), "EEEE", { locale: ptBR })}`}
+                  aria-label={`${s.count} agendamento(s) em ${format(ymdToLocalNoon(s.date), "EEEE", { locale: ptBR })}`}
                 >
                   <div className="flex-1 w-full flex flex-col justify-end min-h-0 px-1">
                     <div
@@ -192,7 +195,7 @@ export default function AdminDashboard() {
                     />
                   </div>
                   <div className={cn("text-[10px] shrink-0 capitalize", isSelected ? "text-primary font-semibold" : "text-muted-foreground")}>
-                    {new Date(s.date + "T12:00:00").toLocaleDateString("pt-BR", { weekday: "short" }).slice(0, 3)}
+                    {ymdToLocalNoon(s.date).toLocaleDateString("pt-BR", { weekday: "short" }).slice(0, 3)}
                   </div>
                 </button>
               );

@@ -1,4 +1,4 @@
-import { addDays, startOfWeek } from "date-fns";
+import { addDays, format, startOfDay, startOfWeek } from "date-fns";
 
 export type SeaStatus = "excelente" | "bom" | "medio" | "ruim" | "flat";
 export type SurfConditionKey = "good" | "medium" | "bad" | "flat";
@@ -48,7 +48,12 @@ export const CALENDAR_CONDITION_DOT_COLORS: Record<SurfConditionKey, string> = O
 ) as Record<SurfConditionKey, string>;
 
 export const FORECAST_DAY_IDS = ["dom", "seg", "ter", "qua", "qui", "sex", "sab"] as const;
-export const FORECAST_DAY_LABELS: Record<(typeof FORECAST_DAY_IDS)[number], string> = {
+export type ForecastDayId = (typeof FORECAST_DAY_IDS)[number];
+
+/** Monday-first order for forecast editors and student day picker. */
+export const FORECAST_EDITOR_DAY_IDS = ["seg", "ter", "qua", "qui", "sex", "sab", "dom"] as const;
+
+export const FORECAST_DAY_LABELS: Record<ForecastDayId, string> = {
   dom: "Dom",
   seg: "Seg",
   ter: "Ter",
@@ -60,8 +65,6 @@ export const FORECAST_DAY_LABELS: Record<(typeof FORECAST_DAY_IDS)[number], stri
 export type WeeklySeaForecast = Record<string, DaySeaForecast | string | undefined> & {
   updated_at?: string;
 };
-
-const DAY_IDS = FORECAST_DAY_IDS;
 
 export function getDayCalendarCondition(day: DaySeaForecast): SurfConditionKey | null {
   if (day.calendar_condition) return day.calendar_condition;
@@ -102,6 +105,92 @@ export function getForecastWeekStart(referenceDate: Date): Date {
   return weekStart;
 }
 
+export function getForecastTargetWeekStart(
+  data: WeeklySeaForecast | null | undefined,
+  now: Date = new Date(),
+): Date {
+  if (data?.updated_at) {
+    const updatedAt = new Date(data.updated_at);
+    if (!Number.isNaN(updatedAt.getTime())) {
+      return getForecastWeekStart(updatedAt);
+    }
+  }
+  return startOfWeek(now, { weekStartsOn: 0 });
+}
+
+export function getForecastDayDate(dayId: ForecastDayId, weekStart: Date): Date {
+  const index = FORECAST_DAY_IDS.indexOf(dayId);
+  return addDays(weekStart, index);
+}
+
+export function formatForecastDayLabel(
+  dayId: ForecastDayId,
+  date: Date,
+  dateFormat = "dd/MM",
+): string {
+  return `${FORECAST_DAY_LABELS[dayId]} ${format(date, dateFormat)}`;
+}
+
+export type RotatedForecastDay = {
+  dayId: ForecastDayId;
+  date: Date;
+};
+
+/**
+ * Rotates the forecast week starting from today. Days already passed move to the end
+ * with dates from the following week (e.g. on Wed: Qua→today, …, Dom/Seg/Ter→next week).
+ */
+export function getRotatedForecastDays(
+  weekStart: Date,
+  now: Date = new Date(),
+): RotatedForecastDay[] {
+  const weekStartDay = startOfDay(weekStart);
+  const weekEndDay = startOfDay(addDays(weekStart, 6));
+  const today = startOfDay(now);
+  const chronologicalIds = [...FORECAST_DAY_IDS];
+
+  if (today < weekStartDay || today > weekEndDay) {
+    return chronologicalIds.map((dayId) => ({
+      dayId,
+      date: getForecastDayDate(dayId, weekStart),
+    }));
+  }
+
+  const todayDayId = FORECAST_DAY_IDS[now.getDay()];
+  const todayIndex = chronologicalIds.indexOf(todayDayId);
+  const remaining = chronologicalIds.slice(todayIndex);
+  const passed = chronologicalIds.slice(0, todayIndex);
+
+  return [
+    ...remaining.map((dayId) => ({
+      dayId,
+      date: getForecastDayDate(dayId, weekStart),
+    })),
+    ...passed.map((dayId) => ({
+      dayId,
+      date: addDays(getForecastDayDate(dayId, weekStart), 7),
+    })),
+  ];
+}
+
+export function isRotatedForecastDayToday(
+  entry: RotatedForecastDay,
+  now: Date = new Date(),
+): boolean {
+  return format(startOfDay(entry.date), "yyyy-MM-dd") === format(startOfDay(now), "yyyy-MM-dd");
+}
+
+/** Picks the day tab based on the forecast target week (same rotation as the calendar). */
+export function getDefaultForecastDay(
+  data: WeeklySeaForecast | null | undefined,
+  now: Date = new Date(),
+): ForecastDayId {
+  const weekStart = getForecastTargetWeekStart(data, now);
+  const rotated = getRotatedForecastDays(weekStart, now);
+  const todayEntry = rotated.find((entry) => isRotatedForecastDayToday(entry, now));
+  return todayEntry?.dayId ?? rotated[0]?.dayId ?? "dom";
+}
+
 /** Maps the 7 days of the week when the forecast was last updated to calendar condition colors. */
 export function getForecastCalendarModifiers(
   data: WeeklySeaForecast | null | undefined,
@@ -119,14 +208,14 @@ export function getForecastCalendarModifiers(
   if (Number.isNaN(updatedAt.getTime())) return result;
 
   const weekStart = getForecastWeekStart(updatedAt);
+  const rotatedDays = getRotatedForecastDays(weekStart, updatedAt);
 
-  for (let i = 0; i < 7; i++) {
-    const dayId = DAY_IDS[i];
+  for (const { dayId, date } of rotatedDays) {
     const dayEntry = data[dayId];
     if (!dayEntry || typeof dayEntry !== "object") continue;
     const condition = getDayCalendarCondition(dayEntry);
     if (!condition) continue;
-    result[condition].push(addDays(weekStart, i));
+    result[condition].push(date);
   }
 
   return result;

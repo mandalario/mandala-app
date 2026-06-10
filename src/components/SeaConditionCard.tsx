@@ -1,4 +1,5 @@
 import { useEffect, useMemo, useState } from "react";
+import { format } from "date-fns";
 import { supabase } from "@/integrations/supabase/client";
 import { Waves, Timer, Navigation, Wind, Thermometer, Droplets } from "lucide-react";
 import { useTranslation } from "@/i18n/LanguageContext";
@@ -9,7 +10,14 @@ import {
   CALENDAR_CONDITION_LEGEND_CLASSES,
   CALENDAR_CONDITION_DOT_COLORS,
   getDayCalendarCondition,
+  getDefaultForecastDay,
+  getForecastTargetWeekStart,
+  getRotatedForecastDays,
+  isRotatedForecastDayToday,
+  isWeeklySeaForecast,
+  type ForecastDayId,
   type SurfConditionKey,
+  type WeeklySeaForecast,
 } from "@/lib/seaForecastCalendar";
 
 type SeaCondition = {
@@ -26,8 +34,15 @@ type SeaCondition = {
   updated_at?: string;
 };
 
-const DAY_IDS = ["dom", "seg", "ter", "qua", "qui", "sex", "sab"] as const;
-const DAY_LOCALE_KEYS = ["sun", "mon", "tue", "wed", "thu", "fri", "sat"] as const;
+const DAY_LOCALE_KEYS: Record<ForecastDayId, string> = {
+  seg: "mon",
+  ter: "tue",
+  qua: "wed",
+  qui: "thu",
+  sex: "fri",
+  sab: "sat",
+  dom: "sun",
+};
 
 export function SeaConditionCard() {
   const { t, language } = useTranslation();
@@ -49,20 +64,23 @@ export function SeaConditionCard() {
     [t],
   );
 
-  const daysOfWeekList = useMemo(
-    () =>
-      DAY_IDS.map((id, i) => ({
-        id,
-        label: t(`seaCondition.weekdays.${DAY_LOCALE_KEYS[i]}`),
-      })),
-    [t],
-  );
-
   const [data, setData] = useState<Record<string, SeaCondition> | SeaCondition | null>(null);
   const [loading, setLoading] = useState(true);
 
-  const todayIndex = new Date().getDay();
-  const [selectedDay, setSelectedDay] = useState(DAY_IDS[todayIndex]);
+  const weeklyForecast = isWeeklySeaForecast(data) ? (data as WeeklySeaForecast) : null;
+  const rotatedDays = getRotatedForecastDays(
+    getForecastTargetWeekStart(weeklyForecast),
+    new Date(),
+  );
+  const [selectedDay, setSelectedDay] = useState<ForecastDayId>(() =>
+    getDefaultForecastDay(weeklyForecast),
+  );
+
+  useEffect(() => {
+    if (weeklyForecast) {
+      setSelectedDay(getDefaultForecastDay(weeklyForecast));
+    }
+  }, [data]);
 
   useEffect(() => {
     const load = async () => {
@@ -169,18 +187,19 @@ export function SeaConditionCard() {
       {isWeeklyFormat && (
         <div className="bg-[#0b3350]/90 backdrop-blur-md px-5 py-3 border-t border-white/5 overflow-x-auto scrollbar-hide">
           <div className="flex gap-2 w-max">
-            {daysOfWeekList.map((d) => {
-              const isSelected = selectedDay === d.id;
-              const isToday = d.id === DAY_IDS[todayIndex];
+            {rotatedDays.map(({ dayId, date }) => {
+              const isSelected = selectedDay === dayId;
+              const isToday = isRotatedForecastDayToday({ dayId, date });
               const dayData = isWeeklyFormat
-                ? ((stored as Record<string, SeaCondition>)[d.id] ?? defaultData)
+                ? ((stored as Record<string, SeaCondition>)[dayId] ?? defaultData)
                 : defaultData;
               const dayCond = getDayCalendarCondition(dayData) ?? "good";
+              const weekdayLabel = t(`seaCondition.weekdays.${DAY_LOCALE_KEYS[dayId]}`);
               return (
                 <button
-                  key={d.id}
+                  key={`${dayId}-${date.toISOString()}`}
                   type="button"
-                  onClick={() => setSelectedDay(d.id)}
+                  onClick={() => setSelectedDay(dayId)}
                   className={`inline-flex items-center gap-1.5 px-3 py-1.5 rounded-xl text-xs font-bold transition-all ${
                     isSelected
                       ? "bg-sky-400 text-[#092942] shadow-sm shadow-sky-400/20 scale-105"
@@ -188,7 +207,7 @@ export function SeaConditionCard() {
                   }`}
                 >
                   <span className={`w-1.5 h-1.5 rounded-full shrink-0 ${CALENDAR_CONDITION_DOT_COLORS[dayCond]}`} />
-                  {isToday ? t("seaCondition.today") : d.label}
+                  {isToday ? t("seaCondition.today") : `${weekdayLabel} ${format(date, "dd/MM")}`}
                 </button>
               );
             })}
