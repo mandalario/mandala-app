@@ -52,6 +52,7 @@ describe("getRotatedForecastDays", () => {
       "seg 15/06",
       "ter 16/06",
     ]);
+    expect(rotated.filter((d) => d.deferred).map((d) => d.dayId)).toEqual(["dom", "seg", "ter"]);
   });
 
   it("keeps chronological order when today is before the target week", () => {
@@ -128,8 +129,8 @@ describe("getForecastCalendarModifiers", () => {
     const result = getForecastCalendarModifiers(data);
     const fmt = (d: Date) => format(d, "yyyy-MM-dd");
 
-    expect(result.flat.map(fmt)).toEqual(["2026-06-13", "2026-06-14"]);
-    expect(result.good.map(fmt)).toEqual(["2026-06-11", "2026-06-12", "2026-06-15"]);
+    expect(result.flat.map(fmt)).toEqual(["2026-06-13"]);
+    expect(result.good.map(fmt)).toEqual(["2026-06-11", "2026-06-12"]);
     expect(result.medium.map(fmt)).toEqual(["2026-06-09"]);
     expect(result.bad.map(fmt)).toEqual(["2026-06-10"]);
   });
@@ -164,6 +165,6 @@ describe("getForecastCalendarModifiers", () => {
 
     const result = getForecastCalendarModifiers(data);
     expect(result.bad.map((d) => format(d, "yyyy-MM-dd"))).toEqual(["2026-06-09"]);
-    expect(result.good.map((d) => format(d, "yyyy-MM-dd"))).toEqual(["2026-06-15"]);
+    expect(result.good).toHaveLength(0);
   });
 });

@@ -134,6 +134,8 @@ export function formatForecastDayLabel(
 export type RotatedForecastDay = {
   dayId: ForecastDayId;
   date: Date;
+  /** Passed days shown at the end for a future edit — not painted on the calendar yet. */
+  deferred: boolean;
 };
 
 /**
@@ -153,6 +155,7 @@ export function getRotatedForecastDays(
     return chronologicalIds.map((dayId) => ({
       dayId,
       date: getForecastDayDate(dayId, weekStart),
+      deferred: false,
     }));
   }
 
@@ -165,10 +168,12 @@ export function getRotatedForecastDays(
     ...remaining.map((dayId) => ({
       dayId,
       date: getForecastDayDate(dayId, weekStart),
+      deferred: false,
     })),
     ...passed.map((dayId) => ({
       dayId,
       date: addDays(getForecastDayDate(dayId, weekStart), 7),
+      deferred: true,
     })),
   ];
 }
@@ -210,7 +215,8 @@ export function getForecastCalendarModifiers(
   const weekStart = getForecastWeekStart(updatedAt);
   const rotatedDays = getRotatedForecastDays(weekStart, updatedAt);
 
-  for (const { dayId, date } of rotatedDays) {
+  for (const { dayId, date, deferred } of rotatedDays) {
+    if (deferred) continue;
     const dayEntry = data[dayId];
     if (!dayEntry || typeof dayEntry !== "object") continue;
     const condition = getDayCalendarCondition(dayEntry);
