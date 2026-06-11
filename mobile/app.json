@@ -21,8 +21,9 @@
       [
         "expo-notifications",
         {
+          "icon": "./assets/notification-icon.png",
           "defaultChannel": "mandalario-alerts",
-          "color": "#22c55e",
+          "color": "#0b1e3a",
           "enableBackgroundRemoteNotifications": true
         }
       ],
@@ -52,7 +53,7 @@
     "android": {
       "adaptiveIcon": {
         "foregroundImage": "./assets/adaptive-icon.png",
-        "backgroundColor": "#ffffff"
+        "backgroundColor": "#000000"
       },
       "package": "app.mandalario",
       "googleServicesFile": "./google-services.json",
