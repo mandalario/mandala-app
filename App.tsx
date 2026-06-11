@@ -176,7 +176,7 @@ export default function App() {
     async function setupNotificationChannel() {
       if (Platform.OS !== "android") return;
       await Notifications.setNotificationChannelAsync(PUSH_CHANNEL_ID, {
-        name: "Avisos do Mandalario",
+        name: "Mandala Rio Surf School",
         description: "Aulas, agendamentos e mensagens da escola.",
         importance: Notifications.AndroidImportance.HIGH,
         vibrationPattern: [0, 200, 100, 200],

@@ -1,6 +1,6 @@
 {
   "expo": {
-    "name": "Mandalario",
+    "name": "Mandala Rio Surf School",
     "slug": "mandalario",
     "version": "1.0.0",
     "orientation": "portrait",
@@ -47,7 +47,7 @@
         "applinks:mandalario.app"
       ],
       "infoPlist": {
-        "NSUserNotificationsUsageDescription": "Receba avisos sobre suas aulas, agendamentos e mensagens da escola Mandalario."
+        "NSUserNotificationsUsageDescription": "Receba avisos sobre suas aulas, agendamentos e mensagens da Mandala Rio Surf School."
       }
     },
     "android": {
