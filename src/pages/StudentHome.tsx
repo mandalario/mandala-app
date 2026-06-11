@@ -15,6 +15,7 @@ import logoMandala from "@/assets/logo-mandala.png";
 import { useTranslation } from "@/i18n/LanguageContext";
 import { intlLocaleFor } from "@/i18n/dateLocale";
 import { LanguageSwitcher } from "@/components/LanguageSwitcher";
+import { InstagramLink } from "@/components/InstagramLink";
 import { useBillingEnabled } from "@/hooks/useBillingEnabled";
 
 type NextBooking = { id: string; status: string; class_slots: { date: string; start_time: string; location: string | null; notes: string | null } | null };
@@ -74,15 +75,18 @@ export default function StudentHome() {
       <OceanBackground />
 
       {/* Top brand bar */}
-      <div className="px-5 pt-6 flex items-center justify-between gap-3 relative z-30">
-        <div className="flex items-center gap-3 min-w-0">
-          <div className="w-12 h-12 rounded-2xl bg-white flex items-center justify-center p-1 shadow-soft shrink-0">
-            <img src={logoMandala} alt="Mandala Rio Surf School" className="w-full h-full object-contain" />
+      <div className="px-5 pt-6 flex items-start justify-between gap-3 relative z-30">
+        <div className="flex flex-col items-start gap-1.5 min-w-0">
+          <div className="flex items-center gap-3 min-w-0">
+            <div className="w-12 h-12 rounded-2xl bg-white flex items-center justify-center p-1 shadow-soft shrink-0">
+              <img src={logoMandala} alt="Mandala Rio Surf School" className="w-full h-full object-contain" />
+            </div>
+            <div className="leading-tight min-w-0">
+              <p className="text-lg font-bold tracking-tight truncate">Mandala Rio</p>
+              <p className="text-[11px] uppercase tracking-[0.28em] text-sky-300/90 mt-0.5">{t("dashboard.schoolTagline")}</p>
+            </div>
           </div>
-          <div className="leading-tight min-w-0">
-            <p className="text-sm font-bold tracking-tight truncate">Mandala Rio</p>
-            <p className="text-[9px] uppercase tracking-[0.3em] text-sky-300/90">{t("dashboard.schoolTagline")}</p>
-          </div>
+          <InstagramLink compact variant="pill" className="mt-0" />
         </div>
         <div className="flex flex-col items-end gap-2 shrink-0">
           <div className="flex items-center gap-2">

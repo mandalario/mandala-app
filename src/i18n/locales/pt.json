@@ -20,7 +20,10 @@
   },
   "brand": {
     "name": "Mandala Rio",
-    "tagline": "Surf School"
+    "tagline": "Surf School",
+    "instagramCta": "Veja nossas ondas no Instagram!",
+    "instagramCtaShort": "Siga no Instagram!",
+    "instagramAria": "Abrir perfil @rjmandala no Instagram"
   },
   "appDownload": {
     "title": "Baixe o app Mandalario",
