@@ -198,7 +198,6 @@ const daysOfWeekList = FORECAST_EDITOR_DAY_IDS.map((id) => ({
 const defaultCondition = {
   location: "Arpoador, Rio de Janeiro, Brasil",
   summary: "Céu limpo e mar glass",
-  calendar_condition: "good" as SurfConditionKey,
   waves: "1.2m",
   period: "10s",
   wave_dir: "SSE",
@@ -210,12 +209,13 @@ const defaultCondition = {
 
 function enrichDayEntry(entry: Record<string, unknown> | undefined) {
   const legacyStatus = entry?.status as SeaStatus | undefined;
+  const calendarCondition =
+    (entry?.calendar_condition as SurfConditionKey | undefined) ??
+    (legacyStatus ? seaStatusToCondition(legacyStatus) : undefined);
   return {
     ...defaultCondition,
     ...entry,
-    calendar_condition:
-      (entry?.calendar_condition as SurfConditionKey | undefined) ??
-      (legacyStatus ? seaStatusToCondition(legacyStatus) : defaultCondition.calendar_condition),
+    ...(calendarCondition ? { calendar_condition: calendarCondition } : {}),
   };
 }
 
@@ -303,13 +303,15 @@ function SeaConditionCardEditor() {
   };
 
   const handleDayChange = (dayId: string, key: string, val: unknown) => {
-    setWeekData((prev) => ({
-      ...prev,
-      [dayId]: {
-        ...(prev[dayId] || defaultCondition),
-        [key]: val,
-      },
-    }));
+    setWeekData((prev) => {
+      const nextDay = { ...(prev[dayId] || defaultCondition) };
+      if (key === "calendar_condition" && val === "") {
+        delete nextDay.calendar_condition;
+      } else {
+        (nextDay as Record<string, unknown>)[key] = val;
+      }
+      return { ...prev, [dayId]: nextDay };
+    });
   };
 
   const rotatedDays = getRotatedForecastDays(getForecastWeekStart(new Date()), new Date());
@@ -338,8 +340,8 @@ function SeaConditionCardEditor() {
 
       <div className="flex gap-2 overflow-x-auto pb-2 scrollbar-hide">
         {rotatedDays.map(({ dayId, date }) => {
-          const dayEntry = weekData[dayId] || defaultCondition;
-          const calendarCond = getDayCalendarCondition(dayEntry) ?? "good";
+          const dayEntry = weekData[dayId];
+          const calendarCond = getDayCalendarCondition(dayEntry);
           const isToday = isRotatedForecastDayToday({ dayId, date });
           return (
             <Button
@@ -349,7 +351,11 @@ function SeaConditionCardEditor() {
               onClick={() => setActiveDay(dayId)}
               className={`rounded-xl px-4 gap-1.5 ${activeDay === dayId ? "bg-primary text-primary-foreground" : "bg-background/50"}`}
             >
-              <span className={`w-2 h-2 rounded-full shrink-0 ${CALENDAR_CONDITION_DOT_COLORS[calendarCond]}`} />
+              <span
+                className={`w-2 h-2 rounded-full shrink-0 ${
+                  calendarCond ? CALENDAR_CONDITION_DOT_COLORS[calendarCond] : "bg-transparent"
+                }`}
+              />
               {isToday ? "Hoje" : FORECAST_EDITOR_DAY_LABELS[dayId]}
             </Button>
           );
@@ -368,21 +374,26 @@ function SeaConditionCardEditor() {
         </div>
         <div className="grid grid-cols-2 sm:grid-cols-4 lg:grid-cols-7 gap-2">
           {rotatedDays.map(({ dayId, date }) => {
-            const dayEntry = weekData[dayId] || defaultCondition;
-            const calendarCond = getDayCalendarCondition(dayEntry) ?? "good";
+            const dayEntry = weekData[dayId];
+            const calendarCond = getDayCalendarCondition(dayEntry);
             return (
               <div key={`${dayId}-${date.toISOString()}`} className="space-y-1">
                 <div className="flex items-center gap-1.5">
-                  <span className={`w-2 h-2 rounded-full shrink-0 ${CALENDAR_CONDITION_DOT_COLORS[calendarCond]}`} />
+                  <span
+                    className={`w-2 h-2 rounded-full shrink-0 ${
+                      calendarCond ? CALENDAR_CONDITION_DOT_COLORS[calendarCond] : "bg-transparent"
+                    }`}
+                  />
                   <span className="text-[11px] font-semibold text-muted-foreground">
                     {formatForecastDayLabel(dayId, date)}
                   </span>
                 </div>
                 <select
-                  value={calendarCond}
-                  onChange={(e) => handleDayChange(dayId, "calendar_condition", e.target.value as SurfConditionKey)}
+                  value={calendarCond ?? ""}
+                  onChange={(e) => handleDayChange(dayId, "calendar_condition", e.target.value)}
                   className="w-full h-9 rounded-xl border border-white/10 bg-background/50 px-2 text-xs focus:outline-none focus:ring-1 focus:ring-primary"
                 >
+                  <option value="">Sem cor</option>
                   {(Object.keys(CALENDAR_CONDITION_LABELS) as SurfConditionKey[]).map((key) => (
                     <option key={key} value={key}>{CALENDAR_CONDITION_LABELS[key]}</option>
                   ))}

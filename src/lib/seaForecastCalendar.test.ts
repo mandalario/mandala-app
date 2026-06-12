@@ -7,6 +7,7 @@ import {
   getForecastDayDate,
   getForecastWeekStart,
   getRotatedForecastDays,
+  isForecastDayConfigured,
   isRotatedForecastDayToday,
   seaStatusToCondition,
 } from "./seaForecastCalendar";
@@ -103,6 +104,19 @@ describe("getDefaultForecastDay", () => {
     const sunday = rotated[0];
     expect(isRotatedForecastDayToday(sunday, new Date(2026, 5, 13))).toBe(false);
     expect(isRotatedForecastDayToday(sunday, new Date(2026, 5, 14))).toBe(true);
+  });
+});
+
+describe("isForecastDayConfigured", () => {
+  it("returns false for missing or uncolored days", () => {
+    const data = {
+      updated_at: "2026-06-09T15:00:00.000Z",
+      qua: { waves: "1.0m" },
+      qui: { calendar_condition: "good" as const },
+    };
+    expect(isForecastDayConfigured(data, "seg")).toBe(false);
+    expect(isForecastDayConfigured(data, "qua")).toBe(false);
+    expect(isForecastDayConfigured(data, "qui")).toBe(true);
   });
 });
 

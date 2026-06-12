@@ -66,10 +66,21 @@ export type WeeklySeaForecast = Record<string, DaySeaForecast | string | undefin
   updated_at?: string;
 };
 
-export function getDayCalendarCondition(day: DaySeaForecast): SurfConditionKey | null {
+export function getDayCalendarCondition(day: DaySeaForecast | undefined | null): SurfConditionKey | null {
+  if (!day || typeof day !== "object") return null;
   if (day.calendar_condition) return day.calendar_condition;
   if (day.status) return seaStatusToCondition(day.status);
   return null;
+}
+
+/** True when the day has an explicit forecast entry in stored weekly data. */
+export function isForecastDayConfigured(
+  data: WeeklySeaForecast | null | undefined,
+  dayId: ForecastDayId,
+): boolean {
+  if (!data || typeof data !== "object") return false;
+  const day = data[dayId];
+  return !!day && typeof day === "object" && getDayCalendarCondition(day) !== null;
 }
 
 export function seaStatusToCondition(status: SeaStatus): SurfConditionKey {

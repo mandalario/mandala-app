@@ -135,13 +135,17 @@ export function SeaConditionCard() {
 
   const stored = data ?? defaultData;
   const isWeeklyFormat = stored !== null && typeof stored === "object" && "seg" in stored;
+  const weeklyStored = isWeeklyFormat ? (stored as Record<string, SeaCondition>) : null;
+  const storedDay = weeklyStored?.[selectedDay];
   const activeData: SeaCondition = isWeeklyFormat
-    ? ((stored as Record<string, SeaCondition>)[selectedDay] ?? defaultData)
+    ? (storedDay ?? defaultData)
     : ((stored as SeaCondition) ?? defaultData);
 
   const summary = translateStudentContent("seaSummary", activeData.summary, language);
   const idealFor = translateStudentContent("seaIdealFor", activeData.ideal_for, language);
-  const calendarCondition = getDayCalendarCondition(activeData) ?? "good";
+  const calendarCondition = isWeeklyFormat
+    ? getDayCalendarCondition(storedDay)
+    : getDayCalendarCondition(activeData);
 
   const calendarConditionLabel = (key: SurfConditionKey) =>
     t(`seaCondition.calendarCondition.${key}`);
@@ -166,22 +170,24 @@ export function SeaConditionCard() {
         <h3 className="text-xl font-bold mt-1.5 text-white tracking-tight">{activeData.location}</h3>
         <p className="text-xs text-sky-100/80 mt-1 italic font-medium">{summary}</p>
 
-        <div className="mt-4">
-          <span
-            className={cn(
-              "inline-flex items-center gap-2 text-xs font-semibold px-3 py-1.5 rounded-full border",
-              CALENDAR_CONDITION_LEGEND_CLASSES[calendarCondition].active,
-            )}
-          >
+        {calendarCondition && (
+          <div className="mt-4">
             <span
               className={cn(
-                "w-2.5 h-2.5 rounded-full shrink-0",
-                CALENDAR_CONDITION_LEGEND_CLASSES[calendarCondition].dot,
+                "inline-flex items-center gap-2 text-xs font-semibold px-3 py-1.5 rounded-full border",
+                CALENDAR_CONDITION_LEGEND_CLASSES[calendarCondition].active,
               )}
-            />
-            {calendarConditionLabel(calendarCondition)}
-          </span>
-        </div>
+            >
+              <span
+                className={cn(
+                  "w-2.5 h-2.5 rounded-full shrink-0",
+                  CALENDAR_CONDITION_LEGEND_CLASSES[calendarCondition].dot,
+                )}
+              />
+              {calendarConditionLabel(calendarCondition)}
+            </span>
+          </div>
+        )}
       </div>
 
       {isWeeklyFormat && (
@@ -190,10 +196,8 @@ export function SeaConditionCard() {
             {rotatedDays.map(({ dayId, date }) => {
               const isSelected = selectedDay === dayId;
               const isToday = isRotatedForecastDayToday({ dayId, date });
-              const dayData = isWeeklyFormat
-                ? ((stored as Record<string, SeaCondition>)[dayId] ?? defaultData)
-                : defaultData;
-              const dayCond = getDayCalendarCondition(dayData) ?? "good";
+              const dayData = weeklyStored?.[dayId];
+              const dayCond = getDayCalendarCondition(dayData);
               const weekdayLabel = t(`seaCondition.weekdays.${DAY_LOCALE_KEYS[dayId]}`);
               return (
                 <button
@@ -206,7 +210,11 @@ export function SeaConditionCard() {
                       : "bg-white/5 text-sky-200/60 hover:bg-white/10 hover:text-sky-100"
                   }`}
                 >
-                  <span className={`w-1.5 h-1.5 rounded-full shrink-0 ${CALENDAR_CONDITION_DOT_COLORS[dayCond]}`} />
+                  <span
+                    className={`w-1.5 h-1.5 rounded-full shrink-0 ${
+                      dayCond ? CALENDAR_CONDITION_DOT_COLORS[dayCond] : "bg-transparent"
+                    }`}
+                  />
                   {isToday ? t("seaCondition.today") : `${weekdayLabel} ${format(date, "dd/MM")}`}
                 </button>
               );

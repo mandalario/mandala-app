@@ -1044,7 +1044,7 @@ function PeriodForm({ date, onClose }: { date: string; onClose: () => void }) {
       _location: f.location || null,
       _notes: f.notes || null,
       _class_type: f.class_type,
-      _alternate: f.alternate_type,
+      _create_both: f.alternate_type,
     });
     setLoading(false);
     if (error) return toast.error(error.message);
