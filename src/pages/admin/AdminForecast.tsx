@@ -10,6 +10,7 @@ import { Wind, Loader2, Plus, Trash2, ExternalLink, Globe, Waves, Star, Calendar
 import {
   CALENDAR_CONDITION_DOT_COLORS,
   CALENDAR_CONDITION_LABELS,
+  FORECAST_UNCONFIGURED_DOT_CLASS,
   FORECAST_EDITOR_DAY_IDS,
   formatForecastDayLabel,
   getDayCalendarCondition,
