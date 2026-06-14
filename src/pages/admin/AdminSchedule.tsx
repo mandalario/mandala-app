@@ -1199,9 +1199,33 @@ function TemplateForm({ existing, onClose }: { existing?: Template; onClose: () 
       }
     }
     const { error } = await q;
+    if (error) {
+      setLoading(false);
+      return toast.error(error.message);
+    }
+
+    let generatedCount: number | null = null;
+    if (f.class_type === "aluguel" && f.is_active) {
+      const { data, error: genError } = await supabase.rpc("apply_active_templates_to_range", {
+        _start_date: ymd(new Date()),
+        _days: 365,
+      });
+      if (genError) {
+        setLoading(false);
+        toast.error(`Período salvo, mas falha ao gerar horários de aluguel: ${genError.message}`);
+        onClose();
+        return;
+      }
+      generatedCount = data;
+    }
+
     setLoading(false);
-    if (error) return toast.error(error.message);
-    toast.success(existing ? "Atualizado" : (f.weekday === -1 ? "Períodos criados para todos os dias" : "Período criado"));
+    const baseMessage = existing ? "Atualizado" : (f.weekday === -1 ? "Períodos criados para todos os dias" : "Período criado");
+    toast.success(
+      generatedCount != null
+        ? `${baseMessage} — ${generatedCount} horário${generatedCount === 1 ? "" : "s"} de aluguel gerado${generatedCount === 1 ? "" : "s"}`
+        : baseMessage,
+    );
     onClose();
   };
   return (

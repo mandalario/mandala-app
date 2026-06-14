@@ -11,7 +11,15 @@ import { Plus, Trash2, Loader2, Image as ImageIcon, Handshake, Quote, Upload, Ed
 
 type Partner = { id: string; name: string; description: string | null; logo_url: string | null; website_url: string | null; is_active: boolean; sort_order: number };
 type Banner = { id: string; partner_id: string | null; title: string | null; subtitle: string | null; body: string | null; background_image_url: string | null; cta_label: string | null; cta_url: string | null; is_active: boolean; sort_order: number; starts_at: string | null; ends_at: string | null };
-type DailyQuote = { id: string; text: string; author: string | null; scheduled_date: string | null; is_active: boolean };
+type DailyQuote = {
+  id: string;
+  text: string;
+  text_en: string | null;
+  text_es: string | null;
+  author: string | null;
+  scheduled_date: string | null;
+  is_active: boolean;
+};
 
 const sb = supabase as any;
 
@@ -302,7 +310,7 @@ function QuotesTab() {
   return (
     <div className="space-y-4">
       <div className="flex justify-end">
-        <Button onClick={() => setEditing({ id: "", text: "", author: "", scheduled_date: null, is_active: true })} className="rounded-xl bg-gradient-to-r from-primary to-accent">
+        <Button onClick={() => setEditing({ id: "", text: "", text_en: null, text_es: null, author: "", scheduled_date: null, is_active: true })} className="rounded-xl bg-gradient-to-r from-primary to-accent">
           <Plus className="w-4 h-4 mr-1" /> Nova frase
         </Button>
       </div>
@@ -336,7 +344,14 @@ function QuoteEditor({ quote, onClose }: { quote: DailyQuote; onClose: () => voi
   const [saving, setSaving] = useState(false);
   const save = async () => {
     setSaving(true);
-    const payload = { text: form.text, author: form.author || null, scheduled_date: form.scheduled_date, is_active: form.is_active };
+    const payload = {
+      text: form.text,
+      text_en: form.text_en?.trim() || null,
+      text_es: form.text_es?.trim() || null,
+      author: form.author || null,
+      scheduled_date: form.scheduled_date,
+      is_active: form.is_active,
+    };
     const { error } = form.id
       ? await sb.from("daily_quotes").update(payload).eq("id", form.id)
       : await sb.from("daily_quotes").insert(payload);
@@ -349,7 +364,9 @@ function QuoteEditor({ quote, onClose }: { quote: DailyQuote; onClose: () => voi
       <div className="glass-strong rounded-t-3xl sm:rounded-3xl w-full sm:max-w-md max-h-[92vh] overflow-y-auto p-5">
         <h2 className="text-lg font-bold mb-4">{form.id ? "Editar frase" : "Nova frase"}</h2>
         <div className="space-y-3">
-          <Field label="Frase"><Textarea rows={3} value={form.text} onChange={(e) => setForm({ ...form, text: e.target.value })} /></Field>
+          <Field label="Frase (PT)"><Textarea rows={3} value={form.text} onChange={(e) => setForm({ ...form, text: e.target.value })} /></Field>
+          <Field label="Frase (EN)"><Textarea rows={2} value={form.text_en ?? ""} onChange={(e) => setForm({ ...form, text_en: e.target.value || null })} placeholder="Opcional — tradução em inglês" /></Field>
+          <Field label="Frase (ES)"><Textarea rows={2} value={form.text_es ?? ""} onChange={(e) => setForm({ ...form, text_es: e.target.value || null })} placeholder="Opcional — tradução em espanhol" /></Field>
           <Field label="Autor (opcional)"><Input value={form.author ?? ""} onChange={(e) => setForm({ ...form, author: e.target.value })} /></Field>
           <Field label="Programar para data (opcional — sem data: rotativa)">
             <Input type="date" value={form.scheduled_date ?? ""} onChange={(e) => setForm({ ...form, scheduled_date: e.target.value || null })} />

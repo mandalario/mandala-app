@@ -550,6 +550,8 @@
     },
     "updated": "Profile updated",
     "photoUpdated": "Photo updated",
+    "uploadingPhoto": "Uploading photo…",
+    "uploadFailed": "Could not upload the photo. Please try again.",
     "save": "Save changes",
     "blocks": {
       "access": "Account access",

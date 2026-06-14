@@ -1,24 +1,10 @@
 import { useEffect, useMemo, useState } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { Quote } from "lucide-react";
-import { useTranslation, type Language } from "@/i18n/LanguageContext";
-import { translateStudentContent } from "@/i18n/studentContent";
+import { useTranslation } from "@/i18n/LanguageContext";
+import { resolveStudentContent } from "@/i18n/studentContent";
 
 type QuoteRow = { text: string; text_en: string | null; text_es: string | null; author: string | null };
-
-function quoteTextFor(row: QuoteRow, language: Language): string {
-  if (language === "en") {
-    const en = row.text_en?.trim();
-    if (en) return en;
-    return translateStudentContent("quotes", row.text, language);
-  }
-  if (language === "es") {
-    const es = row.text_es?.trim();
-    if (es) return es;
-    return translateStudentContent("quotes", row.text, language);
-  }
-  return row.text;
-}
 
 export function DailyQuote() {
   const { language, t } = useTranslation();
@@ -52,7 +38,13 @@ export function DailyQuote() {
     })();
   }, []);
 
-  const text = useMemo(() => (quote ? quoteTextFor(quote, language) : ""), [quote, language]);
+  const text = useMemo(
+    () =>
+      quote
+        ? resolveStudentContent("quotes", quote.text, language, { en: quote.text_en, es: quote.text_es })
+        : "",
+    [quote, language],
+  );
 
   if (!quote) return null;
 

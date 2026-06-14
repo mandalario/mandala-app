@@ -36,6 +36,7 @@ import {
   formatAllProfileValidationErrors,
 } from "@/lib/profileFormValidation";
 import { checkPhoneAvailable } from "@/lib/checkPhoneAvailable";
+import { uploadStudentAvatar } from "@/lib/uploadStudentAvatar";
 
 export default function Profile() {
   const { user, profile, refreshProfile, signOut, loading } = useAuth();
@@ -44,6 +45,7 @@ export default function Profile() {
   const fileRef = useRef<HTMLInputElement>(null);
   const [saving, setSaving] = useState(false);
   const [uploading, setUploading] = useState(false);
+  const [previewUrl, setPreviewUrl] = useState<string | null>(null);
   const [deletingAccount, setDeletingAccount] = useState(false);
   const [deleteDialogOpen, setDeleteDialogOpen] = useState(false);
   const [hasPasswordLogin, setHasPasswordLogin] = useState(false);
@@ -177,17 +179,46 @@ export default function Profile() {
 
   const onAvatar = async (file: File) => {
     if (!user) return;
+
+    const localPreview = URL.createObjectURL(file);
+    setPreviewUrl((prev) => {
+      if (prev) URL.revokeObjectURL(prev);
+      return localPreview;
+    });
     setUploading(true);
-    const ext = file.name.split(".").pop() ?? "jpg";
-    const path = `${user.id}/avatar-${Date.now()}.${ext}`;
-    const { error: upErr } = await supabase.storage.from("avatars").upload(path, file, { upsert: true });
-    if (upErr) { setUploading(false); return toast.error(upErr.message); }
-    const { data: pub } = supabase.storage.from("avatars").getPublicUrl(path);
-    const { error } = await supabase.from("profiles").update({ avatar_url: pub.publicUrl }).eq("id", user.id);
-    setUploading(false);
-    if (error) return toast.error(error.message);
-    toast.success(t("profile.photoUpdated"));
-    await refreshProfile();
+
+    try {
+      const result = await uploadStudentAvatar(user.id, file);
+      if ("error" in result) {
+        URL.revokeObjectURL(localPreview);
+        setPreviewUrl(null);
+        toast.error(result.error);
+        return;
+      }
+
+      const { error } = await supabase
+        .from("profiles")
+        .update({ avatar_url: result.publicUrl })
+        .eq("id", user.id);
+      if (error) {
+        URL.revokeObjectURL(localPreview);
+        setPreviewUrl(null);
+        toast.error(error.message);
+        return;
+      }
+
+      URL.revokeObjectURL(localPreview);
+      setPreviewUrl(null);
+      toast.success(t("profile.photoUpdated"));
+      await refreshProfile();
+    } catch {
+      URL.revokeObjectURL(localPreview);
+      setPreviewUrl(null);
+      toast.error(t("profile.uploadFailed"));
+    } finally {
+      setUploading(false);
+      if (fileRef.current) fileRef.current.value = "";
+    }
   };
 
   const deleteAccount = async () => {
@@ -247,8 +278,12 @@ export default function Profile() {
       <section className="px-5 flex flex-col items-center mt-2">
         <div className="relative">
           <div className="w-24 h-24 rounded-full glass-strong overflow-hidden flex items-center justify-center">
-            {profile.avatar_url ? (
-              <img src={profile.avatar_url} alt="" className="w-full h-full object-cover" />
+            {previewUrl || profile.avatar_url ? (
+              <img
+                src={previewUrl ?? profile.avatar_url ?? ""}
+                alt=""
+                className="w-full h-full object-cover"
+              />
             ) : (
               <UserIcon className="w-10 h-10 text-primary" />
             )}
@@ -262,6 +297,12 @@ export default function Profile() {
           <input ref={fileRef} type="file" accept="image/*" className="hidden"
             onChange={(e) => e.target.files?.[0] && onAvatar(e.target.files[0])} />
         </div>
+        {uploading && (
+          <p className="text-xs text-muted-foreground text-center mt-2 flex items-center justify-center gap-1.5">
+            <Loader2 className="w-3.5 h-3.5 animate-spin" />
+            {t("profile.uploadingPhoto")}
+          </p>
+        )}
         <p className="text-xs text-muted-foreground mt-3">{profile.email}</p>
         <div className="mt-3 flex flex-col items-center gap-2 w-full max-w-xs">
           <div className="w-full glass rounded-2xl p-3 text-center space-y-1.5 border border-primary/20">

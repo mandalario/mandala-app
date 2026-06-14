@@ -64,8 +64,8 @@ export default function Schedule() {
   const [classTypeFilter, setClassTypeFilter] = useState<ClassTypeFilter | null>(null);
   const [weeklyForecast, setWeeklyForecast] = useState<WeeklySeaForecast | null>(null);
 
-  const today = format(new Date(), "yyyy-MM-dd");
-  const todayStart = startOfDay(new Date());
+  const { date: today } = getScheduleNowParts();
+  const todayStart = startOfDay(new Date(today + "T12:00:00"));
 
   const dateFnsLocale = dateFnsLocaleFor(language);
 
@@ -143,11 +143,11 @@ export default function Schedule() {
   useEffect(() => {
     if (loading || !classTypeFilter || filterDate) return;
     const defaultDate = getDefaultScheduleViewDate(slots);
-    const { date: today } = getScheduleNowParts();
-    if (defaultDate !== today) {
+    const hasSlotsOnDefaultDate = slots.some((s) => s.date === defaultDate);
+    if (hasSlotsOnDefaultDate && defaultDate !== today) {
       setFilterDate(defaultDate);
     }
-  }, [loading, classTypeFilter, filterDate, slots]);
+  }, [loading, classTypeFilter, filterDate, slots, today]);
 
   const condByDate = useMemo(() => {
     const m: Record<string, Cond> = {};

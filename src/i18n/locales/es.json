@@ -550,6 +550,8 @@
     },
     "updated": "Perfil actualizado",
     "photoUpdated": "Foto actualizada",
+    "uploadingPhoto": "Enviando foto…",
+    "uploadFailed": "No se pudo enviar la foto. Inténtalo de nuevo.",
     "save": "Guardar cambios",
     "blocks": {
       "access": "Acceso a la cuenta",

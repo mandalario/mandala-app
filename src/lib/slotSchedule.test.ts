@@ -67,6 +67,15 @@ describe("getDefaultScheduleViewDate", () => {
     const slots = [{ date: "2026-06-03", start_time: "18:00" }];
     expect(getDefaultScheduleViewDate(slots, now)).toBe("2026-06-04");
   });
+
+  it("skips to the next day with upcoming slots when today is over", () => {
+    const now = new Date("2026-06-03T22:00:00.000Z"); // 19:00 Rio
+    const slots = [
+      { date: "2026-06-03", start_time: "08:00" },
+      { date: "2026-06-05", start_time: "08:00" },
+    ];
+    expect(getDefaultScheduleViewDate(slots, now)).toBe("2026-06-05");
+  });
 });
 
 describe("addDaysToYmd", () => {

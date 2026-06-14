@@ -55,10 +55,21 @@ export function isLastSlotOfDayPassed(slots: SlotDateTime[], day: string, now = 
   return isSlotStartInPast(day, latestSlot.start_time, now);
 }
 
-/** Default calendar day: today, or tomorrow once today's last slot has passed. */
+/** Default calendar day: first day from today with a bookable slot, else today/tomorrow fallback. */
 export function getDefaultScheduleViewDate(slots: SlotDateTime[], now = new Date()): string {
   const { date: today } = getScheduleNowParts(now);
-  if (isLastSlotOfDayPassed(slots, today, now)) {
+  const dates = [...new Set(slots.map((s) => s.date))]
+    .filter((d) => d >= today)
+    .sort();
+
+  for (const date of dates) {
+    const hasUpcoming = slots
+      .filter((s) => s.date === date)
+      .some((s) => !isSlotStartInPast(s.date, s.start_time, now));
+    if (hasUpcoming) return date;
+  }
+
+  if (slots.some((s) => s.date === today) && isLastSlotOfDayPassed(slots, today, now)) {
     return addDaysToYmd(today, 1);
   }
   return today;
