@@ -1,4 +1,5 @@
 import type { Language } from "@/i18n/LanguageContext";
+import { DAILY_QUOTE_TRANSLATIONS } from "@/i18n/dailyQuoteCatalog";
 import pt from "@/i18n/locales/pt.json";
 
 type LangEntry = { en: string; es: string };
@@ -6,16 +7,25 @@ type LangEntry = { en: string; es: string };
 type StudentContentSection = "quotes" | "seaSummary" | "seaIdealFor";
 
 function contentKey(text: string): string {
-  return text.trim().normalize("NFC");
+  return text.trim().normalize("NFC").replace(/[.!?…]+$/, "");
 }
 
 function sectionMap(section: StudentContentSection): Record<string, LangEntry> {
+  if (section === "quotes") {
+    const fromJson =
+      (pt as { studentContent?: Record<string, Record<string, LangEntry>> }).studentContent?.quotes ?? {};
+    return { ...fromJson, ...DAILY_QUOTE_TRANSLATIONS };
+  }
   const sc = (pt as { studentContent?: Record<string, Record<string, LangEntry>> }).studentContent?.[section];
   return sc ?? {};
 }
 
 function mapEntry(section: StudentContentSection, text: string): LangEntry | undefined {
-  return sectionMap(section)[contentKey(text)];
+  const map = sectionMap(section);
+  const key = contentKey(text);
+  if (map[key]) return map[key];
+  if (map[text.trim().normalize("NFC")]) return map[text.trim().normalize("NFC")];
+  return undefined;
 }
 
 /** Traduz textos cadastrados em PT no admin/DB (frases, resumo do mar, etc.). */

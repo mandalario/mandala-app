@@ -463,6 +463,7 @@ export default function AdminSchedule() {
                   <Legend dot="bg-warning" label="Mar médio" />
                   <Legend dot="bg-destructive" label="Mar ruim" />
                   <Legend dot="bg-muted-foreground" label="Sem ondas" />
+                  <Legend dot="bg-white ring-1 ring-black/25" label="Não configurado" />
                 </div>
               </div>
 

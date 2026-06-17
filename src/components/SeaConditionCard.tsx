@@ -8,10 +8,11 @@ import { translateStudentContent } from "@/i18n/studentContent";
 import { cn } from "@/lib/utils";
 import {
   CALENDAR_CONDITION_LEGEND_CLASSES,
-  CALENDAR_CONDITION_DOT_COLORS,
-  getDayCalendarCondition,
+  FORECAST_UNCONFIGURED_LEGEND_CLASSES,
   getDefaultForecastDay,
+  getForecastDayDotClass,
   getForecastTargetWeekStart,
+  getRotatedDayCalendarCondition,
   getRotatedForecastDays,
   isRotatedForecastDayToday,
   isWeeklySeaForecast,
@@ -137,6 +138,7 @@ export function SeaConditionCard() {
   const isWeeklyFormat = stored !== null && typeof stored === "object" && "seg" in stored;
   const weeklyStored = isWeeklyFormat ? (stored as Record<string, SeaCondition>) : null;
   const storedDay = weeklyStored?.[selectedDay];
+  const selectedRotatedDay = rotatedDays.find((entry) => entry.dayId === selectedDay);
   const activeData: SeaCondition = isWeeklyFormat
     ? (storedDay ?? defaultData)
     : ((stored as SeaCondition) ?? defaultData);
@@ -144,8 +146,8 @@ export function SeaConditionCard() {
   const summary = translateStudentContent("seaSummary", activeData.summary, language);
   const idealFor = translateStudentContent("seaIdealFor", activeData.ideal_for, language);
   const calendarCondition = isWeeklyFormat
-    ? getDayCalendarCondition(storedDay)
-    : getDayCalendarCondition(activeData);
+    ? getRotatedDayCalendarCondition(storedDay, selectedRotatedDay ?? { deferred: false })
+    : getRotatedDayCalendarCondition(activeData, { deferred: false });
 
   const calendarConditionLabel = (key: SurfConditionKey) =>
     t(`seaCondition.calendarCondition.${key}`);
@@ -170,7 +172,7 @@ export function SeaConditionCard() {
         <h3 className="text-xl font-bold mt-1.5 text-white tracking-tight">{activeData.location}</h3>
         <p className="text-xs text-sky-100/80 mt-1 italic font-medium">{summary}</p>
 
-        {calendarCondition && (
+        {calendarCondition ? (
           <div className="mt-4">
             <span
               className={cn(
@@ -187,17 +189,35 @@ export function SeaConditionCard() {
               {calendarConditionLabel(calendarCondition)}
             </span>
           </div>
-        )}
+        ) : isWeeklyFormat ? (
+          <div className="mt-4">
+            <span
+              className={cn(
+                "inline-flex items-center gap-2 text-xs font-semibold px-3 py-1.5 rounded-full border",
+                FORECAST_UNCONFIGURED_LEGEND_CLASSES.active,
+              )}
+            >
+              <span
+                className={cn(
+                  "w-2.5 h-2.5 rounded-full shrink-0",
+                  FORECAST_UNCONFIGURED_LEGEND_CLASSES.dot,
+                )}
+              />
+              {t("seaCondition.calendarCondition.unconfigured")}
+            </span>
+          </div>
+        ) : null}
       </div>
 
       {isWeeklyFormat && (
         <div className="bg-[#0b3350]/90 backdrop-blur-md px-5 py-3 border-t border-white/5 overflow-x-auto scrollbar-hide">
           <div className="flex gap-2 w-max">
-            {rotatedDays.map(({ dayId, date }) => {
+            {rotatedDays.map((entry) => {
+              const { dayId, date } = entry;
               const isSelected = selectedDay === dayId;
               const isToday = isRotatedForecastDayToday({ dayId, date });
               const dayData = weeklyStored?.[dayId];
-              const dayCond = getDayCalendarCondition(dayData);
+              const dayCond = getRotatedDayCalendarCondition(dayData, entry);
               const weekdayLabel = t(`seaCondition.weekdays.${DAY_LOCALE_KEYS[dayId]}`);
               return (
                 <button
@@ -211,9 +231,7 @@ export function SeaConditionCard() {
                   }`}
                 >
                   <span
-                    className={`w-1.5 h-1.5 rounded-full shrink-0 ${
-                      dayCond ? CALENDAR_CONDITION_DOT_COLORS[dayCond] : "bg-transparent"
-                    }`}
+                    className={`w-1.5 h-1.5 rounded-full shrink-0 ${getForecastDayDotClass(dayCond)}`}
                   />
                   {isToday ? t("seaCondition.today") : `${weekdayLabel} ${format(date, "dd/MM")}`}
                 </button>

@@ -190,7 +190,8 @@
       "good": "Mar bueno",
       "medium": "Mar medio",
       "bad": "Mar malo",
-      "flat": "Sin olas"
+      "flat": "Sin olas",
+      "unconfigured": "No configurado"
     },
     "defaults": {
       "spot": "Barra da Tijuca, Río de Janeiro, Brasil",

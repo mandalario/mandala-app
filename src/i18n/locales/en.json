@@ -190,7 +190,8 @@
       "good": "Good surf",
       "medium": "Fair surf",
       "bad": "Poor surf",
-      "flat": "No waves"
+      "flat": "No waves",
+      "unconfigured": "Not configured"
     },
     "defaults": {
       "spot": "Barra da Tijuca, Rio de Janeiro, Brazil",

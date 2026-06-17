@@ -2,6 +2,7 @@ import { describe, expect, it } from "vitest";
 import { resolveStudentContent, translateStudentContent } from "./studentContent";
 
 const STRETCH_PT = "Alongar antes da sessão ajuda no desempenho e reduz o risco de lesões.";
+const TRASH_PT = "Surfistas conscientes levam seu lixo embora e ajudam a manter a praia limpa";
 
 describe("resolveStudentContent quotes", () => {
   it("traduz via mapa estático para EN", () => {
@@ -29,6 +30,14 @@ describe("resolveStudentContent quotes", () => {
 
   it("mantém PT quando idioma é pt", () => {
     expect(resolveStudentContent("quotes", STRETCH_PT, "pt")).toBe(STRETCH_PT);
+  });
+
+  it("traduz frase do lixo na praia para EN", () => {
+    expect(resolveStudentContent("quotes", TRASH_PT, "en")).toContain("Conscious surfers");
+  });
+
+  it("traduz frase do lixo na praia para ES", () => {
+    expect(resolveStudentContent("quotes", `${TRASH_PT}.`, "es")).toContain("surfistas conscientes");
   });
 });
 

@@ -326,6 +326,9 @@ export default function Schedule() {
               <div className="flex items-center gap-2.5 text-[10px] text-muted-foreground font-medium">
                 <span className="w-2 h-2 rounded-full bg-muted-foreground"></span> Sem ondas
               </div>
+              <div className="flex items-center gap-2.5 text-[10px] text-muted-foreground font-medium">
+                <span className="w-2 h-2 rounded-full bg-white ring-1 ring-black/25 border border-white/20"></span> Não configurado
+              </div>
             </div>
           </div>
         </div>

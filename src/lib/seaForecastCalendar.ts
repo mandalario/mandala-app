@@ -5,7 +5,7 @@ export type SurfConditionKey = "good" | "medium" | "bad" | "flat";
 
 export type DaySeaForecast = {
   status?: SeaStatus;
-  calendar_condition?: SurfConditionKey;
+  calendar_condition?: SurfConditionKey | null;
 };
 
 export const CALENDAR_CONDITION_LABELS: Record<SurfConditionKey, string> = {
@@ -47,6 +47,42 @@ export const CALENDAR_CONDITION_DOT_COLORS: Record<SurfConditionKey, string> = O
   SURF_CONDITION_KEYS.map((key) => [key, CALENDAR_CONDITION_LEGEND_CLASSES[key].dot]),
 ) as Record<SurfConditionKey, string>;
 
+export const FORECAST_UNCONFIGURED_KEY = "unconfigured" as const;
+export type ForecastCalendarModifierKey = SurfConditionKey | typeof FORECAST_UNCONFIGURED_KEY;
+
+export const FORECAST_UNCONFIGURED_DOT_CLASS = "bg-white ring-1 ring-black/25";
+export const FORECAST_UNCONFIGURED_LABEL = "Não configurado";
+
+export const FORECAST_UNCONFIGURED_LEGEND_CLASSES = {
+  dot: FORECAST_UNCONFIGURED_DOT_CLASS,
+  active: "bg-white/15 text-white border-white/40 ring-1 ring-white/25",
+  inactive: "text-sky-200/45 border-white/10",
+};
+
+export function getDayCalendarCondition(day: DaySeaForecast | undefined | null): SurfConditionKey | null {
+  if (!day || typeof day !== "object") return null;
+  if (day.calendar_condition === null) return null;
+  if (day.calendar_condition) return day.calendar_condition;
+  if (day.status) return seaStatusToCondition(day.status);
+  return null;
+}
+
+export function getRotatedDayCalendarCondition(
+  day: DaySeaForecast | undefined | null,
+  entry: Pick<RotatedForecastDay, "deferred">,
+): SurfConditionKey | null {
+  if (entry.deferred) return null;
+  return getDayCalendarCondition(day);
+}
+
+export function getForecastDayDotClass(
+  condition: SurfConditionKey | null,
+  options?: { unconfigured?: boolean },
+): string {
+  if (options?.unconfigured || !condition) return FORECAST_UNCONFIGURED_DOT_CLASS;
+  return CALENDAR_CONDITION_DOT_COLORS[condition];
+}
+
 export const FORECAST_DAY_IDS = ["dom", "seg", "ter", "qua", "qui", "sex", "sab"] as const;
 export type ForecastDayId = (typeof FORECAST_DAY_IDS)[number];
 
@@ -65,13 +101,6 @@ export const FORECAST_DAY_LABELS: Record<ForecastDayId, string> = {
 export type WeeklySeaForecast = Record<string, DaySeaForecast | string | undefined> & {
   updated_at?: string;
 };
-
-export function getDayCalendarCondition(day: DaySeaForecast | undefined | null): SurfConditionKey | null {
-  if (!day || typeof day !== "object") return null;
-  if (day.calendar_condition) return day.calendar_condition;
-  if (day.status) return seaStatusToCondition(day.status);
-  return null;
-}
 
 /** True when the day has an explicit forecast entry in stored weekly data. */
 export function isForecastDayConfigured(
@@ -207,15 +236,17 @@ export function getDefaultForecastDay(
   return todayEntry?.dayId ?? rotated[0]?.dayId ?? "dom";
 }
 
-/** Maps the 7 days of the week when the forecast was last updated to calendar condition colors. */
+/** Maps forecast days to calendar dot colors, including white for unconfigured future days. */
 export function getForecastCalendarModifiers(
   data: WeeklySeaForecast | null | undefined,
-): Record<SurfConditionKey, Date[]> {
-  const result: Record<SurfConditionKey, Date[]> = {
+  now: Date = new Date(),
+): Record<ForecastCalendarModifierKey, Date[]> {
+  const result: Record<ForecastCalendarModifierKey, Date[]> = {
     good: [],
     medium: [],
     bad: [],
     flat: [],
+    unconfigured: [],
   };
 
   if (!data?.updated_at || !isWeeklySeaForecast(data)) return result;
@@ -224,23 +255,42 @@ export function getForecastCalendarModifiers(
   if (Number.isNaN(updatedAt.getTime())) return result;
 
   const weekStart = getForecastWeekStart(updatedAt);
-  const rotatedDays = getRotatedForecastDays(weekStart, updatedAt);
+  const weekEnd = startOfDay(addDays(weekStart, 6));
+  const today = startOfDay(now);
+  const rotatedDays = getRotatedForecastDays(weekStart, now);
 
-  for (const { dayId, date, deferred } of rotatedDays) {
-    if (deferred) continue;
+  if (today > weekEnd) {
+    for (let i = 0; i < 56; i++) {
+      result.unconfigured.push(addDays(today, i));
+    }
+    return result;
+  }
+
+  for (const entry of rotatedDays) {
+    const { dayId, date, deferred } = entry;
+    if (startOfDay(date) < today) continue;
+
     const dayEntry = data[dayId];
-    if (!dayEntry || typeof dayEntry !== "object") continue;
-    const condition = getDayCalendarCondition(dayEntry);
-    if (!condition) continue;
-    result[condition].push(date);
+    const condition = getRotatedDayCalendarCondition(
+      dayEntry && typeof dayEntry === "object" ? dayEntry : null,
+      { deferred },
+    );
+
+    if (!condition) {
+      result.unconfigured.push(date);
+    } else {
+      result[condition].push(date);
+    }
   }
 
   return result;
 }
 
-export const CALENDAR_CONDITION_DOT_CLASSES: Record<SurfConditionKey, string> = {
+export const CALENDAR_CONDITION_DOT_CLASSES: Record<ForecastCalendarModifierKey, string> = {
   good: "relative after:absolute after:bottom-0.5 after:left-1/2 after:-translate-x-1/2 after:w-1.5 after:h-1.5 after:bg-success after:rounded-full",
   medium: "relative after:absolute after:bottom-0.5 after:left-1/2 after:-translate-x-1/2 after:w-1.5 after:h-1.5 after:bg-warning after:rounded-full",
   bad: "relative after:absolute after:bottom-0.5 after:left-1/2 after:-translate-x-1/2 after:w-1.5 after:h-1.5 after:bg-destructive after:rounded-full",
   flat: "relative after:absolute after:bottom-0.5 after:left-1/2 after:-translate-x-1/2 after:w-1.5 after:h-1.5 after:bg-muted-foreground after:rounded-full",
+  unconfigured:
+    "relative after:absolute after:bottom-0.5 after:left-1/2 after:-translate-x-1/2 after:w-1.5 after:h-1.5 after:rounded-full after:bg-white after:shadow-[0_0_0_1px_rgba(0,0,0,0.35)]",
 };

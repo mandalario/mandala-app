@@ -8,13 +8,13 @@ import { Textarea } from "@/components/ui/textarea";
 import { toast } from "sonner";
 import { Wind, Loader2, Plus, Trash2, ExternalLink, Globe, Waves, Star, CalendarDays } from "lucide-react";
 import {
-  CALENDAR_CONDITION_DOT_COLORS,
   CALENDAR_CONDITION_LABELS,
-  FORECAST_UNCONFIGURED_DOT_CLASS,
+  FORECAST_UNCONFIGURED_LABEL,
   FORECAST_EDITOR_DAY_IDS,
   formatForecastDayLabel,
-  getDayCalendarCondition,
+  getForecastDayDotClass,
   getForecastWeekStart,
+  getRotatedDayCalendarCondition,
   getRotatedForecastDays,
   isRotatedForecastDayToday,
   seaStatusToCondition,
@@ -209,14 +209,24 @@ const defaultCondition = {
 };
 
 function enrichDayEntry(entry: Record<string, unknown> | undefined) {
-  const legacyStatus = entry?.status as SeaStatus | undefined;
+  if (!entry) return { ...defaultCondition };
+
+  const explicitCalendar = entry.calendar_condition;
+  const legacyStatus = entry.status as SeaStatus | undefined;
   const calendarCondition =
-    (entry?.calendar_condition as SurfConditionKey | undefined) ??
-    (legacyStatus ? seaStatusToCondition(legacyStatus) : undefined);
+    explicitCalendar === null
+      ? null
+      : (explicitCalendar as SurfConditionKey | undefined) ??
+        (legacyStatus ? seaStatusToCondition(legacyStatus) : undefined);
+
   return {
     ...defaultCondition,
     ...entry,
-    ...(calendarCondition ? { calendar_condition: calendarCondition } : {}),
+    ...(calendarCondition === null
+      ? { calendar_condition: null }
+      : calendarCondition
+        ? { calendar_condition: calendarCondition }
+        : {}),
   };
 }
 
@@ -307,7 +317,8 @@ function SeaConditionCardEditor() {
     setWeekData((prev) => {
       const nextDay = { ...(prev[dayId] || defaultCondition) };
       if (key === "calendar_condition" && val === "") {
-        delete nextDay.calendar_condition;
+        nextDay.calendar_condition = null;
+        delete nextDay.status;
       } else {
         (nextDay as Record<string, unknown>)[key] = val;
       }
@@ -340,9 +351,10 @@ function SeaConditionCardEditor() {
       </div>
 
       <div className="flex gap-2 overflow-x-auto pb-2 scrollbar-hide">
-        {rotatedDays.map(({ dayId, date }) => {
+        {rotatedDays.map((entry) => {
+          const { dayId, date } = entry;
           const dayEntry = weekData[dayId];
-          const calendarCond = getDayCalendarCondition(dayEntry);
+          const calendarCond = getRotatedDayCalendarCondition(dayEntry, entry);
           const isToday = isRotatedForecastDayToday({ dayId, date });
           return (
             <Button
@@ -353,9 +365,7 @@ function SeaConditionCardEditor() {
               className={`rounded-xl px-4 gap-1.5 ${activeDay === dayId ? "bg-primary text-primary-foreground" : "bg-background/50"}`}
             >
               <span
-                className={`w-2 h-2 rounded-full shrink-0 ${
-                  calendarCond ? CALENDAR_CONDITION_DOT_COLORS[calendarCond] : "bg-transparent"
-                }`}
+                className={`w-2 h-2 rounded-full shrink-0 ${getForecastDayDotClass(calendarCond)}`}
               />
               {isToday ? "Hoje" : FORECAST_EDITOR_DAY_LABELS[dayId]}
             </Button>
@@ -374,27 +384,27 @@ function SeaConditionCardEditor() {
           </div>
         </div>
         <div className="grid grid-cols-2 sm:grid-cols-4 lg:grid-cols-7 gap-2">
-          {rotatedDays.map(({ dayId, date }) => {
+          {rotatedDays.map((entry) => {
+            const { dayId, date } = entry;
             const dayEntry = weekData[dayId];
-            const calendarCond = getDayCalendarCondition(dayEntry);
+            const calendarCond = getRotatedDayCalendarCondition(dayEntry, entry);
             return (
               <div key={`${dayId}-${date.toISOString()}`} className="space-y-1">
                 <div className="flex items-center gap-1.5">
                   <span
-                    className={`w-2 h-2 rounded-full shrink-0 ${
-                      calendarCond ? CALENDAR_CONDITION_DOT_COLORS[calendarCond] : "bg-transparent"
-                    }`}
+                    className={`w-2 h-2 rounded-full shrink-0 ${getForecastDayDotClass(calendarCond)}`}
                   />
                   <span className="text-[11px] font-semibold text-muted-foreground">
                     {formatForecastDayLabel(dayId, date)}
                   </span>
                 </div>
                 <select
-                  value={calendarCond ?? ""}
+                  value={entry.deferred ? "" : (calendarCond ?? "")}
+                  disabled={entry.deferred}
                   onChange={(e) => handleDayChange(dayId, "calendar_condition", e.target.value)}
-                  className="w-full h-9 rounded-xl border border-white/10 bg-background/50 px-2 text-xs focus:outline-none focus:ring-1 focus:ring-primary"
+                  className="w-full h-9 rounded-xl border border-white/10 bg-background/50 px-2 text-xs focus:outline-none focus:ring-1 focus:ring-primary disabled:opacity-60"
                 >
-                  <option value="">Sem cor</option>
+                  <option value="">{FORECAST_UNCONFIGURED_LABEL}</option>
                   {(Object.keys(CALENDAR_CONDITION_LABELS) as SurfConditionKey[]).map((key) => (
                     <option key={key} value={key}>{CALENDAR_CONDITION_LABELS[key]}</option>
                   ))}

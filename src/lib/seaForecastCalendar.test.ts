@@ -7,6 +7,7 @@ import {
   getForecastDayDate,
   getForecastWeekStart,
   getRotatedForecastDays,
+  getRotatedDayCalendarCondition,
   isForecastDayConfigured,
   isRotatedForecastDayToday,
   seaStatusToCondition,
@@ -120,15 +121,26 @@ describe("isForecastDayConfigured", () => {
   });
 });
 
+describe("getRotatedDayCalendarCondition", () => {
+  it("returns null for deferred days even when the weekday has a saved color", () => {
+    const day = { calendar_condition: "good" as const };
+    expect(getRotatedDayCalendarCondition(day, { deferred: true })).toBeNull();
+    expect(getRotatedDayCalendarCondition(day, { deferred: false })).toBe("good");
+  });
+});
+
 describe("getForecastCalendarModifiers", () => {
+  const viewOn = new Date(2026, 5, 9);
+
   it("returns empty modifiers without updated_at", () => {
     const result = getForecastCalendarModifiers({
       seg: { status: "bom" },
     });
     expect(result.good).toHaveLength(0);
+    expect(result.unconfigured).toHaveLength(0);
   });
 
-  it("rotates calendar marks from the update day", () => {
+  it("rotates calendar marks from the current view day", () => {
     const data = {
       updated_at: "2026-06-09T15:00:00.000Z",
       dom: { status: "flat" as const },
@@ -140,13 +152,14 @@ describe("getForecastCalendarModifiers", () => {
       sab: { status: "flat" as const },
     };
 
-    const result = getForecastCalendarModifiers(data);
+    const result = getForecastCalendarModifiers(data, viewOn);
     const fmt = (d: Date) => format(d, "yyyy-MM-dd");
 
     expect(result.flat.map(fmt)).toEqual(["2026-06-13"]);
     expect(result.good.map(fmt)).toEqual(["2026-06-11", "2026-06-12"]);
     expect(result.medium.map(fmt)).toEqual(["2026-06-09"]);
     expect(result.bad.map(fmt)).toEqual(["2026-06-10"]);
+    expect(result.unconfigured.map(fmt)).toEqual(["2026-06-14", "2026-06-15"]);
   });
 
   it("maps to the next week when updated on Saturday", () => {
@@ -161,13 +174,14 @@ describe("getForecastCalendarModifiers", () => {
       sab: { status: "flat" as const },
     };
 
-    const result = getForecastCalendarModifiers(data);
+    const result = getForecastCalendarModifiers(data, new Date(2026, 5, 13));
     const fmt = (d: Date) => format(d, "yyyy-MM-dd");
 
     expect(result.flat.map(fmt)).toEqual(["2026-06-14", "2026-06-20"]);
     expect(result.good.map(fmt)).toEqual(["2026-06-15", "2026-06-18", "2026-06-19"]);
     expect(result.medium.map(fmt)).toEqual(["2026-06-16"]);
     expect(result.bad.map(fmt)).toEqual(["2026-06-17"]);
+    expect(result.unconfigured).toHaveLength(0);
   });
 
   it("uses calendar_condition when set, overriding status", () => {
@@ -177,8 +191,44 @@ describe("getForecastCalendarModifiers", () => {
       ter: { status: "bom" as const, calendar_condition: "bad" as const },
     };
 
-    const result = getForecastCalendarModifiers(data);
+    const result = getForecastCalendarModifiers(data, viewOn);
     expect(result.bad.map((d) => format(d, "yyyy-MM-dd"))).toEqual(["2026-06-09"]);
     expect(result.good).toHaveLength(0);
+  });
+
+  it("marks future days as unconfigured after the forecast week ends", () => {
+    const data = {
+      updated_at: "2026-06-09T15:00:00.000Z",
+      seg: { calendar_condition: "good" as const },
+      ter: { calendar_condition: "good" as const },
+      qua: { calendar_condition: "good" as const },
+      qui: { calendar_condition: "good" as const },
+      sex: { calendar_condition: "good" as const },
+      sab: { calendar_condition: "good" as const },
+      dom: { calendar_condition: "good" as const },
+    };
+
+    const now = new Date(2026, 5, 15);
+    const result = getForecastCalendarModifiers(data, now);
+    const fmt = (d: Date) => format(d, "yyyy-MM-dd");
+
+    expect(result.good).toHaveLength(0);
+    expect(result.unconfigured[0] && fmt(result.unconfigured[0])).toBe("2026-06-15");
+    expect(result.unconfigured).toHaveLength(56);
+  });
+
+  it("marks days without calendar color as unconfigured", () => {
+    const data = {
+      updated_at: "2026-06-09T15:00:00.000Z",
+      seg: {},
+      qua: { calendar_condition: "good" as const },
+      qui: { waves: "1.0m" },
+    };
+
+    const result = getForecastCalendarModifiers(data, viewOn);
+    const fmt = (d: Date) => format(d, "yyyy-MM-dd");
+
+    expect(result.good.map(fmt)).toEqual(["2026-06-10"]);
+    expect(result.unconfigured.map(fmt)).toContain("2026-06-11");
   });
 });
