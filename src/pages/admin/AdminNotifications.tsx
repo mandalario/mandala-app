@@ -191,20 +191,32 @@ export default function AdminNotifications() {
     }
     setPushSending(true);
     try {
-      const userIds =
+      const recipientIds =
         pushTarget === "__selected__"
           ? Array.from(pushSelected)
           : pushTarget === "__scheduled__"
             ? Array.from(scheduledBookedIds)
-            : undefined;
+            : [];
+
+      const pushPayload: {
+        title: string;
+        body: string;
+        url?: string;
+        userIds?: string[];
+        userId?: string;
+      } = {
+        title: pushTitle.trim(),
+        body: pushBody.trim(),
+      };
+      if (pushUrl.trim()) pushPayload.url = pushUrl.trim();
+      if (recipientIds.length > 0) {
+        pushPayload.userIds = recipientIds;
+        // Compatível com edge function antiga (só userId singular)
+        if (recipientIds.length === 1) pushPayload.userId = recipientIds[0];
+      }
 
       const { data, error } = await supabase.functions.invoke("send-push-notification", {
-        body: {
-          userIds,
-          title: pushTitle.trim(),
-          body: pushBody.trim(),
-          url: pushUrl.trim() || undefined,
-        },
+        body: pushPayload,
       });
       if (error) {
         let errorMessage = error.message;
