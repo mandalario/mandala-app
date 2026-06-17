@@ -8,6 +8,7 @@ import { Switch } from "@/components/ui/switch";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { toast } from "sonner";
 import { Plus, Trash2, Loader2, Image as ImageIcon, Handshake, Quote, Upload, Edit3, ExternalLink, Calendar as CalIcon } from "lucide-react";
+import { lookupQuoteTranslations, mergeQuoteTranslationsForSave, quoteHasTranslations } from "@/i18n/studentContent";
 
 type Partner = { id: string; name: string; description: string | null; logo_url: string | null; website_url: string | null; is_active: boolean; sort_order: number };
 type Banner = { id: string; partner_id: string | null; title: string | null; subtitle: string | null; body: string | null; background_image_url: string | null; cta_label: string | null; cta_url: string | null; is_active: boolean; sort_order: number; starts_at: string | null; ends_at: string | null };
@@ -326,6 +327,9 @@ function QuotesTab() {
                     {q.author && <span>— {q.author}</span>}
                     {q.scheduled_date && <span className="inline-flex items-center gap-1"><CalIcon className="w-3 h-3" /> {new Date(q.scheduled_date + "T12:00").toLocaleDateString("pt-BR")}</span>}
                     {!q.scheduled_date && <span className="opacity-60">rotativa</span>}
+                    {!quoteHasTranslations(q.text, { en: q.text_en, es: q.text_es }) && (
+                      <span className="text-amber-600 dark:text-amber-400">sem tradução EN/ES</span>
+                    )}
                   </div>
                 </div>
                 <Switch checked={q.is_active} onCheckedChange={() => toggle(q)} />
@@ -342,12 +346,28 @@ function QuotesTab() {
 function QuoteEditor({ quote, onClose }: { quote: DailyQuote; onClose: () => void }) {
   const [form, setForm] = useState(quote);
   const [saving, setSaving] = useState(false);
+
+  const updatePtText = (text: string) => {
+    const catalog = lookupQuoteTranslations(text);
+    setForm((prev) => ({
+      ...prev,
+      text,
+      text_en: prev.text_en?.trim() ? prev.text_en : catalog?.en ?? null,
+      text_es: prev.text_es?.trim() ? prev.text_es : catalog?.es ?? null,
+    }));
+  };
+
   const save = async () => {
+    const merged = mergeQuoteTranslationsForSave(form.text, { en: form.text_en, es: form.text_es });
+    if (!merged) {
+      toast.error("Preencha as traduções em inglês e espanhol — sem elas a frase só aparece em português.");
+      return;
+    }
     setSaving(true);
     const payload = {
       text: form.text,
-      text_en: form.text_en?.trim() || null,
-      text_es: form.text_es?.trim() || null,
+      text_en: merged.en,
+      text_es: merged.es,
       author: form.author || null,
       scheduled_date: form.scheduled_date,
       is_active: form.is_active,
@@ -359,14 +379,27 @@ function QuoteEditor({ quote, onClose }: { quote: DailyQuote; onClose: () => voi
     if (error) return toast.error(error.message);
     toast.success("Salvo"); onClose();
   };
+
+  const i18nReady = quoteHasTranslations(form.text, { en: form.text_en, es: form.text_es });
+
   return (
     <div className="fixed inset-0 z-50 bg-background/80 backdrop-blur-sm flex items-end sm:items-center justify-center p-0 sm:p-4">
       <div className="glass-strong rounded-t-3xl sm:rounded-3xl w-full sm:max-w-md max-h-[92vh] overflow-y-auto p-5">
         <h2 className="text-lg font-bold mb-4">{form.id ? "Editar frase" : "Nova frase"}</h2>
         <div className="space-y-3">
-          <Field label="Frase (PT)"><Textarea rows={3} value={form.text} onChange={(e) => setForm({ ...form, text: e.target.value })} /></Field>
-          <Field label="Frase (EN)"><Textarea rows={2} value={form.text_en ?? ""} onChange={(e) => setForm({ ...form, text_en: e.target.value || null })} placeholder="Opcional — tradução em inglês" /></Field>
-          <Field label="Frase (ES)"><Textarea rows={2} value={form.text_es ?? ""} onChange={(e) => setForm({ ...form, text_es: e.target.value || null })} placeholder="Opcional — tradução em espanhol" /></Field>
+          <Field label="Frase (PT)">
+            <Textarea rows={3} value={form.text} onChange={(e) => updatePtText(e.target.value)} />
+            <p className="text-[11px] text-muted-foreground">O app traduz automaticamente se EN e ES estiverem preenchidos.</p>
+          </Field>
+          <Field label="Frase (EN)">
+            <Textarea rows={2} value={form.text_en ?? ""} onChange={(e) => setForm({ ...form, text_en: e.target.value || null })} placeholder="Obrigatório para inglês no app" />
+          </Field>
+          <Field label="Frase (ES)">
+            <Textarea rows={2} value={form.text_es ?? ""} onChange={(e) => setForm({ ...form, text_es: e.target.value || null })} placeholder="Obrigatório para espanhol no app" />
+          </Field>
+          {!i18nReady && form.text.trim() && (
+            <p className="text-xs text-amber-600 dark:text-amber-400">Preencha EN e ES para a frase aparecer traduzida ao trocar o idioma.</p>
+          )}
           <Field label="Autor (opcional)"><Input value={form.author ?? ""} onChange={(e) => setForm({ ...form, author: e.target.value })} /></Field>
           <Field label="Programar para data (opcional — sem data: rotativa)">
             <Input type="date" value={form.scheduled_date ?? ""} onChange={(e) => setForm({ ...form, scheduled_date: e.target.value || null })} />

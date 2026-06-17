@@ -10,6 +10,7 @@ const PUSH_CHANNEL_ID = "mandalario-alerts";
 
 type Payload = {
   userId?: string | null;
+  userIds?: string[];
   title: string;
   body?: string;
   url?: string;
@@ -43,6 +44,7 @@ Deno.serve(async (req) => {
 
     const payload = (await req.json()) as Payload;
     const { userId, title } = payload;
+    const userIds = Array.from(new Set((payload.userIds ?? []).filter(Boolean)));
     const body = payload.body ?? "";
     const url = payload.url ?? payload.redirectUrl;
 
@@ -50,24 +52,35 @@ Deno.serve(async (req) => {
 
     let tokens: string[] = [];
 
-    if (payload.pushToken) {
-      tokens = [payload.pushToken];
-    } else if (userId) {
+    const tokensForUsers = async (ids: string[]) => {
+      if (ids.length === 0) return [] as string[];
+
       const { data, error } = await admin
         .from("user_push_tokens")
         .select("push_token")
-        .eq("user_id", userId);
-      if (error) return json({ error: error.message }, 400);
-      tokens = (data ?? []).map((r: { push_token: string }) => r.push_token).filter(Boolean);
+        .in("user_id", ids);
+      if (error) throw new Error(error.message);
 
-      if (tokens.length === 0) {
-        const { data: prof } = await admin
-          .from("profiles")
-          .select("push_token")
-          .eq("id", userId)
-          .maybeSingle();
-        if (prof?.push_token) tokens = [prof.push_token];
-      }
+      const fromTable = (data ?? []).map((r: { push_token: string }) => r.push_token).filter(Boolean);
+
+      const { data: profs, error: profError } = await admin
+        .from("profiles")
+        .select("push_token")
+        .in("id", ids)
+        .not("push_token", "is", null);
+      if (profError) throw new Error(profError.message);
+
+      const fromProfiles = (profs ?? []).map((r: { push_token: string }) => r.push_token).filter(Boolean);
+
+      return Array.from(new Set([...fromTable, ...fromProfiles]));
+    };
+
+    if (payload.pushToken) {
+      tokens = [payload.pushToken];
+    } else if (userIds.length > 0) {
+      tokens = await tokensForUsers(userIds);
+    } else if (userId) {
+      tokens = await tokensForUsers([userId]);
     } else {
       const { data, error } = await admin.from("user_push_tokens").select("push_token");
       if (error) return json({ error: error.message }, 400);

@@ -40,6 +40,35 @@ export function translateStudentContent(
   return language === "en" ? entry.en : entry.es;
 }
 
+/** Busca traduções conhecidas de uma frase do dia (catálogo + pt.json). */
+export function lookupQuoteTranslations(textPt: string): LangEntry | undefined {
+  return mapEntry("quotes", textPt);
+}
+
+/** Indica se a frase tem tradução EN/ES (catálogo ou colunas do banco). */
+export function quoteHasTranslations(
+  textPt: string,
+  db?: { en?: string | null; es?: string | null },
+): boolean {
+  if (lookupQuoteTranslations(textPt)) return true;
+  const key = contentKey(textPt);
+  const en = db?.en?.trim();
+  const es = db?.es?.trim();
+  return !!(en && es && en !== key && es !== key);
+}
+
+/** Mescla catálogo + campos do admin para persistir no banco. */
+export function mergeQuoteTranslationsForSave(
+  textPt: string,
+  db?: { en?: string | null; es?: string | null },
+): LangEntry | null {
+  const catalog = lookupQuoteTranslations(textPt);
+  const en = db?.en?.trim() || catalog?.en;
+  const es = db?.es?.trim() || catalog?.es;
+  if (!en || !es) return null;
+  return { en, es };
+}
+
 /** Resolve PT → EN/ES: mapa estático primeiro, depois colunas do banco (se distintas do PT). */
 export function resolveStudentContent(
   section: StudentContentSection,
