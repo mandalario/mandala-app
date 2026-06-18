@@ -16,21 +16,122 @@ import { Send, Search, Users, Smartphone, BellRing, Calendar } from "lucide-reac
 
 type Student = { id: string; full_name: string | null; email: string; avatar_url: string | null };
 
-function toastPushResult(data: {
-  ok?: boolean;
-  sent?: number;
-  attempted?: number;
-  error?: string;
-} | null) {
+function filterStudents(students: Student[], search: string) {
+  const q = search.toLowerCase().trim();
+  if (!q) return students;
+  return students.filter(
+    (s) => (s.full_name ?? "").toLowerCase().includes(q) || s.email.toLowerCase().includes(q),
+  );
+}
+
+function RecipientList({
+  students,
+  selected,
+  onSelect,
+  onToggleAll,
+  search,
+  onSearchChange,
+  maxHeightClass = "max-h-48",
+}: {
+  students: Student[];
+  selected: Set<string>;
+  onSelect: (id: string, checked: boolean) => void;
+  onToggleAll: () => void;
+  search: string;
+  onSearchChange: (value: string) => void;
+  maxHeightClass?: string;
+}) {
+  const filtered = useMemo(() => filterStudents(students, search), [students, search]);
+
+  return (
+    <div className="space-y-3 rounded-2xl border border-border/60 p-4">
+      <div className="flex items-center justify-between">
+        <div className="text-sm font-medium flex items-center gap-2">
+          <Users className="w-4 h-4" />
+          {selected.size} selecionado(s)
+        </div>
+        <button type="button" onClick={onToggleAll} className="text-xs text-primary hover:underline">
+          {selected.size === filtered.length && filtered.length > 0 ? "Desmarcar todos" : "Selecionar todos"}
+        </button>
+      </div>
+      <div className="relative">
+        <Search className="w-4 h-4 absolute left-3 top-1/2 -translate-y-1/2 text-muted-foreground" />
+        <Input
+          value={search}
+          onChange={(e) => onSearchChange(e.target.value)}
+          placeholder="Buscar por nome ou email"
+          className="pl-9"
+        />
+      </div>
+      <div className={cn("overflow-y-auto -mx-2", maxHeightClass)}>
+        {filtered.length === 0 ? (
+          <div className="py-6 text-center text-sm text-muted-foreground">Nenhum usuário encontrado</div>
+        ) : (
+          filtered.map((s) => {
+            const checked = selected.has(s.id);
+            return (
+              <label
+                key={s.id}
+                className={cn(
+                  "flex items-center gap-3 px-3 py-2 rounded-xl cursor-pointer transition-colors",
+                  checked ? "bg-primary/10" : "hover:bg-secondary/40",
+                )}
+              >
+                <Checkbox
+                  checked={checked}
+                  onCheckedChange={(value) => onSelect(s.id, value === true)}
+                />
+                {s.avatar_url ? (
+                  <img src={s.avatar_url} alt="" className="w-8 h-8 rounded-full object-cover" />
+                ) : (
+                  <div className="w-8 h-8 rounded-full bg-primary/20 flex items-center justify-center text-xs font-bold">
+                    {(s.full_name ?? s.email).charAt(0).toUpperCase()}
+                  </div>
+                )}
+                <div className="flex-1 min-w-0">
+                  <div className="text-sm font-medium truncate">{s.full_name ?? "Sem nome"}</div>
+                  <div className="text-xs text-muted-foreground truncate">{s.email}</div>
+                </div>
+              </label>
+            );
+          })
+        )}
+      </div>
+    </div>
+  );
+}
+
+function toastPushResult(
+  data: {
+    ok?: boolean;
+    sent?: number;
+    attempted?: number;
+    recipientCount?: number;
+    mode?: string | null;
+    error?: string;
+  } | null,
+  expectedRecipients?: number,
+) {
   if (!data?.ok) {
     toast.error(data?.error ?? "Falha ao enviar push");
     return false;
   }
   const attempted = data.attempted ?? data.sent ?? 0;
+  const recipients = data.recipientCount ?? expectedRecipients ?? attempted;
+  const recipientLabel =
+    expectedRecipients != null
+      ? `${recipients} usuário(s)`
+      : `${recipients} destinatário(s)`;
+
+  if (expectedRecipients != null && recipients > expectedRecipients) {
+    toast.error(`Push enviado para ${recipients} usuários, mas você selecionou apenas ${expectedRecipients}.`);
+    return false;
+  }
+
   if (attempted > (data.sent ?? 0)) {
-    toast.warning(`Push entregue em ${data.sent} de ${attempted} dispositivo(s)`);
+    toast.warning(`Push entregue em ${data.sent} de ${attempted} dispositivo(s) (${recipientLabel})`);
   } else {
-    toast.success(`Push enviado para ${data.sent} dispositivo(s)`);
+    toast.success(`Push enviado para ${recipientLabel} (${data.sent} dispositivo(s))`);
   }
   return true;
 }
@@ -47,7 +148,7 @@ export default function AdminNotifications() {
   const [pushTesting, setPushTesting] = useState(false);
 
   // Push panel
-  const [pushTarget, setPushTarget] = useState<string>("__all__");
+  const [pushTarget, setPushTarget] = useState<string>("__selected__");
   const [pushSelected, setPushSelected] = useState<Set<string>>(new Set());
   const [pushSearch, setPushSearch] = useState("");
   const [pushTitle, setPushTitle] = useState("");
@@ -105,21 +206,8 @@ export default function AdminNotifications() {
     };
   }, [pushTarget, weekBounds.endYmd, weekBounds.startYmd, weekDates]);
 
-  const filtered = useMemo(() => {
-    const q = search.toLowerCase().trim();
-    if (!q) return students;
-    return students.filter(
-      (s) => (s.full_name ?? "").toLowerCase().includes(q) || s.email.toLowerCase().includes(q),
-    );
-  }, [students, search]);
-
-  const pushFiltered = useMemo(() => {
-    const q = pushSearch.toLowerCase().trim();
-    if (!q) return students;
-    return students.filter(
-      (s) => (s.full_name ?? "").toLowerCase().includes(q) || s.email.toLowerCase().includes(q),
-    );
-  }, [students, pushSearch]);
+  const filtered = useMemo(() => filterStudents(students, search), [students, search]);
+  const pushFiltered = useMemo(() => filterStudents(students, pushSearch), [students, pushSearch]);
 
   const scheduledBookedIds = useMemo(
     () => bookingsByDate[scheduledDate] ?? new Set<string>(),
@@ -136,10 +224,11 @@ export default function AdminNotifications() {
     [scheduledDate],
   );
 
-  const toggle = (id: string) => {
+  const selectRecipient = (id: string, checked: boolean) => {
     setSelected((prev) => {
       const next = new Set(prev);
-      next.has(id) ? next.delete(id) : next.add(id);
+      if (checked) next.add(id);
+      else next.delete(id);
       return next;
     });
   };
@@ -149,10 +238,11 @@ export default function AdminNotifications() {
     else setSelected(new Set(filtered.map((s) => s.id)));
   };
 
-  const togglePush = (id: string) => {
+  const selectPushRecipient = (id: string, checked: boolean) => {
     setPushSelected((prev) => {
       const next = new Set(prev);
-      next.has(id) ? next.delete(id) : next.add(id);
+      if (checked) next.add(id);
+      else next.delete(id);
       return next;
     });
   };
@@ -183,37 +273,45 @@ export default function AdminNotifications() {
 
   const sendPush = async () => {
     if (!pushTitle.trim()) return toast.error("Informe o título do push");
-    if (pushTarget === "__selected__" && pushSelected.size === 0) {
-      return toast.error("Selecione ao menos um destinatário");
+
+    const mode =
+      pushTarget === "__all__" ? "all" : pushTarget === "__scheduled__" ? "scheduled" : "selected";
+
+    const recipientIds =
+      mode === "selected"
+        ? Array.from(pushSelected)
+        : mode === "scheduled"
+          ? Array.from(scheduledBookedIds)
+          : [];
+
+    if (mode === "selected" && recipientIds.length === 0) {
+      return toast.error("Selecione ao menos um destinatário na lista de push");
     }
-    if (pushTarget === "__scheduled__" && scheduledBookedIds.size === 0) {
+    if (mode === "scheduled" && recipientIds.length === 0) {
       return toast.error("Nenhum agendamento confirmado para o dia selecionado");
     }
+    if (
+      mode === "all" &&
+      !window.confirm(`Enviar push para TODOS os ${students.length} usuários cadastrados?`)
+    ) {
+      return;
+    }
+
     setPushSending(true);
     try {
-      const recipientIds =
-        pushTarget === "__selected__"
-          ? Array.from(pushSelected)
-          : pushTarget === "__scheduled__"
-            ? Array.from(scheduledBookedIds)
-            : [];
-
       const pushPayload: {
+        mode: "all" | "selected" | "scheduled";
         title: string;
         body: string;
         url?: string;
         userIds?: string[];
-        userId?: string;
       } = {
+        mode,
         title: pushTitle.trim(),
         body: pushBody.trim(),
       };
       if (pushUrl.trim()) pushPayload.url = pushUrl.trim();
-      if (recipientIds.length > 0) {
-        pushPayload.userIds = recipientIds;
-        // Compatível com edge function antiga (só userId singular)
-        if (recipientIds.length === 1) pushPayload.userId = recipientIds[0];
-      }
+      if (mode !== "all") pushPayload.userIds = recipientIds;
 
       const { data, error } = await supabase.functions.invoke("send-push-notification", {
         body: pushPayload,
@@ -230,7 +328,8 @@ export default function AdminNotifications() {
         }
         throw new Error(errorMessage);
       }
-      if (!toastPushResult(data)) return;
+      const expectedRecipients = mode === "all" ? undefined : recipientIds.length;
+      if (!toastPushResult(data, expectedRecipients)) return;
       setPushTitle("");
       setPushBody("");
       setPushUrl("");
@@ -248,6 +347,7 @@ export default function AdminNotifications() {
     try {
       const { data, error } = await supabase.functions.invoke("send-push-notification", {
         body: {
+          mode: "test",
           userId: user.id,
           title: "Teste Mandala Rio",
           body: "Esta é uma notificação de teste!",
@@ -303,9 +403,9 @@ export default function AdminNotifications() {
             >
               <SelectTrigger><SelectValue /></SelectTrigger>
               <SelectContent>
-                <SelectItem value="__all__">Todos os usuários</SelectItem>
-                <SelectItem value="__scheduled__">Agendados por dia</SelectItem>
                 <SelectItem value="__selected__">Selecionar pessoas</SelectItem>
+                <SelectItem value="__scheduled__">Agendados por dia</SelectItem>
+                <SelectItem value="__all__">Todos os usuários</SelectItem>
               </SelectContent>
             </Select>
           </div>
@@ -415,49 +515,14 @@ export default function AdminNotifications() {
           </div>
         )}
         {pushTarget === "__selected__" && (
-          <div className="space-y-3 rounded-2xl border border-border/60 p-4">
-            <div className="flex items-center justify-between">
-              <div className="text-sm font-medium flex items-center gap-2">
-                <Users className="w-4 h-4" />
-                {pushSelected.size} selecionado(s)
-              </div>
-              <button onClick={togglePushAll} className="text-xs text-primary hover:underline">
-                {pushSelected.size === pushFiltered.length && pushFiltered.length > 0
-                  ? "Desmarcar todos"
-                  : "Selecionar todos"}
-              </button>
-            </div>
-            <div className="relative">
-              <Search className="w-4 h-4 absolute left-3 top-1/2 -translate-y-1/2 text-muted-foreground" />
-              <Input
-                value={pushSearch}
-                onChange={(e) => setPushSearch(e.target.value)}
-                placeholder="Buscar por nome ou email"
-                className="pl-9"
-              />
-            </div>
-            <div className="max-h-48 overflow-y-auto -mx-2">
-              {pushFiltered.length === 0 ? (
-                <div className="py-6 text-center text-sm text-muted-foreground">Nenhum usuário encontrado</div>
-              ) : (
-                pushFiltered.map((s) => {
-                  const checked = pushSelected.has(s.id);
-                  return (
-                    <label
-                      key={s.id}
-                      className={`flex items-center gap-3 px-3 py-2 rounded-xl cursor-pointer transition-colors ${checked ? "bg-primary/10" : "hover:bg-secondary/40"}`}
-                    >
-                      <Checkbox checked={checked} onCheckedChange={() => togglePush(s.id)} />
-                      <div className="flex-1 min-w-0">
-                        <div className="text-sm font-medium truncate">{s.full_name ?? "Sem nome"}</div>
-                        <div className="text-xs text-muted-foreground truncate">{s.email}</div>
-                      </div>
-                    </label>
-                  );
-                })
-              )}
-            </div>
-          </div>
+          <RecipientList
+            students={students}
+            selected={pushSelected}
+            onSelect={selectPushRecipient}
+            onToggleAll={togglePushAll}
+            search={pushSearch}
+            onSearchChange={setPushSearch}
+          />
         )}
         <div className="flex gap-2 flex-wrap">
           <Button onClick={sendPush} disabled={pushSending}>
@@ -468,7 +533,7 @@ export default function AdminNotifications() {
                 ? `Enviar push para ${scheduledBookedIds.size} agendado(s)`
                 : pushTarget === "__selected__"
                   ? `Enviar push para ${pushSelected.size} usuário(s)`
-                  : "Enviar push"}
+                  : "Enviar push para todos"}
           </Button>
         </div>
       </div>
@@ -504,46 +569,19 @@ export default function AdminNotifications() {
           </Button>
         </div>
 
-        {/* Recipients */}
-        <div className="glass-strong rounded-3xl p-5 space-y-3">
-          <div className="flex items-center justify-between">
-            <div className="font-semibold flex items-center gap-2"><Users className="w-4 h-4" /> Destinatários</div>
-            <button onClick={toggleAll} className="text-xs text-primary hover:underline">
-              {selected.size === filtered.length && filtered.length > 0 ? "Desmarcar todos" : "Selecionar todos"}
-            </button>
+        <div className="glass-strong rounded-3xl p-5">
+          <div className="font-semibold flex items-center gap-2 mb-3">
+            <Users className="w-4 h-4" /> Destinatários
           </div>
-          <div className="relative">
-            <Search className="w-4 h-4 absolute left-3 top-1/2 -translate-y-1/2 text-muted-foreground" />
-            <Input value={search} onChange={(e) => setSearch(e.target.value)} placeholder="Buscar por nome ou email" className="pl-9" />
-          </div>
-          <div className="max-h-[480px] overflow-y-auto -mx-2">
-            {filtered.length === 0 ? (
-              <div className="py-10 text-center text-sm text-muted-foreground">Nenhum usuário encontrado</div>
-            ) : (
-              filtered.map((s) => {
-                const checked = selected.has(s.id);
-                return (
-                  <label
-                    key={s.id}
-                    className={`flex items-center gap-3 px-3 py-2.5 rounded-xl cursor-pointer transition-colors ${checked ? "bg-primary/10" : "hover:bg-secondary/40"}`}
-                  >
-                    <Checkbox checked={checked} onCheckedChange={() => toggle(s.id)} />
-                    {s.avatar_url ? (
-                      <img src={s.avatar_url} alt="" className="w-8 h-8 rounded-full object-cover" />
-                    ) : (
-                      <div className="w-8 h-8 rounded-full bg-primary/20 flex items-center justify-center text-xs font-bold">
-                        {(s.full_name ?? s.email).charAt(0).toUpperCase()}
-                      </div>
-                    )}
-                    <div className="flex-1 min-w-0">
-                      <div className="text-sm font-medium truncate">{s.full_name ?? "Sem nome"}</div>
-                      <div className="text-xs text-muted-foreground truncate">{s.email}</div>
-                    </div>
-                  </label>
-                );
-              })
-            )}
-          </div>
+          <RecipientList
+            students={students}
+            selected={selected}
+            onSelect={selectRecipient}
+            onToggleAll={toggleAll}
+            search={search}
+            onSearchChange={setSearch}
+            maxHeightClass="max-h-[480px]"
+          />
         </div>
       </div>
     </div>

@@ -9,14 +9,24 @@ const corsHeaders = {
 const PUSH_CHANNEL_ID = "mandalario-alerts";
 
 type Payload = {
+  mode?: "all" | "selected" | "scheduled" | "test";
   userId?: string | null;
-  userIds?: string[];
+  userIds?: string[] | string;
+  broadcast?: boolean;
   title: string;
   body?: string;
   url?: string;
   pushToken?: string;
   redirectUrl?: string;
 };
+
+function normalizeUserIds(raw: unknown): string[] {
+  if (Array.isArray(raw)) {
+    return Array.from(new Set(raw.filter((id): id is string => typeof id === "string" && id.length > 0)));
+  }
+  if (typeof raw === "string" && raw) return [raw];
+  return [];
+}
 
 Deno.serve(async (req) => {
   if (req.method === "OPTIONS") return new Response("ok", { headers: corsHeaders });
@@ -44,13 +54,15 @@ Deno.serve(async (req) => {
 
     const payload = (await req.json()) as Payload;
     const { userId, title } = payload;
-    const userIds = Array.from(new Set((payload.userIds ?? []).filter(Boolean)));
+    const userIds = normalizeUserIds(payload.userIds);
+    const mode = payload.mode;
     const body = payload.body ?? "";
     const url = payload.url ?? payload.redirectUrl;
 
     if (!title) return json({ error: "title é obrigatório" }, 400);
 
     let tokens: string[] = [];
+    let recipientCount = 0;
 
     const tokensForUsers = async (ids: string[]) => {
       if (ids.length === 0) return [] as string[];
@@ -77,22 +89,42 @@ Deno.serve(async (req) => {
 
     if (payload.pushToken) {
       tokens = [payload.pushToken];
-    } else if (userIds.length > 0) {
+      recipientCount = 1;
+    } else if (mode === "selected" || mode === "scheduled") {
+      if (userIds.length === 0) {
+        return json({ error: "Informe userIds para envio seletivo." }, 400);
+      }
+      recipientCount = userIds.length;
       tokens = await tokensForUsers(userIds);
-    } else if (userId) {
-      tokens = await tokensForUsers([userId]);
-    } else {
-      const { data, error } = await admin.from("user_push_tokens").select("push_token");
+    } else if (mode === "all" || payload.broadcast === true) {
+      const { data, error } = await admin.from("user_push_tokens").select("push_token, user_id");
       if (error) return json({ error: error.message }, 400);
-      tokens = (data ?? []).map((r: { push_token: string }) => r.push_token).filter(Boolean);
+      const rows = data ?? [];
+      tokens = rows.map((r: { push_token: string }) => r.push_token).filter(Boolean);
+      recipientCount = new Set(rows.map((r: { user_id: string }) => r.user_id)).size;
 
       if (tokens.length === 0) {
         const { data: profs } = await admin
           .from("profiles")
-          .select("push_token")
+          .select("push_token, id")
           .not("push_token", "is", null);
-        tokens = (profs ?? []).map((r: { push_token: string }) => r.push_token).filter(Boolean);
+        const profRows = profs ?? [];
+        tokens = profRows.map((r: { push_token: string }) => r.push_token).filter(Boolean);
+        recipientCount = profRows.length;
       }
+    } else if (mode === "test" && userId) {
+      recipientCount = 1;
+      tokens = await tokensForUsers([userId]);
+    } else if (userIds.length > 0) {
+      recipientCount = userIds.length;
+      tokens = await tokensForUsers(userIds);
+    } else if (userId) {
+      recipientCount = 1;
+      tokens = await tokensForUsers([userId]);
+    } else {
+      return json({
+        error: "Destinatários não especificados. Use mode: all, selected, scheduled ou test.",
+      }, 400);
     }
 
     tokens = Array.from(new Set(tokens));
@@ -162,6 +194,8 @@ Deno.serve(async (req) => {
       sent: delivered,
       attempted: tokens.length,
       delivered,
+      recipientCount,
+      mode: mode ?? null,
       errors: ticketErrors,
       result,
     }, 200);
