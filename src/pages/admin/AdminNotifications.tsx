@@ -70,17 +70,23 @@ function RecipientList({
           filtered.map((s) => {
             const checked = selected.has(s.id);
             return (
-              <label
+              <div
                 key={s.id}
+                role="button"
+                tabIndex={0}
+                onClick={() => onSelect(s.id, !checked)}
+                onKeyDown={(e) => {
+                  if (e.key === "Enter" || e.key === " ") {
+                    e.preventDefault();
+                    onSelect(s.id, !checked);
+                  }
+                }}
                 className={cn(
                   "flex items-center gap-3 px-3 py-2 rounded-xl cursor-pointer transition-colors",
                   checked ? "bg-primary/10" : "hover:bg-secondary/40",
                 )}
               >
-                <Checkbox
-                  checked={checked}
-                  onCheckedChange={(value) => onSelect(s.id, value === true)}
-                />
+                <Checkbox checked={checked} className="pointer-events-none" />
                 {s.avatar_url ? (
                   <img src={s.avatar_url} alt="" className="w-8 h-8 rounded-full object-cover" />
                 ) : (
@@ -92,7 +98,7 @@ function RecipientList({
                   <div className="text-sm font-medium truncate">{s.full_name ?? "Sem nome"}</div>
                   <div className="text-xs text-muted-foreground truncate">{s.email}</div>
                 </div>
-              </label>
+              </div>
             );
           })
         )}
@@ -274,44 +280,30 @@ export default function AdminNotifications() {
   const sendPush = async () => {
     if (!pushTitle.trim()) return toast.error("Informe o título do push");
 
-    const mode =
-      pushTarget === "__all__" ? "all" : pushTarget === "__scheduled__" ? "scheduled" : "selected";
-
-    const recipientIds =
-      mode === "selected"
-        ? Array.from(pushSelected)
-        : mode === "scheduled"
-          ? Array.from(scheduledBookedIds)
-          : [];
-
-    if (mode === "selected" && recipientIds.length === 0) {
-      return toast.error("Selecione ao menos um destinatário na lista de push");
-    }
-    if (mode === "scheduled" && recipientIds.length === 0) {
-      return toast.error("Nenhum agendamento confirmado para o dia selecionado");
-    }
-    if (
-      mode === "all" &&
-      !window.confirm(`Enviar push para TODOS os ${students.length} usuários cadastrados?`)
-    ) {
-      return;
+    let recipientIds: string[];
+    if (pushTarget === "__all__") {
+      if (!window.confirm(`Enviar push para TODOS os ${students.length} usuários cadastrados?`)) return;
+      recipientIds = students.map((s) => s.id);
+    } else if (pushTarget === "__scheduled__") {
+      recipientIds = Array.from(scheduledBookedIds);
+      if (recipientIds.length === 0) {
+        return toast.error("Nenhum agendamento confirmado para o dia selecionado");
+      }
+    } else {
+      recipientIds = Array.from(pushSelected);
+      if (recipientIds.length === 0) {
+        return toast.error("Selecione ao menos um destinatário na lista de push");
+      }
     }
 
     setPushSending(true);
     try {
-      const pushPayload: {
-        mode: "all" | "selected" | "scheduled";
-        title: string;
-        body: string;
-        url?: string;
-        userIds?: string[];
-      } = {
-        mode,
+      const pushPayload = {
+        userIds: recipientIds,
         title: pushTitle.trim(),
         body: pushBody.trim(),
+        ...(pushUrl.trim() ? { url: pushUrl.trim() } : {}),
       };
-      if (pushUrl.trim()) pushPayload.url = pushUrl.trim();
-      if (mode !== "all") pushPayload.userIds = recipientIds;
 
       const { data, error } = await supabase.functions.invoke("send-push-notification", {
         body: pushPayload,
@@ -328,7 +320,7 @@ export default function AdminNotifications() {
         }
         throw new Error(errorMessage);
       }
-      const expectedRecipients = mode === "all" ? undefined : recipientIds.length;
+      const expectedRecipients = recipientIds.length;
       if (!toastPushResult(data, expectedRecipients)) return;
       setPushTitle("");
       setPushBody("");
@@ -347,8 +339,7 @@ export default function AdminNotifications() {
     try {
       const { data, error } = await supabase.functions.invoke("send-push-notification", {
         body: {
-          mode: "test",
-          userId: user.id,
+          userIds: [user.id],
           title: "Teste Mandala Rio",
           body: "Esta é uma notificação de teste!",
           url: "/feed",
@@ -523,6 +514,15 @@ export default function AdminNotifications() {
             search={pushSearch}
             onSearchChange={setPushSearch}
           />
+        )}
+        {pushTarget === "__selected__" && pushSelected.size > 0 && (
+          <p className="text-xs text-muted-foreground">
+            Será enviado para:{" "}
+            {students
+              .filter((s) => pushSelected.has(s.id))
+              .map((s) => s.full_name ?? s.email)
+              .join(", ")}
+          </p>
         )}
         <div className="flex gap-2 flex-wrap">
           <Button onClick={sendPush} disabled={pushSending}>

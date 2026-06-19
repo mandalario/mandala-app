@@ -9,10 +9,8 @@ const corsHeaders = {
 const PUSH_CHANNEL_ID = "mandalario-alerts";
 
 type Payload = {
-  mode?: "all" | "selected" | "scheduled" | "test";
   userId?: string | null;
-  userIds?: string[] | string;
-  broadcast?: boolean;
+  userIds?: unknown;
   title: string;
   body?: string;
   url?: string;
@@ -54,19 +52,25 @@ Deno.serve(async (req) => {
 
     const payload = (await req.json()) as Payload;
     const { userId, title } = payload;
-    const userIds = normalizeUserIds(payload.userIds);
-    const mode = payload.mode;
     const body = payload.body ?? "";
     const url = payload.url ?? payload.redirectUrl;
 
     if (!title) return json({ error: "title é obrigatório" }, 400);
 
+    let targetUserIds = normalizeUserIds(payload.userIds);
+    if (targetUserIds.length === 0 && userId) targetUserIds = [userId];
+
+    if (payload.pushToken) {
+      // direct token (tests / internal)
+    } else if (targetUserIds.length === 0) {
+      return json({
+        error: "Informe userIds com ao menos um destinatário. Envio em massa sem lista explícita não é permitido.",
+      }, 400);
+    }
+
     let tokens: string[] = [];
-    let recipientCount = 0;
 
     const tokensForUsers = async (ids: string[]) => {
-      if (ids.length === 0) return [] as string[];
-
       const { data, error } = await admin
         .from("user_push_tokens")
         .select("push_token")
@@ -89,42 +93,8 @@ Deno.serve(async (req) => {
 
     if (payload.pushToken) {
       tokens = [payload.pushToken];
-      recipientCount = 1;
-    } else if (mode === "selected" || mode === "scheduled") {
-      if (userIds.length === 0) {
-        return json({ error: "Informe userIds para envio seletivo." }, 400);
-      }
-      recipientCount = userIds.length;
-      tokens = await tokensForUsers(userIds);
-    } else if (mode === "all" || payload.broadcast === true) {
-      const { data, error } = await admin.from("user_push_tokens").select("push_token, user_id");
-      if (error) return json({ error: error.message }, 400);
-      const rows = data ?? [];
-      tokens = rows.map((r: { push_token: string }) => r.push_token).filter(Boolean);
-      recipientCount = new Set(rows.map((r: { user_id: string }) => r.user_id)).size;
-
-      if (tokens.length === 0) {
-        const { data: profs } = await admin
-          .from("profiles")
-          .select("push_token, id")
-          .not("push_token", "is", null);
-        const profRows = profs ?? [];
-        tokens = profRows.map((r: { push_token: string }) => r.push_token).filter(Boolean);
-        recipientCount = profRows.length;
-      }
-    } else if (mode === "test" && userId) {
-      recipientCount = 1;
-      tokens = await tokensForUsers([userId]);
-    } else if (userIds.length > 0) {
-      recipientCount = userIds.length;
-      tokens = await tokensForUsers(userIds);
-    } else if (userId) {
-      recipientCount = 1;
-      tokens = await tokensForUsers([userId]);
     } else {
-      return json({
-        error: "Destinatários não especificados. Use mode: all, selected, scheduled ou test.",
-      }, 400);
+      tokens = await tokensForUsers(targetUserIds);
     }
 
     tokens = Array.from(new Set(tokens));
@@ -134,8 +104,9 @@ Deno.serve(async (req) => {
         ok: false,
         code: "NO_PUSH_TOKENS",
         sent: 0,
+        recipientCount: targetUserIds.length,
         error:
-          "Nenhum push token registrado. O aluno precisa abrir o app, fazer login e aceitar notificações.",
+          "Nenhum push token registrado para os destinatários selecionados. Peça para abrirem o app e aceitarem notificações.",
       }, 200);
     }
 
@@ -183,6 +154,7 @@ Deno.serve(async (req) => {
         sent: 0,
         attempted: tokens.length,
         delivered: 0,
+        recipientCount: targetUserIds.length,
         errors: ticketErrors,
         error: `${ticketErrors[0].message}${fcmHint}`,
         result,
@@ -194,8 +166,7 @@ Deno.serve(async (req) => {
       sent: delivered,
       attempted: tokens.length,
       delivered,
-      recipientCount,
-      mode: mode ?? null,
+      recipientCount: targetUserIds.length,
       errors: ticketErrors,
       result,
     }, 200);
