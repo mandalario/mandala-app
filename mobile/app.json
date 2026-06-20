@@ -42,6 +42,7 @@
     ],
     "ios": {
       "supportsTablet": true,
+      "statusBarStyle": "light",
       "bundleIdentifier": "com.mandalario.app",
       "associatedDomains": [
         "applinks:mandalario.app"
@@ -51,6 +52,10 @@
       }
     },
     "android": {
+      "statusBar": {
+        "backgroundColor": "#0b1e3a",
+        "barStyle": "light-content"
+      },
       "adaptiveIcon": {
         "foregroundImage": "./assets/adaptive-icon.png",
         "backgroundColor": "#000000"
