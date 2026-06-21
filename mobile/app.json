@@ -3,7 +3,7 @@
     "name": "Mandala Rio Surf School",
     "slug": "mandalario",
     "version": "1.0.0",
-    "orientation": "portrait",
+    "orientation": "default",
     "userInterfaceStyle": "automatic",
     "scheme": "mandalario",
     "icon": "./assets/icon.png",
@@ -42,7 +42,6 @@
     ],
     "ios": {
       "supportsTablet": true,
-      "statusBarStyle": "light",
       "bundleIdentifier": "com.mandalario.app",
       "associatedDomains": [
         "applinks:mandalario.app"
@@ -52,10 +51,6 @@
       }
     },
     "android": {
-      "statusBar": {
-        "backgroundColor": "#0b1e3a",
-        "barStyle": "light-content"
-      },
       "adaptiveIcon": {
         "foregroundImage": "./assets/adaptive-icon.png",
         "backgroundColor": "#000000"

@@ -239,7 +239,7 @@ export default function App() {
 
   return (
     <SafeAreaView style={styles.container} edges={["top", "bottom"]}>
-      <StatusBar style="light" backgroundColor={APP_BACKGROUND} />
+      <StatusBar style="light" />
       <WebView
         ref={webViewRef}
         style={styles.webView}
