@@ -25,7 +25,7 @@ type Student = {
   has_own_board: boolean | null; board_size: string | null;
   experience_notes: string | null; medical_conditions: string | null;
   emergency_contact_name: string | null; emergency_contact_phone: string | null;
-  approval_status: string; credits: number; created_at: string;
+  approval_status: string; profile_completed: boolean; credits: number; created_at: string;
   credits_grupo: number; credits_particular: number; credits_aluguel: number;
 };
 
@@ -51,8 +51,9 @@ export default function AdminStudents() {
     const { data: admins } = await supabase.from("user_roles").select("user_id").eq("role", "admin");
     const adminIds = (admins ?? []).map((r: any) => r.user_id);
     let query = supabase.from("profiles").select("*").order("created_at", { ascending: false });
-    if (filter !== "all") query = query.eq("approval_status", filter);
-    if (filter === "pending") query = query.eq("profile_completed", true);
+    if (filter !== "all") {
+      query = query.eq("approval_status", filter).eq("profile_completed", true);
+    }
     if (adminIds.length) query = query.not("id", "in", `(${adminIds.map((id) => `"${id}"`).join(",")})`);
     const { data } = await query;
     setList((data ?? []) as Student[]);
@@ -143,7 +144,7 @@ export default function AdminStudents() {
               <div className="flex-1 min-w-0">
                 <div className="flex items-center gap-2 flex-wrap">
                   <span className="font-semibold truncate">{s.full_name ?? "Sem nome"}</span>
-                  <Badge status={s.approval_status} />
+                  <Badge status={s.approval_status} profileCompleted={s.profile_completed} />
                   {s.surf_level && <span className="text-[10px] uppercase px-2 py-0.5 rounded-full bg-secondary/60">{s.surf_level}</span>}
                 </div>
                 <div className="text-xs text-muted-foreground truncate">{s.email}</div>
@@ -185,7 +186,14 @@ export default function AdminStudents() {
   );
 }
 
-const Badge = ({ status }: { status: string }) => {
+const Badge = ({ status, profileCompleted = true }: { status: string; profileCompleted?: boolean }) => {
+  if (!profileCompleted) {
+    return (
+      <span className="text-[10px] uppercase tracking-widest px-2 py-0.5 rounded-full bg-secondary/60 text-muted-foreground">
+        cadastro incompleto
+      </span>
+    );
+  }
   const map: any = {
     pending: "bg-warning/15 text-warning",
     approved: "bg-success/15 text-success",
@@ -272,6 +280,10 @@ function StudentSheet({
   }, [student.id, t]);
 
   const decide = async (status: "approved" | "rejected") => {
+    if (!f.profile_completed) {
+      toast.error(t("admin.students.cannotDecideIncomplete"));
+      return;
+    }
     const { error } = await supabase.from("profiles").update({ approval_status: status }).eq("id", student.id);
     if (error) return toast.error(error.message);
     await supabase.from("notifications").insert({
@@ -350,7 +362,7 @@ function StudentSheet({
       onClose={onClose}
       title={f.full_name ?? f.email}
       subtitle={`${f.email}${f.phone ? " · " + formatPhoneNationalOnly(f.phone) : ""}`}
-      badge={<Badge status={f.approval_status} />}
+      badge={<Badge status={f.approval_status} profileCompleted={f.profile_completed} />}
     >
       {loadingProfile ? (
         <div className="glass rounded-2xl p-12 text-center">
@@ -358,6 +370,11 @@ function StudentSheet({
         </div>
       ) : (
         <>
+      {!f.profile_completed && (
+        <div className="rounded-xl border border-warning/30 bg-warning/10 px-4 py-3 text-sm text-warning">
+          Este aluno ainda está preenchendo a ficha. A aprovação só fica disponível depois que ele enviar o cadastro.
+        </div>
+      )}
       {/* Hero */}
       <div className="flex items-center gap-4 glass rounded-2xl p-4">
         <div className="w-16 h-16 rounded-2xl bg-gradient-to-br from-primary to-primary/40 text-primary-foreground flex items-center justify-center text-2xl font-bold shrink-0">
@@ -466,7 +483,7 @@ function StudentSheet({
         <Button variant="ghost" onClick={deleteStudent} disabled={saving} className="rounded-xl text-destructive hover:bg-destructive/10">
           <Trash2 className="w-4 h-4 mr-2" /> Excluir
         </Button>
-        {f.approval_status !== "approved" && (
+        {f.approval_status !== "approved" && f.profile_completed && (
           <>
             <Button variant="ghost" onClick={() => decide("rejected")} className="rounded-xl text-destructive hover:bg-destructive/10">
               <XCircle className="w-4 h-4 mr-2" /> Rejeitar

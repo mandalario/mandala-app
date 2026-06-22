@@ -73,7 +73,7 @@ export default function AdminDashboard() {
       { data: pendingData },
     ] = await Promise.all([
       supabase.from("profiles").select("*", { count: "exact", head: true }),
-      supabase.from("profiles").select("*", { count: "exact", head: true }).eq("approval_status", "approved"),
+      supabase.from("profiles").select("*", { count: "exact", head: true }).eq("approval_status", "approved").eq("profile_completed", true),
       supabase.from("profiles").select("*", { count: "exact", head: true }).eq("approval_status", "pending").eq("profile_completed", true),
       supabase.from("payments").select("*", { count: "exact", head: true }).eq("status", "pending"),
       supabase.from("class_slots").select("id, start_time, location, date, class_type").gte("date", chartWeekStartStr).lte("date", chartWeekEndStr),

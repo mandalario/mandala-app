@@ -22,6 +22,7 @@ import { stripDigitsFromName, stripToDecimalInput, stripToDigits } from "@/lib/p
 import {
   createOnboardingProfileSchema,
   formatAllProfileValidationErrors,
+  isOnboardingProfilePersisted,
 } from "@/lib/profileFormValidation";
 import { checkPhoneAvailable } from "@/lib/checkPhoneAvailable";
 
@@ -185,7 +186,9 @@ export default function Onboarding() {
         profile_completed: true,
       })
       .eq("id", user.id)
-      .select("id, phone, age, weight_kg, height_cm, profile_completed")
+      .select(
+        "id, full_name, phone, age, weight_kg, height_cm, emergency_contact_name, emergency_contact_phone, profile_completed",
+      )
       .single();
     setLoading(false);
 
@@ -199,10 +202,15 @@ export default function Onboarding() {
         );
         return;
       }
+      if (error.code === "23514" || error.message.includes("profile_incomplete")) {
+        toast.error(t("common.saveErrorPrefix") + t("onboarding.errors.saveIncomplete"));
+        return;
+      }
       toast.error(t("common.saveErrorPrefix") + error.message);
       return;
     }
-    if (!saved?.profile_completed || saved.phone == null || saved.age == null) {
+    if (!isOnboardingProfilePersisted(saved)) {
+      await supabase.from("profiles").update({ profile_completed: false }).eq("id", user.id);
       toast.error(t("common.saveErrorPrefix") + t("onboarding.errors.saveIncomplete"));
       return;
     }

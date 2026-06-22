@@ -33,7 +33,7 @@ export default function AdminDashboard() {
       .order("created_at", { ascending: false });
 
     const { count: totalCount } = await supabase.from("profiles").select("*", { count: "exact", head: true });
-    const { count: approvedCount } = await supabase.from("profiles").select("*", { count: "exact", head: true }).eq("approval_status", "approved");
+    const { count: approvedCount } = await supabase.from("profiles").select("*", { count: "exact", head: true }).eq("approval_status", "approved").eq("profile_completed", true);
     const { count: pendingCount } = await supabase.from("profiles").select("*", { count: "exact", head: true }).eq("approval_status", "pending").eq("profile_completed", true);
 
     setPending((pendingData ?? []) as PendingProfile[]);

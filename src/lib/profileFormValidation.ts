@@ -112,3 +112,31 @@ export function formatAllProfileValidationErrors(error: z.ZodError, t: Validatio
     })
     .join(" · ");
 }
+
+/** Campos mínimos que precisam existir após o envio da ficha de onboarding. */
+export type PersistedOnboardingProfile = {
+  profile_completed: boolean | null;
+  full_name: string | null;
+  phone: string | null;
+  age: number | null;
+  weight_kg: number | null;
+  height_cm: number | null;
+  emergency_contact_name: string | null;
+  emergency_contact_phone: string | null;
+};
+
+export function isOnboardingProfilePersisted(
+  saved: PersistedOnboardingProfile | null | undefined,
+): boolean {
+  if (!saved?.profile_completed) return false;
+  const name = saved.full_name?.trim() ?? "";
+  return (
+    name.length >= 2 &&
+    saved.phone != null &&
+    saved.age != null &&
+    saved.weight_kg != null &&
+    saved.height_cm != null &&
+    (saved.emergency_contact_name?.trim().length ?? 0) >= 2 &&
+    saved.emergency_contact_phone != null
+  );
+}

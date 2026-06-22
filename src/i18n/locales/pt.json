@@ -806,6 +806,7 @@
       "deleteConfirm": "Tem certeza que deseja excluir este aluno permanentemente?",
       "deleteError": "Erro ao excluir: ",
       "loadError": "Erro ao carregar ficha: ",
+      "cannotDecideIncomplete": "O aluno ainda não enviou a ficha completa.",
       "deleteInvalid": "Erro ao excluir: resposta inválida do servidor",
       "deleted": "Aluno excluído com sucesso",
       "updated": "Dados atualizados",

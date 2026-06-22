@@ -806,6 +806,7 @@
       "deleteConfirm": "Permanently delete this student?",
       "deleteError": "Delete error: ",
       "loadError": "Error loading profile: ",
+      "cannotDecideIncomplete": "The student has not submitted a complete profile yet.",
       "deleteInvalid": "Delete error: invalid server response",
       "deleted": "Student deleted",
       "updated": "Data updated",

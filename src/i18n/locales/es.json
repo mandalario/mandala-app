@@ -806,6 +806,7 @@
       "deleteConfirm": "¿Eliminar este alumno permanentemente?",
       "deleteError": "Error al eliminar: ",
       "loadError": "Error al cargar la ficha: ",
+      "cannotDecideIncomplete": "El alumno aún no envió la ficha completa.",
       "deleteInvalid": "Error al eliminar: respuesta inválida del servidor",
       "deleted": "Alumno eliminado",
       "updated": "Datos actualizados",
