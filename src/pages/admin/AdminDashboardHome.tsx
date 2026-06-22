@@ -1,13 +1,14 @@
-import { useEffect, useMemo, useState } from "react";
+import { useCallback, useEffect, useMemo, useState } from "react";
 import { Link } from "react-router-dom";
 import { addDays, format } from "date-fns";
 import { ptBR } from "date-fns/locale";
 import { supabase } from "@/integrations/supabase/client";
-import { Users, CheckCircle2, Hourglass, TrendingUp, DollarSign, CalendarDays, ChevronLeft, ChevronRight } from "lucide-react";
+import { Users, CheckCircle2, Hourglass, TrendingUp, DollarSign, CalendarDays, ChevronLeft, ChevronRight, XCircle } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { getRollingWeekBounds, ymdToLocalNoon } from "@/lib/rollingWeek";
 import { getScheduleNowParts } from "@/lib/slotSchedule";
 import { cn } from "@/lib/utils";
+import { toast } from "sonner";
 
 const ymd = (d: Date) => format(d, "yyyy-MM-dd");
 
@@ -29,44 +30,62 @@ type ClassBooking = {
   profiles: { full_name: string | null } | null;
 };
 
+type PendingProfile = {
+  id: string;
+  full_name: string | null;
+  email: string;
+  phone: string | null;
+  age: number | null;
+  surf_level: string | null;
+  can_swim: boolean | null;
+  created_at: string;
+};
+
 export default function AdminDashboard() {
   const [stats, setStats] = useState({ total: 0, approved: 0, pending: 0, payPending: 0, todayClasses: 0, monthRevenue: 0 });
+  const [pendingProfiles, setPendingProfiles] = useState<PendingProfile[]>([]);
   const [weekClasses, setWeekClasses] = useState<ClassBooking[]>([]);
   const [series, setSeries] = useState<{ date: string; count: number }[]>([]);
   const [selectedDate, setSelectedDate] = useState(() => new Date());
   const [weekBounds, setWeekBounds] = useState({ start: new Date(), end: new Date() });
 
-  useEffect(() => {
-    (async () => {
-      const now = new Date();
-      const {
-        startYmd: todayStr,
-        startYmd: chartWeekStartStr,
-        endYmd: chartWeekEndStr,
-        dates: chartDates,
-        start: chartStart,
-        end: chartEnd,
-      } = getRollingWeekBounds(now);
-      const monthStart = new Date(); monthStart.setDate(1);
-      const monthStartStr = ymd(monthStart);
+  const load = useCallback(async () => {
+    const now = new Date();
+    const {
+      startYmd: todayStr,
+      startYmd: chartWeekStartStr,
+      endYmd: chartWeekEndStr,
+      dates: chartDates,
+      start: chartStart,
+      end: chartEnd,
+    } = getRollingWeekBounds(now);
+    const monthStart = new Date(); monthStart.setDate(1);
+    const monthStartStr = ymd(monthStart);
 
-      const [
-        { count: total },
-        { count: approved },
-        { count: pending },
-        { count: payPending },
-        { data: weekSlots },
-        monthPay,
-        { data: weekBookings },
-      ] = await Promise.all([
-        supabase.from("profiles").select("*", { count: "exact", head: true }),
-        supabase.from("profiles").select("*", { count: "exact", head: true }).eq("approval_status", "approved"),
-        supabase.from("profiles").select("*", { count: "exact", head: true }).eq("approval_status", "pending").eq("profile_completed", true),
-        supabase.from("payments").select("*", { count: "exact", head: true }).eq("status", "pending"),
-        supabase.from("class_slots").select("id, start_time, location, date, class_type").gte("date", chartWeekStartStr).lte("date", chartWeekEndStr),
-        supabase.from("payments").select("amount_cents").eq("status", "approved").gte("created_at", monthStartStr),
-        supabase.from("bookings").select("slot_id, class_slots!inner(date)").eq("status", "confirmed").gte("class_slots.date", chartWeekStartStr).lte("class_slots.date", chartWeekEndStr),
-      ]);
+    const [
+      { count: total },
+      { count: approved },
+      { count: pending },
+      { count: payPending },
+      { data: weekSlots },
+      monthPay,
+      { data: weekBookings },
+      { data: pendingData },
+    ] = await Promise.all([
+      supabase.from("profiles").select("*", { count: "exact", head: true }),
+      supabase.from("profiles").select("*", { count: "exact", head: true }).eq("approval_status", "approved"),
+      supabase.from("profiles").select("*", { count: "exact", head: true }).eq("approval_status", "pending").eq("profile_completed", true),
+      supabase.from("payments").select("*", { count: "exact", head: true }).eq("status", "pending"),
+      supabase.from("class_slots").select("id, start_time, location, date, class_type").gte("date", chartWeekStartStr).lte("date", chartWeekEndStr),
+      supabase.from("payments").select("amount_cents").eq("status", "approved").gte("created_at", monthStartStr),
+      supabase.from("bookings").select("slot_id, class_slots!inner(date)").eq("status", "confirmed").gte("class_slots.date", chartWeekStartStr).lte("class_slots.date", chartWeekEndStr),
+      supabase
+        .from("profiles")
+        .select("id, full_name, email, phone, age, surf_level, can_swim, created_at")
+        .eq("approval_status", "pending")
+        .eq("profile_completed", true)
+        .order("created_at", { ascending: false }),
+    ]);
 
       const slotById = Object.fromEntries((weekSlots ?? []).map((s) => [s.id, s]));
       const weekSlotIds = Object.keys(slotById);
@@ -126,8 +145,30 @@ export default function AdminDashboard() {
         total: total ?? 0, approved: approved ?? 0, pending: pending ?? 0,
         payPending: payPending ?? 0, todayClasses: todayWithNames.length, monthRevenue,
       });
-    })();
+      setPendingProfiles((pendingData ?? []) as PendingProfile[]);
   }, []);
+
+  useEffect(() => { load(); }, [load]);
+
+  useEffect(() => {
+    const channel = supabase
+      .channel("admin-dashboard-profiles")
+      .on("postgres_changes", { event: "*", schema: "public", table: "profiles" }, () => load())
+      .subscribe();
+    return () => {
+      supabase.removeChannel(channel);
+    };
+  }, [load]);
+
+  const decide = async (id: string, status: "approved" | "rejected") => {
+    const { error } = await supabase.from("profiles").update({ approval_status: status }).eq("id", id);
+    if (error) {
+      toast.error(error.message);
+      return;
+    }
+    toast.success(status === "approved" ? "Aluno aprovado" : "Aluno rejeitado");
+    load();
+  };
 
   const max = Math.max(1, ...series.map((s) => s.count));
 
@@ -161,6 +202,55 @@ export default function AdminDashboard() {
         <Stat icon={<CalendarDays className="w-4 h-4" />} label="Aulas hoje" value={stats.todayClasses} accent="accent" />
         <Stat icon={<TrendingUp className="w-4 h-4" />} label="Mês (R$)" value={(stats.monthRevenue / 100).toFixed(0)} accent="primary" />
       </section>
+
+      {pendingProfiles.length > 0 && (
+        <section className="glass-strong rounded-3xl p-6 space-y-4">
+          <div className="flex items-center justify-between gap-3">
+            <div>
+              <h2 className="font-bold">Solicitações de cadastro</h2>
+              <p className="text-sm text-muted-foreground">{pendingProfiles.length} aguardando aprovação</p>
+            </div>
+            <Link to="/admin/students" className="text-xs text-primary hover:underline shrink-0">
+              Ver todos
+            </Link>
+          </div>
+          <div className="space-y-3">
+            {pendingProfiles.slice(0, 5).map((p) => (
+              <div key={p.id} className="rounded-2xl bg-secondary/30 p-4 flex flex-col md:flex-row md:items-center gap-4">
+                <div className="flex-1 min-w-0">
+                  <div className="flex items-center gap-2 flex-wrap">
+                    <h3 className="font-semibold truncate">{p.full_name ?? "Sem nome"}</h3>
+                    {p.surf_level && (
+                      <span className="text-xs px-2 py-0.5 rounded-full bg-primary/15 text-primary">
+                        {p.surf_level}
+                      </span>
+                    )}
+                  </div>
+                  <p className="text-sm text-muted-foreground truncate">{p.email}</p>
+                  <p className="text-xs text-muted-foreground mt-1">
+                    {p.phone ?? "sem tel"} · {p.age ?? "?"} anos
+                  </p>
+                </div>
+                <div className="flex gap-2 shrink-0">
+                  <Button
+                    onClick={() => decide(p.id, "rejected")}
+                    variant="ghost"
+                    className="rounded-xl text-destructive hover:bg-destructive/10"
+                  >
+                    <XCircle className="w-4 h-4 mr-2" /> Rejeitar
+                  </Button>
+                  <Button
+                    onClick={() => decide(p.id, "approved")}
+                    className="rounded-xl bg-success text-success-foreground hover:opacity-90"
+                  >
+                    <CheckCircle2 className="w-4 h-4 mr-2" /> Aprovar
+                  </Button>
+                </div>
+              </div>
+            ))}
+          </div>
+        </section>
+      )}
 
       <section className="grid lg:grid-cols-3 gap-4">
         <div className="lg:col-span-2 glass-strong rounded-3xl p-6">

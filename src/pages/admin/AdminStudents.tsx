@@ -1,4 +1,5 @@
-import { useEffect, useState } from "react";
+import { useCallback, useEffect, useState } from "react";
+import { useSearchParams } from "react-router-dom";
 import { supabase } from "@/integrations/supabase/client";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -27,15 +28,24 @@ type Student = {
   credits_grupo: number; credits_particular: number; credits_aluguel: number;
 };
 
+const FILTER_VALUES = ["pending", "approved", "rejected", "all"] as const;
+type FilterValue = (typeof FILTER_VALUES)[number];
+
+function parseFilterParam(value: string | null): FilterValue {
+  if (value && FILTER_VALUES.includes(value as FilterValue)) return value as FilterValue;
+  return "pending";
+}
+
 export default function AdminStudents() {
+  const [searchParams, setSearchParams] = useSearchParams();
   const [list, setList] = useState<Student[]>([]);
-  const [filter, setFilter] = useState<"pending" | "approved" | "rejected" | "all">("approved");
+  const [filter, setFilter] = useState<FilterValue>(() => parseFilterParam(searchParams.get("filter")));
   const [q, setQ] = useState("");
   const [open, setOpen] = useState<Student | null>(null);
   const [creating, setCreating] = useState(false);
   const [loading, setLoading] = useState(true);
 
-  const load = async () => {
+  const load = useCallback(async () => {
     setLoading(true);
     const { data: admins } = await supabase.from("user_roles").select("user_id").eq("role", "admin");
     const adminIds = (admins ?? []).map((r: any) => r.user_id);
@@ -46,8 +56,24 @@ export default function AdminStudents() {
     const { data } = await query;
     setList((data ?? []) as Student[]);
     setLoading(false);
+  }, [filter]);
+
+  useEffect(() => { load(); }, [load]);
+
+  useEffect(() => {
+    const channel = supabase
+      .channel("admin-students-profiles")
+      .on("postgres_changes", { event: "*", schema: "public", table: "profiles" }, () => load())
+      .subscribe();
+    return () => {
+      supabase.removeChannel(channel);
+    };
+  }, [load]);
+
+  const changeFilter = (next: FilterValue) => {
+    setFilter(next);
+    setSearchParams(next === "pending" ? {} : { filter: next }, { replace: true });
   };
-  useEffect(() => { load(); }, [filter]);
 
   const filtered = list.filter((s) => {
     if (!q) return true;
@@ -69,8 +95,8 @@ export default function AdminStudents() {
 
       <div className="flex flex-col md:flex-row md:items-center gap-3">
         <div className="flex gap-1 p-1 rounded-xl bg-secondary/40 w-fit">
-          {(["pending", "approved", "rejected", "all"] as const).map((f) => (
-            <button key={f} onClick={() => setFilter(f)} className={`px-3 py-1.5 rounded-lg text-xs font-medium ${filter === f ? "bg-primary text-primary-foreground" : "text-muted-foreground"}`}>
+          {FILTER_VALUES.map((f) => (
+            <button key={f} onClick={() => changeFilter(f)} className={`px-3 py-1.5 rounded-lg text-xs font-medium ${filter === f ? "bg-primary text-primary-foreground" : "text-muted-foreground"}`}>
               {f === "pending" ? "Pendentes" : f === "approved" ? "Aprovados" : f === "rejected" ? "Rejeitados" : "Todos"}
             </button>
           ))}
