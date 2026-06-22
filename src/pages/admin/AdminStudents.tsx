@@ -14,7 +14,8 @@ import { LessonHistory } from "@/components/LessonHistory";
 import { formatBoardField, parseBoardField } from "@/lib/board";
 import { isValidRealEmail, normalizeEmail, stripInvalidEmailInput } from "@/lib/email";
 import { PhoneInput } from "@/components/PhoneInput";
-import { formatPhoneNationalOnly, isValidPhone } from "@/lib/phone";
+import { formatPhoneNationalOnly, isValidPhone, stripToDecimalInput, stripToDigits } from "@/lib/phone";
+import { stripDecimalSeparators } from "@/lib/utils";
 import { useTranslation } from "@/i18n/LanguageContext";
 
 type Student = {
@@ -52,13 +53,34 @@ export default function AdminStudents() {
     let query = supabase.from("profiles").select("*").order("created_at", { ascending: false });
     if (filter !== "all") query = query.eq("approval_status", filter);
     if (filter === "pending") query = query.eq("profile_completed", true);
-    if (adminIds.length) query = query.not("id", "in", `(${adminIds.join(",")})`);
+    if (adminIds.length) query = query.not("id", "in", `(${adminIds.map((id) => `"${id}"`).join(",")})`);
     const { data } = await query;
     setList((data ?? []) as Student[]);
     setLoading(false);
   }, [filter]);
 
   useEffect(() => { load(); }, [load]);
+
+  useEffect(() => {
+    const studentId = searchParams.get("student");
+    if (!studentId) return;
+
+    const found = list.find((s) => s.id === studentId);
+    if (found) {
+      setOpen(found);
+      return;
+    }
+    if (loading) return;
+
+    let cancelled = false;
+    (async () => {
+      const { data } = await supabase.from("profiles").select("*").eq("id", studentId).maybeSingle();
+      if (!cancelled && data) setOpen(data as Student);
+    })();
+    return () => {
+      cancelled = true;
+    };
+  }, [searchParams, list, loading]);
 
   useEffect(() => {
     const channel = supabase
@@ -139,7 +161,14 @@ export default function AdminStudents() {
       {open && (
         <StudentSheet
           student={open}
-          onClose={() => setOpen(null)}
+          onClose={() => {
+            setOpen(null);
+            if (searchParams.has("student")) {
+              const next = new URLSearchParams(searchParams);
+              next.delete("student");
+              setSearchParams(next, { replace: true });
+            }
+          }}
           onSaved={() => {
             setOpen(null);
             load();
@@ -192,6 +221,13 @@ const Overlay = ({ children, onClose, title, subtitle, badge }: any) => (
   </div>
 );
 
+const ADMIN_FIELD_CLASS = "bg-input/60 border-0 h-11 rounded-xl";
+
+function formatNumericDisplay(value: number | null | undefined): string {
+  if (value == null) return "";
+  return String(value);
+}
+
 /* ---------------- Edit student ---------------- */
 function StudentSheet({
   student,
@@ -205,12 +241,35 @@ function StudentSheet({
   onDeleted: (id: string) => void;
 }) {
   const { t } = useTranslation();
-  const initialBoard = parseBoardField(student.board_size);
   const [f, setF] = useState<Student>(student);
-  const [boardType, setBoardType] = useState(initialBoard.type);
-  const [boardSize, setBoardSize] = useState(initialBoard.size);
+  const [boardType, setBoardType] = useState("");
+  const [boardSize, setBoardSize] = useState("");
+  const [loadingProfile, setLoadingProfile] = useState(true);
   const [saving, setSaving] = useState(false);
   const set = (k: keyof Student, v: any) => setF((p) => ({ ...p, [k]: v }));
+
+  useEffect(() => {
+    let cancelled = false;
+    (async () => {
+      setLoadingProfile(true);
+      const { data, error } = await supabase.from("profiles").select("*").eq("id", student.id).single();
+      if (cancelled) return;
+      if (error) {
+        toast.error(t("admin.students.loadError") + error.message);
+        setLoadingProfile(false);
+        return;
+      }
+      const loaded = data as Student;
+      const initialBoard = parseBoardField(loaded.board_size);
+      setF(loaded);
+      setBoardType(initialBoard.type);
+      setBoardSize(initialBoard.size);
+      setLoadingProfile(false);
+    })();
+    return () => {
+      cancelled = true;
+    };
+  }, [student.id, t]);
 
   const decide = async (status: "approved" | "rejected") => {
     const { error } = await supabase.from("profiles").update({ approval_status: status }).eq("id", student.id);
@@ -293,6 +352,12 @@ function StudentSheet({
       subtitle={`${f.email}${f.phone ? " · " + formatPhoneNationalOnly(f.phone) : ""}`}
       badge={<Badge status={f.approval_status} />}
     >
+      {loadingProfile ? (
+        <div className="glass rounded-2xl p-12 text-center">
+          <Loader2 className="w-6 h-6 animate-spin mx-auto text-primary" />
+        </div>
+      ) : (
+        <>
       {/* Hero */}
       <div className="flex items-center gap-4 glass rounded-2xl p-4">
         <div className="w-16 h-16 rounded-2xl bg-gradient-to-br from-primary to-primary/40 text-primary-foreground flex items-center justify-center text-2xl font-bold shrink-0">
@@ -306,17 +371,41 @@ function StudentSheet({
       </div>
 
       <Section icon={<User className="w-4 h-4" />} title="Dados pessoais">
-        <Field label="Nome completo"><Input value={f.full_name ?? ""} onChange={(e) => set("full_name", e.target.value)} /></Field>
+        <Field label="Nome completo"><Input value={f.full_name ?? ""} onChange={(e) => set("full_name", e.target.value)} className={ADMIN_FIELD_CLASS} /></Field>
         <Field label="Telefone">
-          <PhoneInput value={f.phone ?? ""} onChange={(phone) => set("phone", phone)} />
+          <PhoneInput value={f.phone ?? ""} onChange={(phone) => set("phone", phone)} inputClassName={ADMIN_FIELD_CLASS} />
         </Field>
-        <Field label="Idade"><Input type="number" value={f.age ?? ""} onChange={(e) => set("age", e.target.value ? +e.target.value : null)} /></Field>
-        <Field label="Peso (kg)"><Input type="number" value={f.weight_kg ?? ""} onChange={(e) => set("weight_kg", e.target.value ? +e.target.value : null)} /></Field>
-        <Field label="Altura (cm)"><Input type="number" value={f.height_cm ?? ""} onChange={(e) => set("height_cm", e.target.value ? +e.target.value : null)} /></Field>
+        <Field label="Idade">
+          <Input
+            type="text"
+            inputMode="numeric"
+            value={formatNumericDisplay(f.age)}
+            onChange={(e) => set("age", e.target.value ? +stripToDigits(e.target.value, 2) : null)}
+            className={ADMIN_FIELD_CLASS}
+          />
+        </Field>
+        <Field label="Peso (kg)">
+          <Input
+            type="text"
+            inputMode="decimal"
+            value={formatNumericDisplay(f.weight_kg)}
+            onChange={(e) => set("weight_kg", e.target.value ? +stripToDecimalInput(e.target.value) : null)}
+            className={ADMIN_FIELD_CLASS}
+          />
+        </Field>
+        <Field label="Altura (cm)">
+          <Input
+            type="text"
+            inputMode="numeric"
+            value={formatNumericDisplay(f.height_cm)}
+            onChange={(e) => set("height_cm", e.target.value ? +stripDecimalSeparators(e.target.value) : null)}
+            className={ADMIN_FIELD_CLASS}
+          />
+        </Field>
         <div className="grid grid-cols-3 gap-2 md:col-span-2">
-          <Field label="Créd. Grupo"><Input type="number" value={f.credits_grupo} onChange={(e) => set("credits_grupo", e.target.value ? +e.target.value : 0)} /></Field>
-          <Field label="Créd. Particular"><Input type="number" value={f.credits_particular} onChange={(e) => set("credits_particular", e.target.value ? +e.target.value : 0)} /></Field>
-          <Field label="Créd. Aluguel"><Input type="number" value={f.credits_aluguel} onChange={(e) => set("credits_aluguel", e.target.value ? +e.target.value : 0)} /></Field>
+          <Field label="Créd. Grupo"><Input type="number" value={f.credits_grupo} onChange={(e) => set("credits_grupo", e.target.value ? +e.target.value : 0)} className={ADMIN_FIELD_CLASS} /></Field>
+          <Field label="Créd. Particular"><Input type="number" value={f.credits_particular} onChange={(e) => set("credits_particular", e.target.value ? +e.target.value : 0)} className={ADMIN_FIELD_CLASS} /></Field>
+          <Field label="Créd. Aluguel"><Input type="number" value={f.credits_aluguel} onChange={(e) => set("credits_aluguel", e.target.value ? +e.target.value : 0)} className={ADMIN_FIELD_CLASS} /></Field>
         </div>
       </Section>
 
@@ -360,11 +449,12 @@ function StudentSheet({
         <Field label="Condições médicas" full>
           <Textarea rows={3} value={f.medical_conditions ?? ""} onChange={(e) => set("medical_conditions", e.target.value)} />
         </Field>
-        <Field label="Contato de emergência"><Input value={f.emergency_contact_name ?? ""} onChange={(e) => set("emergency_contact_name", e.target.value)} /></Field>
+        <Field label="Contato de emergência"><Input value={f.emergency_contact_name ?? ""} onChange={(e) => set("emergency_contact_name", e.target.value)} className={ADMIN_FIELD_CLASS} /></Field>
         <Field label="Telefone (DDD + número)">
           <PhoneInput
             value={f.emergency_contact_phone ?? ""}
             onChange={(phone) => set("emergency_contact_phone", phone)}
+            inputClassName={ADMIN_FIELD_CLASS}
           />
         </Field>
       </Section>
@@ -392,6 +482,8 @@ function StudentSheet({
           Salvar alterações
         </Button>
       </div>
+        </>
+      )}
     </Overlay>
   );
 }

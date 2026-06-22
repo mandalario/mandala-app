@@ -121,7 +121,8 @@
     },
     "submit": "Enviar ficha",
     "errors": {
-      "swimRequired": "Es obligatorio saber nadar para registrarse."
+      "swimRequired": "Es obligatorio saber nadar para registrarse.",
+      "saveIncomplete": "No se pudo guardar la ficha. Inténtalo de nuevo."
     },
     "success": {
       "submitted": "¡Ficha enviada! Espera la aprobación del admin."
@@ -804,6 +805,7 @@
       "saveChanges": "Guardar cambios",
       "deleteConfirm": "¿Eliminar este alumno permanentemente?",
       "deleteError": "Error al eliminar: ",
+      "loadError": "Error al cargar la ficha: ",
       "deleteInvalid": "Error al eliminar: respuesta inválida del servidor",
       "deleted": "Alumno eliminado",
       "updated": "Datos actualizados",

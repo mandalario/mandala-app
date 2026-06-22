@@ -164,18 +164,29 @@ export default function Onboarding() {
       return;
     }
     setLoading(true);
-    const { error } = await supabase
+    const { data: saved, error } = await supabase
       .from("profiles")
-      .upsert({
-        id: user.id,
-        email: user.email ?? profile?.email ?? "",
-        ...parsed.data,
+      .update({
+        full_name: parsed.data.full_name,
+        phone: parsed.data.phone,
+        age: parsed.data.age,
+        weight_kg: parsed.data.weight_kg,
+        height_cm: parsed.data.height_cm,
+        surf_level: parsed.data.surf_level,
+        stance: parsed.data.stance,
+        can_swim: parsed.data.can_swim,
+        has_own_board: parsed.data.has_own_board,
         board_size: parsed.data.board_size || null,
         experience_notes: parsed.data.experience_notes || null,
         medical_conditions: parsed.data.medical_conditions || null,
+        emergency_contact_name: parsed.data.emergency_contact_name,
+        emergency_contact_phone: parsed.data.emergency_contact_phone,
         approval_status: "pending",
         profile_completed: true,
-      }, { onConflict: "id" });
+      })
+      .eq("id", user.id)
+      .select("id, phone, age, weight_kg, height_cm, profile_completed")
+      .single();
     setLoading(false);
 
     if (error) {
@@ -189,6 +200,10 @@ export default function Onboarding() {
         return;
       }
       toast.error(t("common.saveErrorPrefix") + error.message);
+      return;
+    }
+    if (!saved?.profile_completed || saved.phone == null || saved.age == null) {
+      toast.error(t("common.saveErrorPrefix") + t("onboarding.errors.saveIncomplete"));
       return;
     }
     toast.success(t("onboarding.success.submitted"));

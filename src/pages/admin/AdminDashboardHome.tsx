@@ -231,7 +231,10 @@ export default function AdminDashboard() {
                     {p.phone ?? "sem tel"} · {p.age ?? "?"} anos
                   </p>
                 </div>
-                <div className="flex gap-2 shrink-0">
+                <div className="flex gap-2 shrink-0 flex-wrap">
+                  <Button asChild variant="outline" className="rounded-xl">
+                    <Link to={`/admin/students?student=${p.id}`}>Ver ficha</Link>
+                  </Button>
                   <Button
                     onClick={() => decide(p.id, "rejected")}
                     variant="ghost"

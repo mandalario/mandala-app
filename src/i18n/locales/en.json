@@ -121,7 +121,8 @@
     },
     "submit": "Submit profile",
     "errors": {
-      "swimRequired": "You must know how to swim to register."
+      "swimRequired": "You must know how to swim to register.",
+      "saveIncomplete": "Could not save your profile. Please try again."
     },
     "success": {
       "submitted": "Profile submitted! Awaiting admin approval."
@@ -804,6 +805,7 @@
       "saveChanges": "Save changes",
       "deleteConfirm": "Permanently delete this student?",
       "deleteError": "Delete error: ",
+      "loadError": "Error loading profile: ",
       "deleteInvalid": "Delete error: invalid server response",
       "deleted": "Student deleted",
       "updated": "Data updated",
