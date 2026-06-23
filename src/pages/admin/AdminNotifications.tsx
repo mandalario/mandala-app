@@ -2,7 +2,6 @@ import { useEffect, useMemo, useState } from "react";
 import { format } from "date-fns";
 import { ptBR } from "date-fns/locale";
 import { supabase } from "@/integrations/supabase/client";
-import { useAuth } from "@/hooks/useAuth";
 import { addDaysToYmd, getScheduleNowParts } from "@/lib/slotSchedule";
 import { getRollingWeekBounds, ymdToLocalNoon } from "@/lib/rollingWeek";
 import { cn } from "@/lib/utils";
@@ -12,7 +11,7 @@ import { Button } from "@/components/ui/button";
 import { Checkbox } from "@/components/ui/checkbox";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { toast } from "sonner";
-import { Send, Search, Users, Smartphone, BellRing, Calendar } from "lucide-react";
+import { Send, Search, Users, BellRing, Calendar } from "lucide-react";
 
 type Student = { id: string; full_name: string | null; email: string; avatar_url: string | null };
 
@@ -143,7 +142,6 @@ function toastPushResult(
 }
 
 export default function AdminNotifications() {
-  const { user } = useAuth();
   const [students, setStudents] = useState<Student[]>([]);
   const [selected, setSelected] = useState<Set<string>>(new Set());
   const [search, setSearch] = useState("");
@@ -151,7 +149,6 @@ export default function AdminNotifications() {
   const [body, setBody] = useState("");
   const [kind, setKind] = useState("info");
   const [sending, setSending] = useState(false);
-  const [pushTesting, setPushTesting] = useState(false);
 
   // Push panel
   const [pushTarget, setPushTarget] = useState<string>("__selected__");
@@ -315,7 +312,7 @@ export default function AdminNotifications() {
             const body = await error.context.json();
             errorMessage = body?.error || error.message;
           }
-        } catch (e) {
+        } catch {
           // ignore
         }
         throw new Error(errorMessage);
@@ -330,38 +327,6 @@ export default function AdminNotifications() {
       toast.error((e as Error).message);
     } finally {
       setPushSending(false);
-    }
-  };
-
-  const testPush = async () => {
-    if (!user) return toast.error("Você precisa estar logado");
-    setPushTesting(true);
-    try {
-      const { data, error } = await supabase.functions.invoke("send-push-notification", {
-        body: {
-          userIds: [user.id],
-          title: "Teste Mandala Rio",
-          body: "Esta é uma notificação de teste!",
-          url: "/feed",
-        },
-      });
-      if (error) {
-        let errorMessage = error.message;
-        try {
-          if (error.context) {
-            const body = await error.context.json();
-            errorMessage = body?.error || error.message;
-          }
-        } catch (e) {
-          // ignore
-        }
-        throw new Error(errorMessage);
-      }
-      if (toastPushResult(data)) toast.message("Verifique seu celular.");
-    } catch (e) {
-      toast.error((e as Error).message);
-    } finally {
-      setPushTesting(false);
     }
   };
 

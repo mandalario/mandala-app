@@ -6,7 +6,7 @@ import { Label } from "@/components/ui/label";
 import { Switch } from "@/components/ui/switch";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { toast } from "sonner";
-import { Loader2, Save, KeyRound, DollarSign, Webhook, Copy, ExternalLink, Eye, EyeOff, History, CheckCircle2, Hourglass, XCircle, FileText, ChevronDown, ChevronUp, RefreshCw } from "lucide-react";
+import { Loader2, Save, KeyRound, DollarSign, Webhook, Copy, ExternalLink, Eye, EyeOff, History, CheckCircle2, Hourglass, XCircle, ChevronDown, ChevronUp, RefreshCw } from "lucide-react";
 
 const SUPABASE_PROJECT_ID = import.meta.env.VITE_SUPABASE_PROJECT_ID as string;
 const WEBHOOK_URL = `https://${SUPABASE_PROJECT_ID}.supabase.co/functions/v1/mp-webhook`;

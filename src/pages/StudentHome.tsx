@@ -1,5 +1,5 @@
 import { useEffect, useState } from "react";
-import { Link, useNavigate } from "react-router-dom";
+import { Link } from "react-router-dom";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/hooks/useAuth";
 import { OceanBackground } from "@/components/OceanBackground";
@@ -16,16 +16,14 @@ import { useTranslation } from "@/i18n/LanguageContext";
 import { intlLocaleFor } from "@/i18n/dateLocale";
 import { LanguageSwitcher } from "@/components/LanguageSwitcher";
 import { InstagramLink } from "@/components/InstagramLink";
-import { useBillingEnabled } from "@/hooks/useBillingEnabled";
+import { isConfirmedSlot } from "@/lib/slotNotes";
 
 type NextBooking = { id: string; status: string; class_slots: { date: string; start_time: string; location: string | null; notes: string | null } | null };
 
 export default function StudentHome() {
   const { user, profile } = useAuth();
-  const navigate = useNavigate();
   const { t, language } = useTranslation();
   const intlLocale = intlLocaleFor(language);
-  const billingEnabled = useBillingEnabled();
   const [next, setNext] = useState<NextBooking[]>([]);
   const [unread, setUnread] = useState(0);
 
@@ -165,7 +163,7 @@ export default function StudentHome() {
         ) : (
           <div className="space-y-2">
             {next.map((b) => {
-              const isConfirmed = b.class_slots?.notes?.includes("[CONFIRMADA]") ?? false;
+              const isConfirmed = isConfirmedSlot(b.class_slots?.notes);
               return (
                 <div key={b.id} className="glass rounded-2xl p-4 flex items-center gap-3">
                   <div className="w-12 h-12 rounded-xl bg-primary/15 text-primary flex flex-col items-center justify-center text-xs font-bold">

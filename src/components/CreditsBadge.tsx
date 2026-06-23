@@ -1,4 +1,4 @@
-import { Link, useNavigate } from "react-router-dom";
+import { useNavigate } from "react-router-dom";
 import { Coins } from "lucide-react";
 import { useTranslation } from "@/i18n/LanguageContext";
 

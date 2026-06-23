@@ -9,6 +9,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { toast } from "sonner";
 import { Plus, Trash2, Edit3, Loader2 } from "lucide-react";
 import { Modal } from "./AdminStudents";
+import { ADMIN_TYPE_LABELS, SLOT_TYPE_COLORS, resolveClassType } from "@/lib/classTypes";
 
 type Pkg = { 
   id: string; 
@@ -59,23 +60,9 @@ export default function AdminPackages() {
                   <div className="space-y-1">
                     <div className="flex items-center gap-1.5 flex-wrap">
                       <span className="text-xs uppercase tracking-widest text-primary/80">{p.credits} {p.credits === 1 ? "crédito" : "créditos"}</span>
-                      {(() => {
-                        const typeLabels: Record<string, string> = {
-                          avulsa_grupo: "Grupo",
-                          avulsa_particular: "Particular",
-                          aluguel: "Aluguel",
-                        };
-                        const typeColors: Record<string, string> = {
-                          avulsa_grupo: "bg-blue-500/10 text-blue-400 border border-blue-500/20",
-                          avulsa_particular: "bg-purple-500/10 text-purple-400 border border-purple-500/20",
-                          aluguel: "bg-amber-500/10 text-amber-400 border border-amber-500/20",
-                        };
-                        return (
-                          <span className={`text-[9px] uppercase font-bold px-1.5 py-0.5 rounded-full border ${typeColors[p.class_type ?? "avulsa_grupo"]}`}>
-                            {typeLabels[p.class_type ?? "avulsa_grupo"]}
-                          </span>
-                        );
-                      })()}
+                      <span className={`text-[9px] uppercase font-bold px-1.5 py-0.5 rounded-full border ${SLOT_TYPE_COLORS[resolveClassType(p.class_type)]}`}>
+                        {ADMIN_TYPE_LABELS[resolveClassType(p.class_type)]}
+                      </span>
                     </div>
                     <div className="font-bold text-lg">{p.name}</div>
                   </div>

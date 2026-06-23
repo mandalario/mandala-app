@@ -32,7 +32,7 @@ const sb = supabase as any;
 
 export default function TeacherRatings() {
   const { user, loading: authLoading } = useAuth();
-  const { t, language } = useTranslation();
+  const { t } = useTranslation();
   const navigate = useNavigate();
   const { teachers, loading, reload } = useTeachers({ activeOnly: true });
   const [selected, setSelected] = useState<Teacher | null>(null);

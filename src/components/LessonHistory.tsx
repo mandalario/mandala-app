@@ -11,11 +11,7 @@ type HistoryRow = {
   class_slots: { date: string; start_time: string; location: string | null } | null;
 };
 
-const CREDIT_KEYS: Record<string, string> = {
-  avulsa_grupo: "schedule.classTypes.group",
-  avulsa_particular: "schedule.classTypes.private",
-  aluguel: "schedule.classTypes.rental",
-};
+import { SCHEDULE_TYPE_I18N } from "@/lib/classTypes";
 
 type LessonHistoryProps = {
   userId?: string;
@@ -56,7 +52,7 @@ export function LessonHistory({ userId }: LessonHistoryProps = {}) {
 
   const creditLabel = (key: string | null) => {
     if (!key) return "—";
-    const i18nKey = CREDIT_KEYS[key];
+    const i18nKey = SCHEDULE_TYPE_I18N[key as keyof typeof SCHEDULE_TYPE_I18N];
     return i18nKey ? t(i18nKey) : key;
   };
 

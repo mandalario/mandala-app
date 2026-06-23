@@ -19,7 +19,6 @@ import { ArrowLeft, Loader2, Waves, Wind, CloudOff, Calendar as Cal, Users, User
 import { useTranslation } from "@/i18n/LanguageContext";
 import { useBillingEnabled } from "@/hooks/useBillingEnabled";
 import { Calendar } from "@/components/ui/calendar";
-import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
 import { format, startOfDay } from "date-fns";
 import { dateFnsLocaleFor } from "@/i18n/dateLocale";
 import { isCancellationRefundable } from "@/lib/bookingCancellation";
@@ -30,11 +29,19 @@ import {
   parseWeeklySeaForecast,
   type WeeklySeaForecast,
 } from "@/lib/seaForecastCalendar";
+import {
+  CREDIT_FIELD,
+  CREDIT_TYPE_LONG_I18N,
+  SCHEDULE_TYPE_I18N,
+  SLOT_TYPE_COLORS,
+  resolveClassType,
+  type ClassType,
+} from "@/lib/classTypes";
+import { cleanSlotNotes, isConfirmedSlot } from "@/lib/slotNotes";
 
-type Slot = { id: string; date: string; start_time: string; end_time: string; capacity: number; location: string | null; notes: string | null; is_open: boolean; class_type: "avulsa_grupo" | "avulsa_particular" | "aluguel" };
+type Slot = { id: string; date: string; start_time: string; end_time: string; capacity: number; location: string | null; notes: string | null; is_open: boolean; class_type: ClassType };
 type Cond = { date: string; condition: "good" | "medium" | "bad" | "flat"; notes: string | null };
 type Booking = { slot_id: string; status: string };
-type ClassTypeFilter = "avulsa_grupo" | "avulsa_particular" | "aluguel";
 
 const condColor = {
   good: "text-success bg-success/15",
@@ -61,7 +68,7 @@ export default function Schedule() {
   const [bookingId, setBookingId] = useState<string | null>(null);
   const [pendingBookSlot, setPendingBookSlot] = useState<Slot | null>(null);
   const [filterDate, setFilterDate] = useState<string>("");
-  const [classTypeFilter, setClassTypeFilter] = useState<ClassTypeFilter | null>(null);
+  const [classTypeFilter, setClassTypeFilter] = useState<ClassType | null>(null);
   const [weeklyForecast, setWeeklyForecast] = useState<WeeklySeaForecast | null>(null);
 
   const { date: today } = getScheduleNowParts();
@@ -73,10 +80,6 @@ export default function Schedule() {
     const date = new Date(dateStr + "T12:00:00");
     if (language === "en") return format(date, "MMMM d, yyyy", { locale: dateFnsLocale });
     return format(date, "d 'de' MMMM 'de' yyyy", { locale: dateFnsLocale });
-  };
-
-  const selectClassFilter = (type: ClassTypeFilter) => {
-    setClassTypeFilter(type);
   };
 
   const loadConditions = async () => {
@@ -173,31 +176,21 @@ export default function Schedule() {
       return;
     }
 
-    if (billingEnabled) {
-      const type = slot.class_type || "avulsa_grupo";
-      
-      let userCredits = 0;
-      let typeLabel = "Aula em Grupo";
-      if (type === "avulsa_grupo") {
-        userCredits = profile?.credits_grupo ?? 0;
-        typeLabel = "Aula em Grupo";
-      } else if (type === "avulsa_particular") {
-        userCredits = profile?.credits_particular ?? 0;
-        typeLabel = "Aula Particular";
-      } else if (type === "aluguel") {
-        userCredits = profile?.credits_aluguel ?? 0;
-        typeLabel = "Aluguel";
-      }
+    const classType = resolveClassType(slot.class_type);
 
-      if (userCredits < 1) {
-        toast.error(`Você não tem créditos de ${typeLabel}. Por favor, recarregue.`);
-        return;
-      }
+    if (billingEnabled && (profile?.[CREDIT_FIELD[classType]] ?? 0) < 1) {
+      toast.error(t("schedule.noCreditsForType", { type: t(CREDIT_TYPE_LONG_I18N[classType]) }));
+      return;
     }
-    
+
     setBookingId(slot.id);
-    const payload: any = { slot_id: slot.id, user_id: user!.id, status: "confirmed", is_accepted: null };
-    payload.credit_used = slot.class_type || "avulsa_grupo";
+    const payload = {
+      slot_id: slot.id,
+      user_id: user!.id,
+      status: "confirmed" as const,
+      is_accepted: null,
+      credit_used: classType,
+    };
 
     const { error } = await supabase.from("bookings").upsert(
       payload,
@@ -251,9 +244,9 @@ export default function Schedule() {
         </div>
         {billingEnabled && (
           <Link to="/packages" className="glass rounded-xl px-3 py-2 text-[10px] sm:text-xs hover:bg-secondary/40 transition-colors flex flex-col sm:flex-row gap-1 sm:gap-2 text-right">
-            <div><span className="text-muted-foreground">Grupo:</span> <span className="font-bold text-primary">{profile?.credits_grupo ?? 0}</span></div>
-            <div><span className="text-muted-foreground">Particular:</span> <span className="font-bold text-primary">{profile?.credits_particular ?? 0}</span></div>
-            <div><span className="text-muted-foreground">Aluguel:</span> <span className="font-bold text-primary">{profile?.credits_aluguel ?? 0}</span></div>
+            <div><span className="text-muted-foreground">{t("schedule.creditsShort.group")}</span> <span className="font-bold text-primary">{profile?.credits_grupo ?? 0}</span></div>
+            <div><span className="text-muted-foreground">{t("schedule.creditsShort.private")}</span> <span className="font-bold text-primary">{profile?.credits_particular ?? 0}</span></div>
+            <div><span className="text-muted-foreground">{t("schedule.creditsShort.rental")}</span> <span className="font-bold text-primary">{profile?.credits_aluguel ?? 0}</span></div>
           </Link>
         )}
       </header>
@@ -263,14 +256,14 @@ export default function Schedule() {
           <div className="p-5 pb-0 flex items-center justify-between">
             <h2 className="text-[13px] font-bold flex items-center gap-2 text-white/90">
               <Cal className="w-4 h-4 text-primary" />
-              {filterDate ? format(new Date(filterDate + "T12:00:00"), "MMMM yyyy", { locale: dateFnsLocale }) : "Calendário"}
+              {filterDate ? format(new Date(filterDate + "T12:00:00"), "MMMM yyyy", { locale: dateFnsLocale }) : t("schedule.calendar")}
             </h2>
             {filterDate && (
               <button
                 onClick={() => setFilterDate("")}
                 className="text-[10px] font-bold text-primary hover:text-accent transition-colors bg-primary/10 px-3 py-1.5 rounded-xl uppercase tracking-wider"
               >
-                Limpar
+                {t("common.clear")}
               </button>
             )}
           </div>
@@ -313,20 +306,15 @@ export default function Schedule() {
 
           <div className="p-5 border-t border-white/5 bg-black/20">
             <div className="grid grid-cols-2 gap-x-4 gap-y-2.5">
+              {(["good", "medium", "bad", "flat"] as const).map((key) => (
+                <div key={key} className="flex items-center gap-2.5 text-[10px] text-muted-foreground font-medium">
+                  <span className={`w-2 h-2 rounded-full ${key === "good" ? "bg-success" : key === "medium" ? "bg-warning" : key === "bad" ? "bg-destructive" : "bg-muted-foreground"}`} />
+                  {t(`schedule.conditions.${key}`)}
+                </div>
+              ))}
               <div className="flex items-center gap-2.5 text-[10px] text-muted-foreground font-medium">
-                <span className="w-2 h-2 rounded-full bg-success"></span> Mar bom
-              </div>
-              <div className="flex items-center gap-2.5 text-[10px] text-muted-foreground font-medium">
-                <span className="w-2 h-2 rounded-full bg-warning"></span> Mar médio
-              </div>
-              <div className="flex items-center gap-2.5 text-[10px] text-muted-foreground font-medium">
-                <span className="w-2 h-2 rounded-full bg-destructive"></span> Mar ruim
-              </div>
-              <div className="flex items-center gap-2.5 text-[10px] text-muted-foreground font-medium">
-                <span className="w-2 h-2 rounded-full bg-muted-foreground"></span> Sem ondas
-              </div>
-              <div className="flex items-center gap-2.5 text-[10px] text-muted-foreground font-medium">
-                <span className="w-2 h-2 rounded-full bg-white ring-1 ring-black/25 border border-white/20"></span> Não configurado
+                <span className="w-2 h-2 rounded-full bg-white ring-1 ring-black/25 border border-white/20" />
+                {t("forecast.calendarCondition.unconfigured")}
               </div>
             </div>
           </div>
@@ -340,7 +328,7 @@ export default function Schedule() {
         <div className="grid grid-cols-3 gap-2">
           <button
             type="button"
-            onClick={() => selectClassFilter("avulsa_grupo")}
+            onClick={() => setClassTypeFilter("avulsa_grupo")}
             className={`glass rounded-2xl p-3 flex flex-col items-center gap-1.5 border transition-all ${
               classTypeFilter === "avulsa_grupo"
                 ? "border-primary/50 bg-primary/10 shadow-[0_0_20px_rgba(var(--primary),0.15)]"
@@ -352,7 +340,7 @@ export default function Schedule() {
           </button>
           <button
             type="button"
-            onClick={() => selectClassFilter("avulsa_particular")}
+            onClick={() => setClassTypeFilter("avulsa_particular")}
             className={`glass rounded-2xl p-3 flex flex-col items-center gap-1.5 border transition-all ${
               classTypeFilter === "avulsa_particular"
                 ? "border-purple-400/50 bg-purple-500/10 shadow-[0_0_20px_rgba(168,85,247,0.15)]"
@@ -364,7 +352,7 @@ export default function Schedule() {
           </button>
           <button
             type="button"
-            onClick={() => selectClassFilter("aluguel")}
+            onClick={() => setClassTypeFilter("aluguel")}
             className={`glass rounded-2xl p-3 flex flex-col items-center gap-1.5 border transition-all ${
               classTypeFilter === "aluguel"
                 ? "border-amber-400/50 bg-amber-500/10 shadow-[0_0_20px_rgba(245,158,11,0.15)]"
@@ -412,25 +400,9 @@ export default function Schedule() {
                     const isPast = isSlotStartInPast(s.date, s.start_time);
                     const refundAvailable = isCancellationRefundable(s.date);
                     const full = taken >= s.capacity;
-                    const isConfirmed = s.notes?.includes("[CONFIRMADA]") ?? false;
-                    const cleanNotes = s.notes
-                      ? s.notes
-                        .replace(/\[CONFIRMADA\]\s*/g, "")
-                        .replace(/\[IMPREVISTO\]\s*([^[\]\-]*)\s*(-|—)?\s*/g, "")
-                        .trim()
-                      : "";
-
-                    const typeLabels: Record<string, string> = {
-                      avulsa_grupo: "Grupo",
-                      avulsa_particular: "Particular",
-                      aluguel: "Aluguel",
-                    };
-                    const typeColors: Record<string, string> = {
-                      avulsa_grupo: "bg-blue-500/10 text-blue-400 border-blue-500/20",
-                      avulsa_particular: "bg-purple-500/10 text-purple-400 border-purple-500/20",
-                      aluguel: "bg-amber-500/10 text-amber-400 border-amber-500/20",
-                    };
-                    const currentType = (s.class_type as string) in typeLabels ? s.class_type : "avulsa_grupo";
+                    const isConfirmed = isConfirmedSlot(s.notes);
+                    const cleanNotes = cleanSlotNotes(s.notes);
+                    const currentType = resolveClassType(s.class_type);
 
                     return (
                       <div key={s.id} className="glass-strong rounded-[32px] p-5 flex flex-col justify-between min-h-[160px] border border-white/5 transition-all hover:scale-[1.02] active:scale-[0.98]">
@@ -445,12 +417,12 @@ export default function Schedule() {
                               </span>
                             </div>
                             <div className="flex flex-col items-end gap-1.5">
-                              <span className={`text-[9px] uppercase font-bold tracking-wider px-2 py-0.5 rounded-full border ${typeColors[currentType]}`}>
-                                {typeLabels[currentType]}
+                              <span className={`text-[9px] uppercase font-bold tracking-wider px-2 py-0.5 rounded-full border ${SLOT_TYPE_COLORS[currentType]}`}>
+                                {t(SCHEDULE_TYPE_I18N[currentType])}
                               </span>
                               {isConfirmed && (
                                 <span className="inline-flex items-center gap-1 text-[9px] uppercase font-bold px-1.5 py-0.5 rounded-full bg-success/15 text-success border border-success/30">
-                                  ✓ Confirmada
+                                  {t("schedule.confirmed")}
                                 </span>
                               )}
                             </div>

@@ -77,7 +77,7 @@ export default function Profile() {
         for (const bt of BOARD_TYPES) {
           if (parsedSize.startsWith(bt)) {
             parsedType = bt;
-            let rem = parsedSize.slice(bt.length).trim();
+            const rem = parsedSize.slice(bt.length).trim();
             if (rem.startsWith("(") && rem.endsWith(")")) {
               parsedSize = rem.slice(1, -1).trim();
             } else if (rem.startsWith("-")) {

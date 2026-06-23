@@ -1,8 +1,7 @@
 import { useEffect, useRef, useState } from "react";
 import QRCode from "qrcode";
-import { Link, useNavigate } from "react-router-dom";
+import { Link } from "react-router-dom";
 import { supabase } from "@/integrations/supabase/client";
-import { useAuth } from "@/hooks/useAuth";
 import { OceanBackground } from "@/components/OceanBackground";
 import { Button } from "@/components/ui/button";
 import { toast } from "sonner";
@@ -11,6 +10,7 @@ import { useTranslation } from "@/i18n/LanguageContext";
 import { packageCatalogText } from "@/i18n/studentContent";
 import { useBillingEnabled } from "@/hooks/useBillingEnabled";
 import { sanitizePixQrCode } from "@/lib/pixQrCode";
+import { PACKAGE_TYPE_I18N, SLOT_TYPE_COLORS, resolveClassType } from "@/lib/classTypes";
 
 type Pkg = {
   id: string;
@@ -25,10 +25,8 @@ type Pay = { id: string; credits: number; amount_cents: number; status: string; 
 const fmt = (c: number) => `R$ ${(c / 100).toFixed(2).replace(".", ",")}`;
 
 export default function Packages() {
-  const { user } = useAuth();
   const { t, language } = useTranslation();
   const billingEnabled = useBillingEnabled();
-  const navigate = useNavigate();
   const localeMap: Record<string, string> = { pt: "pt-BR", en: "en-US", es: "es-ES" };
   const locale = localeMap[language] ?? "en-US";
   const [pkgs, setPkgs] = useState<Pkg[]>([]);
@@ -80,17 +78,7 @@ export default function Packages() {
               {pkgs.map((p) => {
                 const dn = packageCatalogText(p.name, "name", t, p.name);
                 const dd = packageCatalogText(p.name, "description", t, p.description);
-
-                const typeLabels: Record<string, string> = {
-                  avulsa_grupo: t("packages.typeGroup"),
-                  avulsa_particular: t("packages.typePrivate"),
-                  aluguel: t("packages.typeRental"),
-                };
-                const typeColors: Record<string, string> = {
-                  avulsa_grupo: "bg-blue-500/10 text-blue-400 border border-blue-500/20",
-                  avulsa_particular: "bg-purple-500/10 text-purple-400 border border-purple-500/20",
-                  aluguel: "bg-amber-500/10 text-amber-400 border border-amber-500/20",
-                };
+                const classType = resolveClassType(p.class_type);
 
                 return (
                   <div key={p.id} className="glass-strong rounded-[32px] p-6 flex flex-col justify-between min-h-[240px] border border-white/5 transition-all hover:scale-[1.02] active:scale-[0.98]">
@@ -99,8 +87,8 @@ export default function Packages() {
                         <span className="text-[10px] uppercase font-bold tracking-widest text-primary/80">
                           {p.credits} {t("packages.creditsLabel")}
                         </span>
-                        <span className={`text-[9px] uppercase font-bold px-2 py-0.5 rounded-full border ${typeColors[p.class_type ?? "avulsa_grupo"]}`}>
-                          {typeLabels[p.class_type ?? "avulsa_grupo"]}
+                        <span className={`text-[9px] uppercase font-bold px-2 py-0.5 rounded-full border ${SLOT_TYPE_COLORS[classType]}`}>
+                          {t(PACKAGE_TYPE_I18N[classType])}
                         </span>
                       </div>
                       <div className="font-bold text-xl text-white mb-2">{dn}</div>
@@ -205,7 +193,7 @@ function PixCheckout({ pkg, onBack, t }: { pkg: Pkg; onBack: () => void; t: (k: 
         } else {
           errorMessage = fnErr.message;
         }
-      } catch (e) {
+      } catch {
         errorMessage = fnErr.message || "Erro ao gerar Pix";
       }
       setError(errorMessage);
@@ -270,7 +258,7 @@ function PixCheckout({ pkg, onBack, t }: { pkg: Pkg; onBack: () => void; t: (k: 
             } else {
               errorMessage = fnErr.message;
             }
-          } catch (e) {
+          } catch {
             errorMessage = fnErr.message || errorMessage;
           }
         }

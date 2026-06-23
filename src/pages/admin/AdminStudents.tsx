@@ -8,7 +8,7 @@ import { Textarea } from "@/components/ui/textarea";
 import { Switch } from "@/components/ui/switch";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { toast } from "sonner";
-import { CheckCircle2, XCircle, Search, Loader2, X, Plus, Save, User, Phone, Mail, Heart, Activity, Trash2 } from "lucide-react";
+import { CheckCircle2, XCircle, Search, Loader2, X, Plus, Save, User, Mail, Heart, Activity, Trash2 } from "lucide-react";
 import { BoardFields } from "@/components/BoardFields";
 import { LessonHistory } from "@/components/LessonHistory";
 import { formatBoardField, parseBoardField } from "@/lib/board";
@@ -564,7 +564,7 @@ function CreateStudentSheet({ onClose, onCreated }: { onClose: () => void; onCre
           } else {
             errorMessage = error.message;
           }
-        } catch (e) {
+        } catch {
           errorMessage = error.message || errorMessage;
         }
       }

@@ -12,7 +12,7 @@ export function PushNotificationManager() {
       let data;
       try {
         data = typeof event.data === "string" ? JSON.parse(event.data) : event.data;
-      } catch (e) {
+      } catch {
         return;
       }
 
@@ -30,7 +30,7 @@ export function PushNotificationManager() {
               const body = await error.context.json();
               errorMessage = body?.error || error.message;
             }
-          } catch (e) {
+          } catch {
             // ignore
           }
           console.error("Error registering push token:", errorMessage);

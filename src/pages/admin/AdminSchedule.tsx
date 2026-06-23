@@ -15,7 +15,7 @@ import { useTranslation } from "@/i18n/LanguageContext";
 import { dateFnsLocaleFor } from "@/i18n/dateLocale";
 import {
   Plus, Trash2, Loader2, Waves, Wind, CloudOff, Clock, MapPin, Users,
-  CalendarDays, Sparkles, Repeat, Wand2, Lock, Pencil, ChevronDown, ChevronUp, CheckSquare, Square, X, RefreshCw
+  CalendarDays, Sparkles, Repeat, Wand2, Lock, Pencil, CheckSquare, Square, X, RefreshCw
 } from "lucide-react";
 import { Modal } from "./AdminStudents";
 import { Link } from "react-router-dom";
@@ -28,9 +28,15 @@ import {
   parseWeeklySeaForecast,
   type WeeklySeaForecast,
 } from "@/lib/seaForecastCalendar";
+import { ADMIN_TYPE_LABELS, SLOT_TYPE_COLORS, resolveClassType } from "@/lib/classTypes";
+import {
+  cleanSlotNotes,
+  getImprevistoReason,
+  isConfirmedSlot,
+  isImprevistoSlot,
+} from "@/lib/slotNotes";
 
 type Level = "iniciante" | "intermediario" | "avancado";
-type ClassType = "avulsa_grupo" | "avulsa_particular" | "aluguel";
 
 type Slot = {
   id: string; date: string; start_time: string; end_time: string;
@@ -609,24 +615,9 @@ export default function AdminSchedule() {
                                   
                                   {s.min_level && <span className="text-[9px] uppercase px-2 py-0.5 rounded-full bg-accent/15 text-accent border border-accent/30">≥ {LEVEL_LABEL[s.min_level]}</span>}
                                   
-                                  {(() => {
-                                    const typeLabels: Record<string, string> = {
-                                      avulsa_grupo: "Grupo",
-                                      avulsa_particular: "Particular",
-                                      aluguel: "Aluguel"
-                                    };
-                                    const typeColors: Record<string, string> = {
-                                      avulsa_grupo: "bg-blue-500/10 text-blue-400 border-blue-500/20",
-                                      avulsa_particular: "bg-purple-500/10 text-purple-400 border-purple-500/20",
-                                      aluguel: "bg-amber-500/10 text-amber-400 border-amber-500/20"
-                                    };
-                                    const currentType = (s.class_type as string) in typeLabels ? s.class_type : "avulsa_grupo";
-                                    return (
-                                      <span className={`text-[10px] uppercase font-bold px-2 py-0.5 rounded-full border ${typeColors[currentType]}`}>
-                                        {typeLabels[currentType]}
-                                      </span>
-                                    );
-                                  })()}
+                                  <span className={`text-[10px] uppercase font-bold px-2 py-0.5 rounded-full border ${SLOT_TYPE_COLORS[resolveClassType(s.class_type)]}`}>
+                                    {ADMIN_TYPE_LABELS[resolveClassType(s.class_type)]}
+                                  </span>
 
                                   {isConfirmedSlot(s.notes) ? (
                                     <span className="inline-flex items-center gap-1 text-[9px] uppercase font-bold px-2 py-0.5 rounded-full bg-success/15 text-success border border-success/30">✓ Confirmada</span>
@@ -675,9 +666,9 @@ export default function AdminSchedule() {
                                   </div>
                                 )}
 
-                                {getDisplayNotes(s.notes) && (
+                                {cleanSlotNotes(s.notes) && (
                                   <div className="text-[11px] text-muted-foreground mt-1.5 italic bg-secondary/10 px-2 py-1 rounded-md inline-block">
-                                    {getDisplayNotes(s.notes)}
+                                    {cleanSlotNotes(s.notes)}
                                   </div>
                                 )}
                               </div>
@@ -885,24 +876,9 @@ export default function AdminSchedule() {
                     <div className="flex-1 min-w-0">
                       <div className="font-semibold flex items-center gap-1.5 flex-wrap">
                         {WEEKDAYS_LONG[t.weekday]} · {t.start_time.slice(0, 5)} – {t.end_time.slice(0, 5)}
-                        {(() => {
-                          const typeLabels: Record<string, string> = {
-                            avulsa_grupo: "Grupo",
-                            avulsa_particular: "Particular",
-                            aluguel: "Aluguel"
-                          };
-                          const typeColors: Record<string, string> = {
-                            avulsa_grupo: "bg-blue-500/10 text-blue-400 border-blue-500/20",
-                            avulsa_particular: "bg-purple-500/10 text-purple-400 border-purple-500/20",
-                            aluguel: "bg-amber-500/10 text-amber-400 border-amber-500/20"
-                          };
-                          const currentType = (t.class_type as string) in typeLabels ? t.class_type : "avulsa_grupo";
-                          return (
-                            <span className={`text-[10px] uppercase font-bold px-1.5 py-0.5 rounded-full border ${typeColors[currentType]}`}>
-                              {typeLabels[currentType]}
-                            </span>
-                          );
-                        })()}
+                        <span className={`text-[10px] uppercase font-bold px-1.5 py-0.5 rounded-full border ${SLOT_TYPE_COLORS[resolveClassType(t.class_type)]}`}>
+                          {ADMIN_TYPE_LABELS[resolveClassType(t.class_type)]}
+                        </span>
 
                       </div>
                       <div className="text-xs text-muted-foreground flex flex-wrap items-center gap-2 mt-1">
@@ -1442,23 +1418,6 @@ function BulkEditForm({ slots, onClose }: { slots: Slot[]; onClose: () => void }
     </Modal>
   );
 }
-
-const isConfirmedSlot = (notes: string | null) => notes?.includes("[CONFIRMADA]") ?? false;
-const isImprevistoSlot = (notes: string | null) => notes?.includes("[IMPREVISTO]") ?? false;
-
-const getImprevistoReason = (notes: string | null) => {
-  if (!notes) return "";
-  const match = notes.match(/\[IMPREVISTO\]\s*([^[\]\-]*)/);
-  return match ? match[1].trim() : "";
-};
-
-const getDisplayNotes = (notes: string | null) => {
-  if (!notes) return "";
-  return notes
-    .replace(/\[CONFIRMADA\]\s*/g, "")
-    .replace(/\[IMPREVISTO\]\s*([^[\]\-]*)\s*(-|—)?\s*/g, "")
-    .trim();
-};
 
 function ImprevistoModal({ slot, onClose, onSuccess }: { slot: Slot; onClose: () => void; onSuccess: () => void }) {
   const [reason, setReason] = useState("");
