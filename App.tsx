@@ -16,7 +16,8 @@ import { StatusBar } from "expo-status-bar";
 import * as WebBrowser from "expo-web-browser";
 import { WebView, WebViewNavigation } from "react-native-webview";
 
-const APP_BACKGROUND = "#0b1e3a";
+const APP_BACKGROUND = "#ffffff";
+const APP_LOADING_ACCENT = "#0b1e3a";
 
 WebBrowser.maybeCompleteAuthSession();
 
@@ -239,7 +240,7 @@ export default function App() {
 
   return (
     <SafeAreaView style={styles.container} edges={["top", "bottom"]}>
-      <StatusBar style="light" />
+      <StatusBar style={isLoading ? "dark" : "light"} />
       <WebView
         ref={webViewRef}
         style={styles.webView}
@@ -293,7 +294,7 @@ export default function App() {
 
       {isLoading ? (
         <View pointerEvents="none" style={styles.loadingOverlay}>
-          <ActivityIndicator size="large" color="#38bdf8" />
+          <ActivityIndicator size="large" color={APP_LOADING_ACCENT} />
           <Text style={styles.loadingText}>Carregando...</Text>
         </View>
       ) : null}
@@ -320,7 +321,7 @@ const styles = StyleSheet.create({
     gap: 8,
   },
   loadingText: {
-    color: "#e0f2fe",
+    color: APP_LOADING_ACCENT,
     fontSize: 14,
   },
 });
