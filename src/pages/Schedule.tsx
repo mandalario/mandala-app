@@ -77,7 +77,6 @@ export default function Schedule() {
 
   const selectClassFilter = (type: ClassTypeFilter) => {
     setClassTypeFilter(type);
-    setFilterDate("");
   };
 
   const loadConditions = async () => {
@@ -306,7 +305,7 @@ export default function Schedule() {
               row: "flex w-full justify-between mt-0.5 px-2",
               cell: "h-8 w-8 text-center text-sm p-0 relative focus-within:z-20",
               day: "h-8 w-8 p-0 font-medium text-white/80 aria-selected:opacity-100 hover:bg-white/5 rounded-xl transition-all",
-              day_selected: "bg-primary text-primary-foreground font-bold hover:bg-primary/90 rounded-xl shadow-[0_0_20px_rgba(var(--primary),0.4)]",
+              day_selected: "bg-[hsl(205_72%_28%)] text-white font-bold hover:bg-[hsl(205_72%_32%)] rounded-xl ring-2 ring-primary/45 shadow-[0_0_10px_hsl(195_80%_40%/0.3)]",
               day_today: "text-primary font-bold border border-primary/20 rounded-xl",
               day_outside: "text-white/20 opacity-40",
             }}
