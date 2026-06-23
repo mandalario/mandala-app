@@ -419,7 +419,8 @@
       "good": "Good surf",
       "medium": "Average surf",
       "bad": "Poor surf",
-      "flat": "No waves"
+      "flat": "No waves",
+      "unconfigured": "Not configured"
     }
   },
   "feed": {

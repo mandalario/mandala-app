@@ -419,7 +419,8 @@
       "good": "Mar bueno",
       "medium": "Mar regular",
       "bad": "Mar malo",
-      "flat": "Sin olas"
+      "flat": "Sin olas",
+      "unconfigured": "No configurado"
     }
   },
   "feed": {

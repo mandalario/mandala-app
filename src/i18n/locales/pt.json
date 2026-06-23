@@ -419,7 +419,8 @@
       "good": "Mar bom",
       "medium": "Mar médio",
       "bad": "Mar ruim",
-      "flat": "Sem ondas"
+      "flat": "Sem ondas",
+      "unconfigured": "Não configurado"
     }
   },
   "feed": {
