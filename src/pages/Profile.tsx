@@ -20,7 +20,7 @@ import {
   AlertDialogTrigger,
 } from "@/components/ui/alert-dialog";
 import { toast } from "sonner";
-import { ArrowLeft, Camera, Loader2, LogOut, Trash2, User as UserIcon } from "lucide-react";
+import { ArrowLeft, Camera, ChevronRight, HelpCircle, Loader2, LogOut, Trash2, User as UserIcon } from "lucide-react";
 import { useTranslation } from "@/i18n/LanguageContext";
 import { SetPasswordForm } from "@/components/SetPasswordForm";
 import { ExperienceNotesField } from "@/components/ExperienceNotesField";
@@ -445,6 +445,22 @@ export default function Profile() {
         <Button onClick={save} disabled={saving} className="w-full h-12 rounded-xl bg-gradient-to-r from-primary to-accent text-primary-foreground font-semibold">
           {saving ? <Loader2 className="w-4 h-4 animate-spin mr-2" /> : null} {t("profile.save")}
         </Button>
+
+        <Block title={t("profile.blocks.support")}>
+          <Link
+            to="/support"
+            className="flex items-center gap-3 p-3 rounded-xl bg-background/40 border border-white/5 hover:bg-background/60 transition-colors"
+          >
+            <div className="w-9 h-9 rounded-lg bg-primary/15 flex items-center justify-center shrink-0">
+              <HelpCircle className="w-4 h-4 text-primary" />
+            </div>
+            <div className="flex-1 min-w-0">
+              <p className="text-sm font-medium">{t("profile.supportLink")}</p>
+              <p className="text-xs text-muted-foreground">{t("profile.supportSub")}</p>
+            </div>
+            <ChevronRight className="w-4 h-4 text-muted-foreground shrink-0" />
+          </Link>
+        </Block>
 
         <Block title={t("profile.blocks.account")}>
           <p className="text-sm text-muted-foreground">{t("profile.deleteAccount.description")}</p>

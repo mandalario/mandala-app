@@ -44,12 +44,14 @@ import AdminAccess from "./pages/admin/AdminAccess.tsx";
 import AdminTeachers from "./pages/admin/AdminTeachers.tsx";
 import TeacherRatings from "./pages/TeacherRatings.tsx";
 import Profile from "./pages/Profile.tsx";
+import Support from "./pages/Support.tsx";
 import NotFound from "./pages/NotFound.tsx";
 
 const queryClient = new QueryClient();
 
-const PUBLIC_PATHS = ["/auth", "/auth/callback", "/terms", "/privacy"];
+const PUBLIC_PATHS = ["/auth", "/auth/callback", "/terms", "/privacy", "/support", "/chat"];
 const AUTH_ONLY_PATHS = ["/auth", "/onboarding", "/pending", "/set-password"];
+const SUPPORT_PATHS = ["/support", "/chat"];
 
 const PageLoader = () => (
   <div className="relative min-h-screen flex items-center justify-center">
@@ -59,7 +61,7 @@ const PageLoader = () => (
 );
 
 function useAccessRedirect(): { loading: boolean; redirectTo: string | null } {
-  const { user, isAdmin, profile, loading } = useAuth();
+  const { user, isAdmin, isGuest, profile, loading } = useAuth();
   const location = useLocation();
   const path = location.pathname;
   const isPublicPath = PUBLIC_PATHS.includes(path);
@@ -68,6 +70,12 @@ function useAccessRedirect(): { loading: boolean; redirectTo: string | null } {
 
   if (!user) {
     return { loading: false, redirectTo: isPublicPath ? null : "/auth" };
+  }
+
+  if (isGuest) {
+    const guestPaths = ["/support", "/chat", "/auth", "/auth/callback", "/terms", "/privacy"];
+    if (guestPaths.includes(path)) return { loading: false, redirectTo: null };
+    return { loading: false, redirectTo: "/support" };
   }
 
   if (isAdmin) {
@@ -90,14 +98,14 @@ function useAccessRedirect(): { loading: boolean; redirectTo: string | null } {
   }
 
   if (!profile.profile_completed) {
-    if (path !== "/onboarding" && !isPublicPath) {
+    if (path !== "/onboarding" && !isPublicPath && !SUPPORT_PATHS.includes(path)) {
       return { loading: false, redirectTo: "/onboarding" };
     }
     return { loading: false, redirectTo: null };
   }
 
   if (profile.approval_status !== "approved") {
-    if (path !== "/pending" && !isPublicPath) {
+    if (path !== "/pending" && !isPublicPath && !SUPPORT_PATHS.includes(path)) {
       return { loading: false, redirectTo: "/pending" };
     }
     return { loading: false, redirectTo: null };
@@ -147,6 +155,7 @@ function AppRoutes() {
         <Route path="/feed" element={<Feed />} />
         <Route path="/chat" element={<Chat />} />
         <Route path="/profile" element={<Profile />} />
+        <Route path="/support" element={<Support />} />
         <Route path="/teachers" element={<TeacherRatings />} />
         <Route path="/terms" element={<LegalPage kind="terms" />} />
         <Route path="/privacy" element={<LegalPage kind="privacy" />} />

@@ -53,7 +53,7 @@ const getErrorMessage = (error: unknown) => (error instanceof Error ? error.mess
 
 export default function Auth() {
   const navigate = useNavigate();
-  const { user, loading: authLoading } = useAuth();
+  const { user, isGuest, loading: authLoading } = useAuth();
   const { t } = useTranslation();
   const [mode, setMode] = useState<"login" | "signup">("login");
   const [loading, setLoading] = useState(false);
@@ -61,8 +61,8 @@ export default function Auth() {
   const [form, setForm] = useState({ full_name: "", email: "", password: "" });
 
   useEffect(() => {
-    if (!authLoading && user) navigate("/", { replace: true });
-  }, [user, authLoading, navigate]);
+    if (!authLoading && user && !isGuest) navigate("/", { replace: true });
+  }, [user, isGuest, authLoading, navigate]);
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -311,6 +311,8 @@ export default function Auth() {
           </p>
 
           <div className="text-center text-xs text-muted-foreground mt-4 space-x-2">
+            <Link to="/support" className="hover:text-foreground underline-offset-2 hover:underline">{t("support.title")}</Link>
+            <span>·</span>
             <Link to="/terms" className="hover:text-foreground underline-offset-2 hover:underline">Termos de Uso</Link>
             <span>·</span>
             <Link to="/privacy" className="hover:text-foreground underline-offset-2 hover:underline">Política de Privacidade</Link>

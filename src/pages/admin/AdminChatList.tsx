@@ -18,6 +18,12 @@ type Student = {
   full_name: string | null;
   email: string;
   surf_level: "iniciante" | "intermediario" | "avancado" | null;
+  isGuest?: boolean;
+};
+
+type GuestSession = {
+  id: string;
+  guest_name: string;
 };
 
 type ConvMeta = { last_msg: string; last_at: string; unread: number };
@@ -41,6 +47,7 @@ export default function AdminChatList() {
   const activeUser = params.get("u");
 
   const [students, setStudents] = useState<Student[]>([]);
+  const [guests, setGuests] = useState<GuestSession[]>([]);
   const [convs, setConvs] = useState<Map<string, ConvMeta>>(new Map());
   const [loading, setLoading] = useState(true);
   const [search, setSearch] = useState("");
@@ -84,24 +91,49 @@ export default function AdminChatList() {
     };
   }, []);
 
+  useEffect(() => {
+    const guestIds = [...convs.keys()].filter((id) => !students.some((s) => s.id === id));
+    if (guestIds.length === 0) {
+      setGuests([]);
+      return;
+    }
+    supabase
+      .from("guest_chat_sessions")
+      .select("id, guest_name")
+      .in("id", guestIds)
+      .then(({ data }) => setGuests((data ?? []) as GuestSession[]));
+  }, [convs, students]);
+
+  const roster = useMemo(() => {
+    const guestStudents: Student[] = guests.map((g) => ({
+      id: g.id,
+      full_name: g.guest_name,
+      email: "Visitante",
+      surf_level: null,
+      isGuest: true,
+    }));
+    const guestIds = new Set(guestStudents.map((g) => g.id));
+    return [...students.filter((s) => !guestIds.has(s.id)), ...guestStudents];
+  }, [students, guests]);
+
   const filtered = useMemo(() => {
     const q = search.trim().toLowerCase();
     let base: Student[];
     if (tab === "chats") {
-      base = students.filter((s) => convs.has(s.id));
+      base = roster.filter((s) => convs.has(s.id));
       base.sort((a, b) => {
         const aT = convs.get(a.id)?.last_at ?? "";
         const bT = convs.get(b.id)?.last_at ?? "";
         return bT.localeCompare(aT);
       });
     } else {
-      base = [...students].sort((a, b) => (a.full_name ?? a.email).localeCompare(b.full_name ?? b.email));
+      base = [...roster].sort((a, b) => (a.full_name ?? a.email).localeCompare(b.full_name ?? b.email));
     }
     if (!q) return base;
     return base.filter(
       (s) => (s.full_name ?? "").toLowerCase().includes(q) || s.email.toLowerCase().includes(q),
     );
-  }, [students, convs, search, tab]);
+  }, [roster, convs, search, tab]);
 
   const openConv = (uid: string) => setParams({ u: uid });
 
@@ -192,7 +224,7 @@ export default function AdminChatList() {
         {activeUser ? (
           <ConversationPanel
             convUser={activeUser}
-            student={students.find((s) => s.id === activeUser)}
+            student={roster.find((s) => s.id === activeUser)}
             onBack={() => setParams({})}
             onMessageRead={loadConvs}
           />
@@ -293,7 +325,9 @@ function ConversationPanel({
         <div className="w-10 h-10 rounded-full bg-primary/15 text-primary flex items-center justify-center font-semibold">{initial}</div>
         <div className="min-w-0">
           <h2 className="font-semibold truncate">{student?.full_name ?? student?.email ?? "Aluno"}</h2>
-          <p className="text-xs text-muted-foreground truncate">{student?.email} · {levelLabel(student?.surf_level ?? null)}</p>
+          <p className="text-xs text-muted-foreground truncate">
+            {student?.isGuest ? "Visitante · chat de suporte" : `${student?.email} · ${levelLabel(student?.surf_level ?? null)}`}
+          </p>
         </div>
       </header>
 

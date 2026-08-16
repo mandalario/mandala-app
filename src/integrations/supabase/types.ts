@@ -139,6 +139,24 @@ export type Database = {
         }
         Relationships: []
       }
+      guest_chat_sessions: {
+        Row: {
+          created_at: string
+          guest_name: string
+          id: string
+        }
+        Insert: {
+          created_at?: string
+          guest_name: string
+          id: string
+        }
+        Update: {
+          created_at?: string
+          guest_name?: string
+          id?: string
+        }
+        Relationships: []
+      }
       class_slots: {
         Row: {
           capacity: number

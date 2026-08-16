@@ -3,6 +3,7 @@ import { useNavigate } from "react-router-dom";
 import { useAuth } from "@/hooks/useAuth";
 import { OceanBackground } from "@/components/OceanBackground";
 import StudentHome from "./StudentHome";
+import { isGuestUser } from "@/lib/guestChat";
 
 import { Loader2 } from "lucide-react";
 
@@ -12,6 +13,10 @@ const Index = () => {
 
   useEffect(() => {
     if (loading) return;
+    if (user && isGuestUser(user)) {
+      navigate("/support", { replace: true });
+      return;
+    }
     if (!user) {
       navigate("/auth", { replace: true });
       return;

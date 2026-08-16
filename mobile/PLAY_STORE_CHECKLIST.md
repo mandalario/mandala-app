@@ -228,7 +228,7 @@ Tempo de revisão: em geral **alguns dias**; pode pedir ajustes em política, Da
 | Permissões excessivas | Novo build com `blockedPermissions` |
 | Push não funciona | FCM no Expo + login + token registrado |
 | Impersonação / marca | Não usar “WhatsApp” em textos de canal (já renomeado para Mandalario) |
-| Target API baixo | `targetSdkVersion: 35` em `app.json` |
+| Target API baixo | `targetSdkVersion: 36` em `app.json` |
 
 ---
 

@@ -153,6 +153,22 @@
     "notAvailable": "{{title}} ainda não disponível.",
     "logoAlt": "Mandala Rio"
   },
+  "support": {
+    "title": "Suporte",
+    "description": "Precisa de ajuda? Fale com a equipe pelo chat do app ou envie um e-mail.",
+    "optionsTitle": "Como podemos ajudar",
+    "chatTitle": "Chat com a equipe",
+    "chatDescription": "Converse diretamente com o instrutor pelo chat integrado.",
+    "emailTitle": "E-mail",
+    "guestLabel": "Visitante",
+    "guestNameTitle": "Como podemos te chamar?",
+    "guestNameDescription": "Informe seu nome para iniciar a conversa com a equipe.",
+    "guestNameLabel": "Seu nome",
+    "guestNamePlaceholder": "Ex: Maria Silva",
+    "guestNameContinue": "Continuar para o chat",
+    "guestNameShort": "Informe um nome com pelo menos 2 caracteres.",
+    "guestStartError": "Não foi possível iniciar o chat. Tente novamente."
+  },
   "termsGate": {
     "empty": "Nenhum termo cadastrado. Avise o admin.",
     "scrollHint": "role até o fim para liberar o aceite",
@@ -562,8 +578,11 @@
       "personal": "Dados pessoais",
       "surf": "Surf",
       "emergency": "Emergência & saúde",
-      "about": "Sobre você"
+      "about": "Sobre você",
+      "support": "Ajuda & suporte"
     },
+    "supportLink": "Central de suporte",
+    "supportSub": "Chat e e-mail de contato",
     "deleteAccount": {
       "description": "Exclui permanentemente sua conta, perfil, reservas, pagamentos, mensagens e todos os dados associados. Esta ação não pode ser desfeita.",
       "button": "Excluir minha conta",

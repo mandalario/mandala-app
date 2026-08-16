@@ -6,6 +6,7 @@ import {
   canAccessAdminArea,
   isSuperAdminEmail,
 } from "@/lib/adminPermissions";
+import { isGuestUser } from "@/lib/guestChat";
 
 type Profile = {
   id: string;
@@ -24,6 +25,7 @@ type AuthContextValue = {
   user: User | null;
   session: Session | null;
   profile: Profile | null;
+  isGuest: boolean;
   isAdmin: boolean;
   /** null = acesso total (admin legado ou super admin) */
   adminAreas: AdminArea[] | null;
@@ -67,6 +69,14 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
   });
 
   const loadProfileAndRole = useCallback(async (currentUser: User) => {
+    if (isGuestUser(currentUser)) {
+      setProfile(null);
+      setIsAdmin(false);
+      setAdminAreas(null);
+      setIsSuperAdmin(false);
+      return;
+    }
+
     // 1) Tenta carregar perfil + role existentes (com pequenos retries para vencer
     // condições de corrida do auth.uid() logo após restaurar a sessão).
     const fetchProfile = async () => {
@@ -240,6 +250,7 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
         user,
         session,
         profile,
+        isGuest: isGuestUser(user),
         isAdmin,
         adminAreas,
         isSuperAdmin,
