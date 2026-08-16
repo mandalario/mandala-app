@@ -1,3 +1,2 @@
-# Welcome to your Lovable project
+BEM VINDO AO MANDALA RIO SURF SCHOOL!
 
-TODO: Document your project here
