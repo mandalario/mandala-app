@@ -48,7 +48,10 @@
         "applinks:mandalario.app"
       ],
       "infoPlist": {
-        "NSUserNotificationsUsageDescription": "Receba avisos sobre suas aulas, agendamentos e mensagens da Mandala Rio Surf School."
+        "NSUserNotificationsUsageDescription": "Receba avisos sobre suas aulas, agendamentos e mensagens da Mandala Rio Surf School.",
+        "NSCameraUsageDescription": "Permite tirar foto para atualizar a imagem de perfil ou enviar imagens.",
+        "NSPhotoLibraryUsageDescription": "Permite escolher uma foto da galeria para o perfil ou suporte.",
+        "NSPhotoLibraryAddUsageDescription": "Permite salvar fotos selecionadas em seu dispositivo."
       }
     },
     "android": {

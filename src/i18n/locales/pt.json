@@ -344,6 +344,8 @@
     "or": "ou",
     "google": "Continuar com Google",
     "googleError": "Erro ao entrar com Google: ",
+    "apple": "Continuar com Apple",
+    "appleError": "Erro ao entrar com Apple: ",
     "validation": {
       "shortName": "Nome muito curto",
       "invalidEmail": "Email inválido",
