@@ -421,6 +421,7 @@
     },
     "confirmed": "✓ Confirmed",
     "noCreditsForType": "You have no {{type}} credits. Top up in Buy Credits.",
+    "noCreditsForTypeApp": "You do not have {{type}} credits available for this booking.",
     "creditsShort": {
       "group": "Group:",
       "private": "Private:",
@@ -455,6 +456,8 @@
   "packages": {
     "eyebrow": "Top up",
     "title": "Credits",
+    "appNoticeTitle": "Credit Packages",
+    "appNoticeBody": "To purchase class or rental credit packages, please visit mandalario.app using your mobile or desktop web browser. Your credits and booking history automatically sync with this app.",
     "creditsLabel": "credit(s)",
     "perClass": "/class",
     "history": "History",

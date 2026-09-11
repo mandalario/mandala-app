@@ -44,12 +44,20 @@ export function PushNotificationManager() {
     // Para Android WebView às vezes o evento vem no document
     document.addEventListener("message", handleMessage as any);
 
-    // Solicita o token ao app caso ele já não tenha enviado no load
-    if ((window as any).ReactNativeWebView) {
-      (window as any).ReactNativeWebView.postMessage(JSON.stringify({ type: "GET_PUSH_TOKEN" }));
-    }
+    // Solicita o token ao app caso ele já não tenha enviado no load (com retentativas)
+    const requestToken = () => {
+      if ((window as any).ReactNativeWebView) {
+        (window as any).ReactNativeWebView.postMessage(JSON.stringify({ type: "GET_PUSH_TOKEN" }));
+      }
+    };
+
+    requestToken();
+    const t1 = setTimeout(requestToken, 1000);
+    const t2 = setTimeout(requestToken, 3000);
 
     return () => {
+      clearTimeout(t1);
+      clearTimeout(t2);
       window.removeEventListener("message", handleMessage);
       document.removeEventListener("message", handleMessage as any);
     };

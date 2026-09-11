@@ -421,6 +421,7 @@
     },
     "confirmed": "✓ Confirmada",
     "noCreditsForType": "No tienes créditos de {{type}}. Recarga en Comprar Créditos.",
+    "noCreditsForTypeApp": "No tienes créditos de {{type}} disponibles para esta reserva.",
     "creditsShort": {
       "group": "Grupo:",
       "private": "Particular:",
@@ -455,6 +456,8 @@
   "packages": {
     "eyebrow": "Recargar",
     "title": "Créditos",
+    "appNoticeTitle": "Paquetes de Créditos",
+    "appNoticeBody": "Para adquirir nuevos paquetes de créditos, accede a mandalario.app a través de tu navegador web móvil o de escritorio. Tus créditos y reservas se sincronizan automáticamente con esta app.",
     "creditsLabel": "crédito(s)",
     "perClass": "/clase",
     "history": "Historial",

@@ -421,6 +421,7 @@
     },
     "confirmed": "✓ Confirmada",
     "noCreditsForType": "Você não tem créditos de {{type}}. Recarregue em Comprar Créditos.",
+    "noCreditsForTypeApp": "Você não possui créditos de {{type}} disponíveis para este agendamento.",
     "creditsShort": {
       "group": "Grupo:",
       "private": "Particular:",
@@ -455,6 +456,8 @@
   "packages": {
     "eyebrow": "Recarregar",
     "title": "Comprar Créditos",
+    "appNoticeTitle": "Aquisição de Créditos",
+    "appNoticeBody": "Para adquirir novos pacotes de créditos, acesse mandalario.app pelo navegador do seu celular ou computador. Seus créditos e histórico de aulas sincronizam automaticamente com este aplicativo.",
     "creditsLabel": "crédito(s)",
     "perClass": "/aula",
     "history": "Histórico",
