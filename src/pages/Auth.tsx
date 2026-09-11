@@ -15,7 +15,6 @@ import logoMandala from "@/assets/logo-mandala.png";
 import { useTranslation } from "@/i18n/LanguageContext";
 import { LanguageSwitcher } from "@/components/LanguageSwitcher";
 import { createRealEmailField, stripInvalidEmailInput } from "@/lib/email";
-import { getOAuthRedirectUrl, isReactNativeWebView } from "@/lib/nativeApp";
 
 const AUTH_FIELD_KEYS: Record<string, string> = {
   full_name: "login.fullName",
@@ -251,7 +250,6 @@ export default function Auth() {
               )}
             </Button>
           </form>
-
 
           <p className="text-xs text-muted-foreground text-center mt-6">
             {mode === "signup" ? t("login.footerSignup") : t("login.footerLogin")}
