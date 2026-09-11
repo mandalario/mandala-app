@@ -65,11 +65,12 @@ function isAllowedUrl(rawUrl: string, appUrl: string, allowedOrigins: string[]):
   }
 }
 
-/** Google / Supabase OAuth must stay in-app (or use the auth session browser). */
+/** Google / Apple / Supabase OAuth must stay in-app (or use the auth session browser). */
 function isOAuthProviderUrl(rawUrl: string): boolean {
   try {
     const { hostname } = new URL(rawUrl);
     if (hostname === "accounts.google.com") return true;
+    if (hostname === "appleid.apple.com") return true;
     if (hostname.endsWith(".supabase.co")) return true;
     return false;
   } catch {
@@ -252,12 +253,15 @@ export default function App() {
         thirdPartyCookiesEnabled={false}
         sharedCookiesEnabled
         geolocationEnabled={false}
-        allowFileAccess={false}
+        allowFileAccess={true}
+        allowFileAccessFromFileURLs={true}
         allowUniversalAccessFromFileURLs={false}
+        mediaCapturePermissionGrantType="grant"
+        allowsInlineMediaPlayback={true}
         mixedContentMode="never"
         setSupportMultipleWindows={false}
         allowsBackForwardNavigationGestures={false}
-        mediaPlaybackRequiresUserAction
+        mediaPlaybackRequiresUserAction={false}
         allowsLinkPreview={false}
         onLoadProgress={({ nativeEvent }) => {
           if (nativeEvent.progress >= 0.9) finishInitialLoad();
@@ -312,7 +316,11 @@ const styles = StyleSheet.create({
     backgroundColor: APP_BACKGROUND,
   },
   loadingOverlay: {
-    ...StyleSheet.absoluteFillObject,
+    position: "absolute",
+    top: 0,
+    left: 0,
+    right: 0,
+    bottom: 0,
     zIndex: 10,
     elevation: 10,
     alignItems: "center",
