@@ -37,13 +37,11 @@ import {
 } from "@/lib/profileFormValidation";
 import { checkPhoneAvailable } from "@/lib/checkPhoneAvailable";
 import { uploadStudentAvatar } from "@/lib/uploadStudentAvatar";
-import { useIsApp } from "@/hooks/useIsApp";
 
 export default function Profile() {
   const { user, profile, refreshProfile, signOut, loading } = useAuth();
   const { t } = useTranslation();
   const navigate = useNavigate();
-  const isApp = useIsApp();
   const fileRef = useRef<HTMLInputElement>(null);
   const [saving, setSaving] = useState(false);
   const [uploading, setUploading] = useState(false);
@@ -324,11 +322,9 @@ export default function Profile() {
               </div>
             </div>
           </div>
-          {!isApp && (
-            <Link to="/packages" className="text-[10px] uppercase tracking-widest text-primary hover:underline font-bold mt-1">
-              {t("packages.title")} →
-            </Link>
-          )}
+          <Link to="/packages" className="text-[10px] uppercase tracking-widest text-primary hover:underline font-bold mt-1">
+            {t("packages.title")} →
+          </Link>
         </div>
       </section>
 

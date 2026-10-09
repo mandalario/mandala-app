@@ -1,7 +1,6 @@
 import { useNavigate } from "react-router-dom";
 import { Coins } from "lucide-react";
 import { useTranslation } from "@/i18n/LanguageContext";
-import { useIsApp } from "@/hooks/useIsApp";
 
 export function CreditsBadge({ 
   credits,
@@ -16,24 +15,15 @@ export function CreditsBadge({
 }) {
   const { t } = useTranslation();
   const navigate = useNavigate();
-  const isApp = useIsApp();
 
   const total = creditsGrupo + creditsParticular + creditsAluguel;
-
-  if (isApp) return null;
 
   return (
     <div
       onClick={() => {
-        if (!isApp) {
-          navigate("/packages");
-        }
+        navigate("/packages");
       }}
-      className={`h-10 px-4 rounded-full glass flex items-center gap-2 transition-all shadow-lg group relative z-50 ${
-        isApp 
-          ? "cursor-default" 
-          : "hover:bg-primary/10 hover:ring-2 hover:ring-primary/30 active:scale-95 cursor-pointer"
-      }`}
+      className="h-10 px-4 rounded-full glass flex items-center gap-2 hover:bg-primary/10 hover:ring-2 hover:ring-primary/30 transition-all active:scale-95 shadow-lg group cursor-pointer relative z-50"
       title={`${t("studentHome.creditsBadge")} — ${t("credits.groupShort")} ${creditsGrupo} · ${t("credits.privateShort")} ${creditsParticular} · ${t("credits.rentalShort")} ${creditsAluguel}`}
     >
       <div className="w-6 h-6 rounded-full bg-primary/20 flex items-center justify-center group-hover:bg-primary/30 transition-colors">

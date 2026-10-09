@@ -9,7 +9,6 @@ import { ArrowLeft, Loader2, QrCode, Copy, CheckCircle2, Hourglass, XCircle, Ale
 import { useTranslation } from "@/i18n/LanguageContext";
 import { packageCatalogText } from "@/i18n/studentContent";
 import { useBillingEnabled } from "@/hooks/useBillingEnabled";
-import { useIsApp } from "@/hooks/useIsApp";
 import { sanitizePixQrCode } from "@/lib/pixQrCode";
 import { PACKAGE_TYPE_I18N, SLOT_TYPE_COLORS, resolveClassType } from "@/lib/classTypes";
 
@@ -28,7 +27,6 @@ const fmt = (c: number) => `R$ ${(c / 100).toFixed(2).replace(".", ",")}`;
 export default function Packages() {
   const { t, language } = useTranslation();
   const billingEnabled = useBillingEnabled();
-  const isApp = useIsApp();
   const localeMap: Record<string, string> = { pt: "pt-BR", en: "en-US", es: "es-ES" };
   const locale = localeMap[language] ?? "en-US";
   const [pkgs, setPkgs] = useState<Pkg[]>([]);
@@ -70,40 +68,6 @@ export default function Packages() {
 
       {loading ? (
         <div className="px-5"><div className="glass rounded-2xl p-8 text-center"><Loader2 className="w-5 h-5 animate-spin mx-auto" /></div></div>
-      ) : isApp ? (
-        <>
-          <section className="px-5">
-            <div className="glass-strong rounded-[32px] p-6 border border-white/10 text-center space-y-3 shadow-xl">
-              <div className="w-12 h-12 rounded-full bg-primary/20 text-primary flex items-center justify-center mx-auto ring-4 ring-primary/10">
-                <Sparkles className="w-6 h-6" />
-              </div>
-              <h2 className="text-lg font-bold text-white">{t("packages.appNoticeTitle")}</h2>
-              <p className="text-xs text-muted-foreground leading-relaxed max-w-md mx-auto">
-                {t("packages.appNoticeBody")}
-              </p>
-            </div>
-          </section>
-
-          <section className="px-5 mt-8">
-            <h2 className="text-sm uppercase tracking-widest text-primary/80 mb-3">{t("packages.history")}</h2>
-            {payments.length === 0 ? (
-              <div className="glass rounded-2xl p-6 text-center text-sm text-muted-foreground">{t("packages.noPayments")}</div>
-            ) : (
-              <div className="space-y-2">
-                {payments.map((p) => (
-                  <div key={p.id} className="glass rounded-2xl p-4 flex items-center gap-3">
-                    <StatusIcon status={p.status} />
-                    <div className="flex-1 min-w-0">
-                      <div className="text-sm font-semibold">{p.credits} {t("packages.creditsLabel")} · {fmt(p.amount_cents)}</div>
-                      <div className="text-xs text-muted-foreground">{new Date(p.created_at).toLocaleString(locale)}</div>
-                      {p.admin_notes && <div className="text-xs text-warning mt-1">{p.admin_notes}</div>}
-                    </div>
-                  </div>
-                ))}
-              </div>
-            )}
-          </section>
-        </>
       ) : selected ? (
         <PixCheckout pkg={selected} onBack={() => { setSelected(null); load(); }} t={t} />
       ) : (

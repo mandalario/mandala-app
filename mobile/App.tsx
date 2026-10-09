@@ -85,21 +85,6 @@ const INJECTED_APP_SETUP = `
       sessionStorage.setItem("is_mandalario_app", "true");
       localStorage.setItem("is_mandalario_app", "true");
     } catch(e) {}
-
-    function hidePurchases() {
-      if (!document.getElementById('mandalario-hide-packages-style')) {
-        var style = document.createElement('style');
-        style.id = 'mandalario-hide-packages-style';
-        style.innerHTML = 'a[href*="/packages"], a[href="/packages"], [title*="crédito" i], [title*="Crédito"], [title*="credit" i], [title*="Créditos"] { display: none !important; }';
-        (document.head || document.documentElement).appendChild(style);
-      }
-    }
-
-    hidePurchases();
-    if (document.readyState === 'loading') {
-      document.addEventListener('DOMContentLoaded', hidePurchases);
-    }
-    window.addEventListener('load', hidePurchases);
   })();
   true;
 `;
