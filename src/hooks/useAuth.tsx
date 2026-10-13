@@ -33,7 +33,7 @@ type AuthContextValue = {
   hasAdminArea: (area: AdminArea) => boolean;
   loading: boolean;
   signOut: () => Promise<void>;
-  refreshProfile: () => Promise<void>;
+  refreshProfile: (customUser?: User) => Promise<void>;
 };
 
 const AuthContext = createContext<AuthContextValue | undefined>(undefined);
@@ -240,8 +240,12 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
     setIsSuperAdmin(false);
   };
 
-  const refreshProfile = async () => {
-    if (user) await loadProfileAndRole(user);
+  const refreshProfile = async (customUser?: User) => {
+    const target = customUser || userRef.current || (await supabase.auth.getUser()).data.user;
+    if (target) {
+      setUser(target);
+      await loadProfileAndRole(target);
+    }
   };
 
   return (

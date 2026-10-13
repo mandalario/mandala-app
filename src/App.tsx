@@ -22,6 +22,7 @@ import Onboarding from "./pages/Onboarding.tsx";
 import PendingApproval from "./pages/PendingApproval.tsx";
 import ForceSetPassword from "./pages/ForceSetPassword.tsx";
 import Packages from "./pages/Packages.tsx";
+import BuyClasses from "./pages/BuyClasses.tsx";
 import Schedule from "./pages/Schedule.tsx";
 import Feed from "./pages/Feed.tsx";
 import Chat from "./pages/Chat.tsx";
@@ -133,8 +134,19 @@ const ConditionalBottomNav = () => {
 };
 
 function AppRoutes() {
-  const { loading, redirectTo } = useAccessRedirect();
   const location = useLocation();
+
+  // Intercepta qualquer entrada com tokens de sessão ou OAuth code para autenticar na hora
+  if (
+    location.pathname !== "/auth/callback" &&
+    (location.search.includes("access_token") ||
+      location.hash.includes("access_token") ||
+      location.search.includes("code="))
+  ) {
+    return <Navigate to={`/auth/callback${location.search}${location.hash}`} replace />;
+  }
+
+  const { loading, redirectTo } = useAccessRedirect();
 
   if (loading) return <PageLoader />;
   if (redirectTo && redirectTo !== location.pathname) {
@@ -151,6 +163,7 @@ function AppRoutes() {
         <Route path="/onboarding" element={<Onboarding />} />
         <Route path="/pending" element={<PendingApproval />} />
         <Route path="/packages" element={<Packages />} />
+        <Route path="/adquirir-aulas" element={<BuyClasses />} />
         <Route path="/schedule" element={<Schedule />} />
         <Route path="/feed" element={<Feed />} />
         <Route path="/chat" element={<Chat />} />

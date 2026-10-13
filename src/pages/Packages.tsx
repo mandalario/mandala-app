@@ -2,15 +2,18 @@ import { useEffect, useRef, useState } from "react";
 import QRCode from "qrcode";
 import { Link } from "react-router-dom";
 import { supabase } from "@/integrations/supabase/client";
+import { useAuth } from "@/hooks/useAuth";
 import { OceanBackground } from "@/components/OceanBackground";
 import { Button } from "@/components/ui/button";
 import { toast } from "sonner";
-import { ArrowLeft, Loader2, QrCode, Copy, CheckCircle2, Hourglass, XCircle, AlertCircle, RefreshCw, Sparkles, Apple } from "lucide-react";
+import { ArrowLeft, Loader2, QrCode, Copy, CheckCircle2, Hourglass, XCircle, AlertCircle, RefreshCw, Sparkles, Apple, Ticket, Calendar } from "lucide-react";
 import { useTranslation } from "@/i18n/LanguageContext";
 import { packageCatalogText } from "@/i18n/studentContent";
 import { useBillingEnabled } from "@/hooks/useBillingEnabled";
+import { useIsApp } from "@/hooks/useIsApp";
 import { sanitizePixQrCode } from "@/lib/pixQrCode";
 import { PACKAGE_TYPE_I18N, SLOT_TYPE_COLORS, resolveClassType } from "@/lib/classTypes";
+import { isIosApp } from "@/lib/platform";
 
 type Pkg = {
   id: string;
@@ -25,14 +28,22 @@ type Pay = { id: string; credits: number; amount_cents: number; status: string; 
 const fmt = (c: number) => `R$ ${(c / 100).toFixed(2).replace(".", ",")}`;
 
 export default function Packages() {
+  const { profile } = useAuth();
   const { t, language } = useTranslation();
   const billingEnabled = useBillingEnabled();
+  const isAppRuntime = useIsApp();
+  const isIos = isIosApp();
+  const isApp = isAppRuntime || isIos;
   const localeMap: Record<string, string> = { pt: "pt-BR", en: "en-US", es: "es-ES" };
   const locale = localeMap[language] ?? "en-US";
   const [pkgs, setPkgs] = useState<Pkg[]>([]);
   const [payments, setPayments] = useState<Pay[]>([]);
   const [selected, setSelected] = useState<Pkg | null>(null);
   const [loading, setLoading] = useState(true);
+
+  const totalCredits = (profile?.credits_grupo ?? 0) + (profile?.credits_particular ?? 0) + (profile?.credits_aluguel ?? 0) > 0
+    ? (profile?.credits_grupo ?? 0) + (profile?.credits_particular ?? 0) + (profile?.credits_aluguel ?? 0)
+    : (profile?.credits ?? 0);
 
   const load = async () => {
     const [{ data: p }, { data: pay }] = await Promise.all([
@@ -61,16 +72,100 @@ export default function Packages() {
       <header className="px-5 pt-6 pb-4 flex items-center gap-3">
         <Link to="/" className="w-10 h-10 rounded-full glass flex items-center justify-center"><ArrowLeft className="w-4 h-4" /></Link>
         <div>
-          <p className="text-xs uppercase tracking-widest text-primary/80">{t("packages.eyebrow")}</p>
-          <h1 className="text-2xl font-bold">{t("packages.title")}</h1>
+          <p className="text-xs uppercase tracking-widest text-primary/80">
+            {isApp ? "Aulas e Planos" : t("packages.eyebrow")}
+          </p>
+          <h1 className="text-2xl font-bold">
+            {isApp ? "Minhas Aulas" : t("packages.title")}
+          </h1>
         </div>
       </header>
 
       {loading ? (
         <div className="px-5"><div className="glass rounded-2xl p-8 text-center"><Loader2 className="w-5 h-5 animate-spin mx-auto" /></div></div>
+      ) : isApp ? (
+        /* VISUALIZAÇÃO ADAPTADA PARA APP MÓVEL (COMPRA DE CRÉDITOS OCULTA PARA COMPLIANCE) */
+        <div className="px-5 space-y-6">
+          {/* Card de Saldo Atual de Aulas */}
+          <div className="glass-strong rounded-[32px] p-6 border border-white/10 relative overflow-hidden shadow-xl">
+            <div className="absolute top-0 right-0 w-36 h-36 bg-primary/10 rounded-full blur-3xl pointer-events-none" />
+            <div className="flex items-center gap-2 mb-3">
+              <div className="w-8 h-8 rounded-full bg-primary/20 flex items-center justify-center text-primary">
+                <Ticket className="w-4 h-4" />
+              </div>
+              <span className="text-xs uppercase font-bold tracking-wider text-muted-foreground">
+                Saldo Atual
+              </span>
+            </div>
+
+            <div className="flex items-baseline gap-2 mb-4">
+              <span className="text-4xl font-black text-gradient">
+                {totalCredits}
+              </span>
+              <span className="text-sm font-semibold text-muted-foreground">
+                {totalCredits === 1 ? "aula disponível" : "aulas disponíveis"}
+              </span>
+            </div>
+
+            <div className="grid grid-cols-3 gap-2 pt-3 border-t border-white/5">
+              <div className="glass rounded-2xl p-3 text-center">
+                <div className="text-[10px] uppercase font-bold text-muted-foreground mb-1">Grupo</div>
+                <div className="text-base font-black text-primary">{profile?.credits_grupo ?? 0}</div>
+              </div>
+              <div className="glass rounded-2xl p-3 text-center">
+                <div className="text-[10px] uppercase font-bold text-muted-foreground mb-1">Particular</div>
+                <div className="text-base font-black text-accent">{profile?.credits_particular ?? 0}</div>
+              </div>
+              <div className="glass rounded-2xl p-3 text-center">
+                <div className="text-[10px] uppercase font-bold text-muted-foreground mb-1">Aluguel</div>
+                <div className="text-base font-black text-white">{profile?.credits_aluguel ?? 0}</div>
+              </div>
+            </div>
+
+            <div className="mt-5">
+              <Link to="/schedule">
+                <Button className="w-full h-11 rounded-2xl bg-gradient-to-r from-primary to-accent text-primary-foreground font-bold text-xs shadow-lg shadow-primary/20 hover:shadow-primary/40 flex items-center justify-center gap-2">
+                  <Calendar className="w-4 h-4" />
+                  Ver Agenda e Reservar Aula
+                </Button>
+              </Link>
+            </div>
+          </div>
+
+          {/* Card Informativo de Aquisição */}
+          <div className="glass-strong rounded-[28px] p-6 border border-white/10 space-y-3 relative overflow-hidden shadow-xl text-center">
+            <div className="w-12 h-12 rounded-full bg-primary/20 text-primary flex items-center justify-center mx-auto ring-4 ring-primary/10">
+              <Sparkles className="w-6 h-6" />
+            </div>
+            <h2 className="text-base font-bold text-white">{t("packages.appNoticeTitle")}</h2>
+            <p className="text-xs text-muted-foreground leading-relaxed max-w-md mx-auto">
+              {t("packages.appNoticeBody")}
+            </p>
+          </div>
+
+          {/* Histórico de Aulas e Atividades */}
+          {payments.length > 0 && (
+            <section className="mt-6">
+              <h2 className="text-sm uppercase tracking-widest text-primary/80 mb-3">Histórico de Aulas</h2>
+              <div className="space-y-2">
+                {payments.map((p) => (
+                  <div key={p.id} className="glass rounded-2xl p-4 flex items-center gap-3">
+                    <StatusIcon status={p.status} />
+                    <div className="flex-1 min-w-0">
+                      <div className="text-sm font-semibold">{p.credits} {t("packages.creditsLabel")} · {fmt(p.amount_cents)}</div>
+                      <div className="text-xs text-muted-foreground">{new Date(p.created_at).toLocaleString(locale)}</div>
+                      {p.admin_notes && <div className="text-xs text-warning mt-1">{p.admin_notes}</div>}
+                    </div>
+                  </div>
+                ))}
+              </div>
+            </section>
+          )}
+        </div>
       ) : selected ? (
         <PixCheckout pkg={selected} onBack={() => { setSelected(null); load(); }} t={t} />
       ) : (
+        /* VISUALIZAÇÃO COMPLETA DE COMPRAS (Web & Android) */
         <>
           <section className="px-5">
             <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">

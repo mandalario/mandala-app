@@ -38,6 +38,7 @@ import {
   type ClassType,
 } from "@/lib/classTypes";
 import { cleanSlotNotes, isConfirmedSlot } from "@/lib/slotNotes";
+import { useIsApp } from "@/hooks/useIsApp";
 
 type Slot = { id: string; date: string; start_time: string; end_time: string; capacity: number; location: string | null; notes: string | null; is_open: boolean; class_type: ClassType };
 type Cond = { date: string; condition: "good" | "medium" | "bad" | "flat"; notes: string | null };
@@ -60,6 +61,7 @@ export default function Schedule() {
   const { user, profile, refreshProfile } = useAuth();
   const { t, language } = useTranslation();
   const billingEnabled = useBillingEnabled();
+  const isApp = useIsApp();
   const [slots, setSlots] = useState<Slot[]>([]);
   const [conds, setConds] = useState<Cond[]>([]);
   const [bookings, setBookings] = useState<Booking[]>([]);
@@ -179,7 +181,11 @@ export default function Schedule() {
     const classType = resolveClassType(slot.class_type);
 
     if (billingEnabled && (profile?.[CREDIT_FIELD[classType]] ?? 0) < 1) {
-      toast.error(t("schedule.noCreditsForType", { type: t(CREDIT_TYPE_LONG_I18N[classType]) }));
+      toast.error(
+        isApp
+          ? (t("schedule.noCreditsForTypeApp", { type: t(CREDIT_TYPE_LONG_I18N[classType]) }) || t("schedule.noCreditsForType", { type: t(CREDIT_TYPE_LONG_I18N[classType]) }))
+          : t("schedule.noCreditsForType", { type: t(CREDIT_TYPE_LONG_I18N[classType]) })
+      );
       return;
     }
 
@@ -243,11 +249,19 @@ export default function Schedule() {
           </div>
         </div>
         {billingEnabled && (
-          <Link to="/packages" className="glass rounded-xl px-3 py-2 text-[10px] sm:text-xs hover:bg-secondary/40 transition-colors flex flex-col sm:flex-row gap-1 sm:gap-2 text-right">
-            <div><span className="text-muted-foreground">{t("schedule.creditsShort.group")}</span> <span className="font-bold text-primary">{profile?.credits_grupo ?? 0}</span></div>
-            <div><span className="text-muted-foreground">{t("schedule.creditsShort.private")}</span> <span className="font-bold text-primary">{profile?.credits_particular ?? 0}</span></div>
-            <div><span className="text-muted-foreground">{t("schedule.creditsShort.rental")}</span> <span className="font-bold text-primary">{profile?.credits_aluguel ?? 0}</span></div>
-          </Link>
+          isApp ? (
+            <div className="glass rounded-xl px-3 py-2 text-[10px] sm:text-xs flex flex-col sm:flex-row gap-1 sm:gap-2 text-right">
+              <div><span className="text-muted-foreground">{t("schedule.creditsShort.group")}</span> <span className="font-bold text-primary">{profile?.credits_grupo ?? 0}</span></div>
+              <div><span className="text-muted-foreground">{t("schedule.creditsShort.private")}</span> <span className="font-bold text-primary">{profile?.credits_particular ?? 0}</span></div>
+              <div><span className="text-muted-foreground">{t("schedule.creditsShort.rental")}</span> <span className="font-bold text-primary">{profile?.credits_aluguel ?? 0}</span></div>
+            </div>
+          ) : (
+            <Link to="/packages" className="glass rounded-xl px-3 py-2 text-[10px] sm:text-xs hover:bg-secondary/40 transition-colors flex flex-col sm:flex-row gap-1 sm:gap-2 text-right">
+              <div><span className="text-muted-foreground">{t("schedule.creditsShort.group")}</span> <span className="font-bold text-primary">{profile?.credits_grupo ?? 0}</span></div>
+              <div><span className="text-muted-foreground">{t("schedule.creditsShort.private")}</span> <span className="font-bold text-primary">{profile?.credits_particular ?? 0}</span></div>
+              <div><span className="text-muted-foreground">{t("schedule.creditsShort.rental")}</span> <span className="font-bold text-primary">{profile?.credits_aluguel ?? 0}</span></div>
+            </Link>
+          )
         )}
       </header>
 

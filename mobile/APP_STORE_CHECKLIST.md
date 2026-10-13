@@ -43,6 +43,11 @@ A Apple possui políticas de revisão muito mais rígidas que a Google Play. Fiq
   `https://mandalario.app/.well-known/apple-app-site-association`
   Se você não planeja usar Universal Links (abrir o app automaticamente ao clicar em links do site), é altamente recomendado remover a chave `associatedDomains` para evitar avisos ou problemas de configuração de domínio no painel da Apple.
 
+### ⚠️ E. Serviços Físicos e Pagamentos (Diretriz 3.1.3(e))
+* **Regra da Apple:** O app não vende bens digitais ou assinaturas in-app. Trata-se de **aulas práticas presenciais de surf** na praia. Pela Diretriz 3.1.3(e), serviços físicos consumidos fora do app **devem** ser pagos externamente e não usam Apple In-App Purchase.
+* **Texto obrigatório para colar nas "Notas de Revisão" (App Review Information) do App Store Connect:**
+  > *"Reviewer Note: Mandalario is the official student management application for the physical, in-person surf school Mandala Rio Surf School based at Praia da Macumba, Rio de Janeiro, Brazil. All surf classes and equipment rentals are physical, real-world sports activities conducted outdoors on the beach with certified instructors. In accordance with Apple App Store Review Guideline 3.1.3(e) (Goods and Services Outside of the App), these physical services are consumed outside of the app and do not use in-app purchases. No digital content, in-app features, or digital goods are unlocked by purchases."*
+
 ---
 
 ## 2. Antes do Build (Preparação)

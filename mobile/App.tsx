@@ -11,11 +11,12 @@ import {
 import { SafeAreaView } from "react-native-safe-area-context";
 import { StatusBar } from "expo-status-bar";
 import * as WebBrowser from "expo-web-browser";
-import * as Notifications from "expo-notifications";
+// import * as Notifications from "expo-notifications";
 import * as Device from "expo-device";
 import Constants from "expo-constants";
 import { WebView, WebViewNavigation } from "react-native-webview";
 
+/*
 Notifications.setNotificationHandler({
   handleNotification: async () => ({
     shouldShowAlert: true,
@@ -23,52 +24,11 @@ Notifications.setNotificationHandler({
     shouldSetBadge: false,
   }),
 });
+*/
 
 async function registerForPushNotificationsAsync(): Promise<string | null> {
-  if (!Device.isDevice) {
-    console.log("Push notifications require a physical device.");
-    return null;
-  }
-
-  if (Platform.OS === "android") {
-    await Notifications.setNotificationChannelAsync("mandalario-alerts", {
-      name: "Alertas e Avisos",
-      importance: Notifications.AndroidImportance.MAX,
-      vibrationPattern: [0, 250, 250, 250],
-      lightColor: "#0b1e3a",
-    });
-  }
-
-  const { status: existingStatus } = await Notifications.getPermissionsAsync();
-  let finalStatus = existingStatus;
-  if (existingStatus !== "granted") {
-    const { status } = await Notifications.requestPermissionsAsync();
-    finalStatus = status;
-  }
-  if (finalStatus !== "granted") {
-    console.log("Push notification permission not granted.");
-    return null;
-  }
-
-  const projectId =
-    Constants?.expoConfig?.extra?.eas?.projectId ??
-    Constants?.easConfig?.projectId ??
-    "e0d3b661-b855-4ca1-98d5-e65af5907953";
-
-  if (!projectId) {
-    console.error("EAS Project ID not found for push notification");
-    return null;
-  }
-
-  try {
-    const pushTokenData = await Notifications.getExpoPushTokenAsync({
-      projectId,
-    });
-    return pushTokenData.data;
-  } catch (error) {
-    console.error("Erro ao obter expo push token:", error);
-    return null;
-  }
+  // Push desativado temporariamente para testes no Expo Go
+  return null;
 }
 
 const APP_BACKGROUND = "#ffffff";
@@ -81,9 +41,12 @@ const DEFAULT_WEB_URL = "https://mandalario.app";
 const INJECTED_APP_SETUP = `
   (function() {
     window.__IS_MANDALARIO_APP__ = true;
+    window.__APP_PLATFORM__ = ${JSON.stringify(Platform.OS)};
     try {
       sessionStorage.setItem("is_mandalario_app", "true");
+      sessionStorage.setItem("app_platform", ${JSON.stringify(Platform.OS)});
       localStorage.setItem("is_mandalario_app", "true");
+      localStorage.setItem("app_platform", ${JSON.stringify(Platform.OS)});
     } catch(e) {}
   })();
   true;
@@ -93,8 +56,11 @@ function getSafeBaseUrl(raw?: string): string {
   const candidate = (raw ?? "").trim() || DEFAULT_WEB_URL;
   try {
     const parsed = new URL(candidate);
-    if (parsed.protocol !== "https:") return DEFAULT_WEB_URL;
+    if (!__DEV__ && parsed.protocol !== "https:") return DEFAULT_WEB_URL;
     parsed.searchParams.set("app", "1");
+    if (Platform.OS === "ios") {
+      parsed.searchParams.set("ios", "1");
+    }
     return parsed.toString();
   } catch {
     return DEFAULT_WEB_URL;
@@ -116,7 +82,8 @@ function getAllowedOrigins(baseUrl: string): string[] {
 function isAllowedUrl(rawUrl: string, appUrl: string, allowedOrigins: string[]): boolean {
   try {
     const absolute = new URL(rawUrl, appUrl);
-    return absolute.protocol === "https:" && allowedOrigins.includes(absolute.origin);
+    if (!__DEV__ && absolute.protocol !== "https:") return false;
+    return allowedOrigins.includes(absolute.origin);
   } catch {
     return false;
   }
@@ -243,6 +210,7 @@ export default function App() {
     return () => subscription.remove();
   }, [appUrl, allowedOrigins, openInAppUrl]);
 
+  /* Push listeners desativados para testes no Expo Go
   useEffect(() => {
     const responseSubscription = Notifications.addNotificationResponseReceivedListener((response) => {
       const url = response.notification.request.content.data?.url;
@@ -264,6 +232,7 @@ export default function App() {
       responseSubscription.remove();
     };
   }, [openInAppUrl]);
+  */
 
   return (
     <SafeAreaView style={styles.container} edges={["top", "bottom"]}>
@@ -301,7 +270,9 @@ export default function App() {
         onMessage={(event) => {
           try {
             const payload = JSON.parse(event.nativeEvent.data);
-            if (payload?.type === "OAUTH_URL" && typeof payload.url === "string") {
+            if (payload?.type === "OPEN_EXTERNAL_URL" && typeof payload.url === "string") {
+              Linking.openURL(payload.url).catch(() => undefined);
+            } else if (payload?.type === "OAUTH_URL" && typeof payload.url === "string") {
               const redirectTo =
                 typeof payload.redirectTo === "string"
                   ? payload.redirectTo

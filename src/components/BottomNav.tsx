@@ -1,10 +1,12 @@
 import { Link, useLocation } from "react-router-dom";
-import { Home, Calendar, CreditCard, User, MessageCircle } from "lucide-react";
+import { Home, Calendar, User, MessageCircle, ShoppingBag } from "lucide-react";
 import { useTranslation } from "@/i18n/LanguageContext";
+import { useIsApp } from "@/hooks/useIsApp";
 
 export function BottomNav() {
   const { t } = useTranslation();
   const location = useLocation();
+  const isApp = useIsApp();
 
   const isActive = (path: string) => {
     if (path === "/" && location.pathname === "/") return true;
@@ -15,8 +17,8 @@ export function BottomNav() {
   const navItems = [
     { to: "/", icon: Home, label: t("nav.home") || "Início" },
     { to: "/schedule", icon: Calendar, label: t("nav.schedule") || "Agenda" },
-    { to: "/packages", icon: CreditCard, label: t("nav.buy") || "Comprar" },
     { to: "/chat", icon: MessageCircle, label: t("nav.chat") || "Chat" },
+    { to: isApp ? "/adquirir-aulas" : "/packages", icon: ShoppingBag, label: isApp ? "Aulas" : (t("nav.buy") || "Comprar") },
     { to: "/profile", icon: User, label: t("nav.profile") || "Perfil" },
   ];
 

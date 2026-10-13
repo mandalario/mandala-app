@@ -1,6 +1,7 @@
 import { useNavigate } from "react-router-dom";
 import { Coins } from "lucide-react";
 import { useTranslation } from "@/i18n/LanguageContext";
+import { useIsApp } from "@/hooks/useIsApp";
 
 export function CreditsBadge({ 
   credits,
@@ -15,13 +16,18 @@ export function CreditsBadge({
 }) {
   const { t } = useTranslation();
   const navigate = useNavigate();
+  const isApp = useIsApp();
 
   const total = creditsGrupo + creditsParticular + creditsAluguel;
 
   return (
     <div
       onClick={() => {
-        navigate("/packages");
+        if (isApp) {
+          navigate("/schedule");
+        } else {
+          navigate("/packages");
+        }
       }}
       className="h-10 px-4 rounded-full glass flex items-center gap-2 hover:bg-primary/10 hover:ring-2 hover:ring-primary/30 transition-all active:scale-95 shadow-lg group cursor-pointer relative z-50"
       title={`${t("studentHome.creditsBadge")} — ${t("credits.groupShort")} ${creditsGrupo} · ${t("credits.privateShort")} ${creditsParticular} · ${t("credits.rentalShort")} ${creditsAluguel}`}

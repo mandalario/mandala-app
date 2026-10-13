@@ -10,19 +10,21 @@ import { HomePartners } from "@/components/HomePartners";
 import { DailyQuote } from "@/components/DailyQuote";
 import { SeaConditionCard } from "@/components/SeaConditionCard";
 import { LessonHistory } from "@/components/LessonHistory";
-import { Waves, Calendar, CreditCard, MessageCircle, Video, User as UserIcon, Star } from "lucide-react";
+import { Waves, Calendar, CreditCard, MessageCircle, Video, User as UserIcon, Star, ShoppingBag } from "lucide-react";
 import logoMandala from "@/assets/logo-mandala.png";
 import { useTranslation } from "@/i18n/LanguageContext";
 import { intlLocaleFor } from "@/i18n/dateLocale";
 import { LanguageSwitcher } from "@/components/LanguageSwitcher";
 import { InstagramLink } from "@/components/InstagramLink";
 import { isConfirmedSlot } from "@/lib/slotNotes";
+import { useIsApp } from "@/hooks/useIsApp";
 
 type NextBooking = { id: string; status: string; class_slots: { date: string; start_time: string; location: string | null; notes: string | null } | null };
 
 export default function StudentHome() {
   const { user, profile } = useAuth();
   const { t, language } = useTranslation();
+  const isApp = useIsApp();
   const intlLocale = intlLocaleFor(language);
   const [next, setNext] = useState<NextBooking[]>([]);
   const [unread, setUnread] = useState(0);
@@ -135,10 +137,10 @@ export default function StudentHome() {
           badge={unread}
         />
         <ActionTile
-          to="/packages"
-          icon={<CreditCard className="w-5 h-5" />}
-          label={t("packages.title")}
-          sub={t("studentHome.packagesHistory")}
+          to={isApp ? "/adquirir-aulas" : "/packages"}
+          icon={<ShoppingBag className="w-5 h-5" />}
+          label="Adquirir Aulas"
+          sub="Aulas práticas na praia"
         />
         <ActionTile
           to="/teachers"
