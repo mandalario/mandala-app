@@ -70,20 +70,7 @@ export function openExternalUrl(url: string): void {
  * garantindo que ele caia na página desejada JÁ LOGADO.
  */
 export async function openWebWithCurrentAuth(nextPath = "/packages"): Promise<void> {
-  // Se não estiver rodando dentro do app nativo, redireciona diretamente no próprio navegador
-  if (!isMandalarioApp() && typeof window !== "undefined") {
-    window.location.href = nextPath;
-    return;
-  }
-
-  let baseUrl = "https://mandalario.app";
-  if (typeof window !== "undefined" && window.location?.origin) {
-    const host = window.location.hostname;
-    // Em testes locais com Expo ou preview Vercel, mantém a mesma origem
-    if (host === "localhost" || host.includes("192.168.") || host.includes("10.") || host.includes(".vercel.app")) {
-      baseUrl = window.location.origin;
-    }
-  }
+  const baseUrl = "https://mandalario.app";
 
   try {
     let session = (await supabase.auth.getSession()).data.session;
@@ -112,7 +99,7 @@ export async function openWebWithCurrentAuth(nextPath = "/packages"): Promise<vo
   } catch (e) {
     console.error("[openWebWithCurrentAuth] Erro ao obter sessão:", e);
   }
-  // Se não estiver logado ou falhar token, abre a página diretamente
+  // Se não estiver logado ou falhar token, abre a página de produção diretamente
   openExternalUrl(`${baseUrl}${nextPath}`);
 }
 
