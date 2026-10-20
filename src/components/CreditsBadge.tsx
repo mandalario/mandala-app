@@ -24,7 +24,7 @@ export function CreditsBadge({
     <div
       onClick={() => {
         if (isApp) {
-          navigate("/schedule");
+          navigate("/adquirir-aulas");
         } else {
           navigate("/packages");
         }

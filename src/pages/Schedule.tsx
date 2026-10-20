@@ -249,19 +249,14 @@ export default function Schedule() {
           </div>
         </div>
         {billingEnabled && (
-          isApp ? (
-            <div className="glass rounded-xl px-3 py-2 text-[10px] sm:text-xs flex flex-col sm:flex-row gap-1 sm:gap-2 text-right">
-              <div><span className="text-muted-foreground">{t("schedule.creditsShort.group")}</span> <span className="font-bold text-primary">{profile?.credits_grupo ?? 0}</span></div>
-              <div><span className="text-muted-foreground">{t("schedule.creditsShort.private")}</span> <span className="font-bold text-primary">{profile?.credits_particular ?? 0}</span></div>
-              <div><span className="text-muted-foreground">{t("schedule.creditsShort.rental")}</span> <span className="font-bold text-primary">{profile?.credits_aluguel ?? 0}</span></div>
-            </div>
-          ) : (
-            <Link to="/packages" className="glass rounded-xl px-3 py-2 text-[10px] sm:text-xs hover:bg-secondary/40 transition-colors flex flex-col sm:flex-row gap-1 sm:gap-2 text-right">
-              <div><span className="text-muted-foreground">{t("schedule.creditsShort.group")}</span> <span className="font-bold text-primary">{profile?.credits_grupo ?? 0}</span></div>
-              <div><span className="text-muted-foreground">{t("schedule.creditsShort.private")}</span> <span className="font-bold text-primary">{profile?.credits_particular ?? 0}</span></div>
-              <div><span className="text-muted-foreground">{t("schedule.creditsShort.rental")}</span> <span className="font-bold text-primary">{profile?.credits_aluguel ?? 0}</span></div>
-            </Link>
-          )
+          <Link
+            to={isApp ? "/adquirir-aulas" : "/packages"}
+            className="glass rounded-xl px-3 py-2 text-[10px] sm:text-xs hover:bg-secondary/40 transition-colors flex flex-col sm:flex-row gap-1 sm:gap-2 text-right"
+          >
+            <div><span className="text-muted-foreground">{t("schedule.creditsShort.group")}</span> <span className="font-bold text-primary">{profile?.credits_grupo ?? 0}</span></div>
+            <div><span className="text-muted-foreground">{t("schedule.creditsShort.private")}</span> <span className="font-bold text-primary">{profile?.credits_particular ?? 0}</span></div>
+            <div><span className="text-muted-foreground">{t("schedule.creditsShort.rental")}</span> <span className="font-bold text-primary">{profile?.credits_aluguel ?? 0}</span></div>
+          </Link>
         )}
       </header>
 

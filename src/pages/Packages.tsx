@@ -1,6 +1,6 @@
 import { useEffect, useRef, useState } from "react";
 import QRCode from "qrcode";
-import { Link } from "react-router-dom";
+import { Link, Navigate } from "react-router-dom";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/hooks/useAuth";
 import { OceanBackground } from "@/components/OceanBackground";
@@ -34,6 +34,10 @@ export default function Packages() {
   const isAppRuntime = useIsApp();
   const isIos = isIosApp();
   const isApp = isAppRuntime || isIos;
+
+  if (isApp) {
+    return <Navigate to="/adquirir-aulas" replace />;
+  }
   const localeMap: Record<string, string> = { pt: "pt-BR", en: "en-US", es: "es-ES" };
   const locale = localeMap[language] ?? "en-US";
   const [pkgs, setPkgs] = useState<Pkg[]>([]);

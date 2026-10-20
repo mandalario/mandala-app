@@ -324,11 +324,12 @@ export default function Profile() {
               </div>
             </div>
           </div>
-          {!isApp && (
-            <Link to="/packages" className="text-[10px] uppercase tracking-widest text-primary hover:underline font-bold mt-1">
-              {t("packages.title")} →
-            </Link>
-          )}
+          <Link
+            to={isApp ? "/adquirir-aulas" : "/packages"}
+            className="text-[10px] uppercase tracking-widest text-primary hover:underline font-bold mt-1"
+          >
+            {isApp ? "Adquirir Aulas →" : `${t("packages.title")} →`}
+          </Link>
         </div>
       </section>
 
