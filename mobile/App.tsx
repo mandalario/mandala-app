@@ -195,6 +195,14 @@ export default function App() {
 
   useEffect(() => {
     const handleDeepLink = (event: { url: string }) => {
+      // Evita interceptar URLs de compra de pacotes para não prendê-las na WebView do app
+      if (
+        event.url.includes("next=%2Fpackages") ||
+        event.url.includes("/packages") ||
+        event.url.includes("/adquirir-aulas")
+      ) {
+        return;
+      }
       if (isAllowedUrl(event.url, appUrl, allowedOrigins) || isAppAuthCallback(event.url, appUrl)) {
         openInAppUrl(event.url);
       }
@@ -267,11 +275,18 @@ export default function App() {
         onLoadEnd={() => {
           finishInitialLoad();
         }}
-        onMessage={(event) => {
+        onMessage={async (event) => {
           try {
             const payload = JSON.parse(event.nativeEvent.data);
             if (payload?.type === "OPEN_EXTERNAL_URL" && typeof payload.url === "string") {
-              Linking.openURL(payload.url).catch(() => undefined);
+              try {
+                await WebBrowser.openBrowserAsync(payload.url, {
+                  presentationStyle: WebBrowser.WebBrowserPresentationStyle.AUTOMATIC,
+                  dismissButtonStyle: "done",
+                });
+              } catch {
+                await Linking.openURL(payload.url);
+              }
             } else if (payload?.type === "OAUTH_URL" && typeof payload.url === "string") {
               const redirectTo =
                 typeof payload.redirectTo === "string"

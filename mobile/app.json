@@ -45,9 +45,6 @@
     "ios": {
       "supportsTablet": true,
       "bundleIdentifier": "com.mandalario.app",
-      "associatedDomains": [
-        "applinks:mandalario.app"
-      ],
       "infoPlist": {
         "NSUserNotificationsUsageDescription": "Receba avisos sobre suas aulas, agendamentos e mensagens da Mandala Rio Surf School.",
         "NSCameraUsageDescription": "Permite tirar foto para atualizar a imagem de perfil ou enviar imagens.",

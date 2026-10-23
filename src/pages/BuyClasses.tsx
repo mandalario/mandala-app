@@ -43,10 +43,10 @@ export default function BuyClasses() {
     (profile?.credits_grupo ?? 0) +
       (profile?.credits_particular ?? 0) +
       (profile?.credits_aluguel ?? 0) >
-    0
+      0
       ? (profile?.credits_grupo ?? 0) +
-        (profile?.credits_particular ?? 0) +
-        (profile?.credits_aluguel ?? 0)
+      (profile?.credits_particular ?? 0) +
+      (profile?.credits_aluguel ?? 0)
       : profile?.credits ?? 0;
 
   const handleOpenWebCheckout = async () => {
@@ -148,12 +148,12 @@ export default function BuyClasses() {
               </div>
               <div>
                 <h3 className="font-bold text-base text-white">Aulas de Surf na Praia</h3>
-                <p className="text-xs text-muted-foreground">Praia da Macumba, Rio de Janeiro</p>
+                <p className="text-xs text-muted-foreground">Praia do Arpoador, Rio de Janeiro</p>
               </div>
             </div>
 
             <p className="text-xs text-muted-foreground/90 leading-relaxed">
-              As aulas práticas de surf acontecem presencialmente na Praia da Macumba, Rio de Janeiro. Para consultar a programação completa, novidades e pacotes de aulas, acesse a plataforma oficial da escola.
+              As aulas práticas de surf acontecem presencialmente na Praia do Arpoador, Rio de Janeiro. Para consultar a programação completa, novidades e pacotes de aulas, acesse a plataforma oficial da escola.
             </p>
 
             <Button

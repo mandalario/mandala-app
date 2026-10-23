@@ -61,7 +61,10 @@ export function openExternalUrl(url: string): void {
       })
     );
   } else {
-    window.open(url, "_blank", "noopener,noreferrer");
+    const w = window.open(url, "_blank", "noopener,noreferrer");
+    if (!w) {
+      window.location.href = url;
+    }
   }
 }
 
@@ -70,7 +73,10 @@ export function openExternalUrl(url: string): void {
  * garantindo que ele caia na página desejada JÁ LOGADO.
  */
 export async function openWebWithCurrentAuth(nextPath = "/packages"): Promise<void> {
-  const baseUrl = "https://mandalario.app";
+  // Usamos www.mandalario.app para garantir que o iOS não intercepte o link de volta
+  // para dentro do app via Universal Links (applinks:mandalario.app).
+  // No Safari, www.mandalario.app redireciona para mandalario.app preservando a sessão e destino.
+  const baseUrl = "https://www.mandalario.app";
 
   try {
     let session = (await supabase.auth.getSession()).data.session;
