@@ -1,4 +1,4 @@
-import { useEffect, useState } from "react";
+import { useEffect, useState, type MouseEvent } from "react";
 import { Link } from "react-router-dom";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/hooks/useAuth";
@@ -18,6 +18,7 @@ import { LanguageSwitcher } from "@/components/LanguageSwitcher";
 import { InstagramLink } from "@/components/InstagramLink";
 import { isConfirmedSlot } from "@/lib/slotNotes";
 import { useIsApp } from "@/hooks/useIsApp";
+import { isIosApp, openWebWithCurrentAuth } from "@/lib/platform";
 
 type NextBooking = { id: string; status: string; class_slots: { date: string; start_time: string; location: string | null; notes: string | null } | null };
 
@@ -25,6 +26,7 @@ export default function StudentHome() {
   const { user, profile } = useAuth();
   const { t, language } = useTranslation();
   const isApp = useIsApp();
+  const isIos = isIosApp();
   const intlLocale = intlLocaleFor(language);
   const [next, setNext] = useState<NextBooking[]>([]);
   const [unread, setUnread] = useState(0);
@@ -141,6 +143,14 @@ export default function StudentHome() {
           icon={<ShoppingBag className="w-5 h-5" />}
           label="Adquirir Aulas"
           sub="Aulas práticas na praia"
+          onClick={
+            isIos
+              ? (e) => {
+                  e.preventDefault();
+                  void openWebWithCurrentAuth("/packages");
+                }
+              : undefined
+          }
         />
         <ActionTile
           to="/teachers"
@@ -197,8 +207,8 @@ export default function StudentHome() {
   );
 }
 
-const ActionTile = ({ to, icon, label, sub, badge }: { to: string; icon: React.ReactNode; label: string; sub: string; badge?: number }) => (
-  <Link to={to} className="glass rounded-2xl p-4 text-left hover:bg-secondary/40 transition-colors active:scale-95 block relative">
+const ActionTile = ({ to, icon, label, sub, badge, onClick }: { to: string; icon: React.ReactNode; label: string; sub: string; badge?: number; onClick?: (event: MouseEvent<HTMLAnchorElement>) => void }) => (
+  <Link to={to} onClick={onClick} className="glass rounded-2xl p-4 text-left hover:bg-secondary/40 transition-colors active:scale-95 block relative">
     <div className="w-10 h-10 rounded-xl bg-primary/15 text-primary flex items-center justify-center mb-3 relative">
       {icon}
       {badge && badge > 0 ? (

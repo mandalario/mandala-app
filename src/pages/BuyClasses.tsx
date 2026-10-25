@@ -14,7 +14,6 @@ import {
   CheckCircle2,
   Hourglass,
   XCircle,
-  Waves,
 } from "lucide-react";
 import { useTranslation } from "@/i18n/LanguageContext";
 import { openWebWithCurrentAuth, isIosApp } from "@/lib/platform";
@@ -51,29 +50,37 @@ export default function BuyClasses() {
       (profile?.credits_aluguel ?? 0)
       : profile?.credits ?? 0;
 
-  const handleOpenWebCheckout = async () => {
+  const handleOpenWebCheckout = () => {
     setRedirecting(true);
-    try {
-      await openWebWithCurrentAuth("/packages");
-    } catch (e) {
-      console.error(e);
-      toast.error("Não foi possível abrir o navegador externo.");
-    } finally {
-      setTimeout(() => setRedirecting(false), 2000);
-    }
+    toast.message("Abrindo o site oficial...");
+    void openWebWithCurrentAuth("/packages");
+    setTimeout(() => setRedirecting(false), 2000);
   };
 
   useEffect(() => {
+    let cancelled = false;
     async function load() {
-      const { data: pay } = await supabase
-        .from("payments")
-        .select("id, credits, amount_cents, status, created_at, admin_notes")
-        .order("created_at", { ascending: false })
-        .limit(10);
-      setPayments((pay ?? []) as Pay[]);
-      setLoading(false);
+      try {
+        const query = supabase
+          .from("payments")
+          .select("id, credits, amount_cents, status, created_at, admin_notes")
+          .order("created_at", { ascending: false })
+          .limit(10);
+        const { data: pay } = await Promise.race([
+          query,
+          new Promise<{ data: null }>((resolve) => setTimeout(() => resolve({ data: null }), 4000)),
+        ]);
+        if (!cancelled && pay) setPayments(pay as Pay[]);
+      } catch {
+        // histórico é opcional — o botão de compra não pode ficar preso no loading
+      } finally {
+        if (!cancelled) setLoading(false);
+      }
     }
     load();
+    return () => {
+      cancelled = true;
+    };
   }, []);
 
   return (
@@ -92,14 +99,7 @@ export default function BuyClasses() {
         </div>
       </header>
 
-      {loading ? (
-        <div className="px-5">
-          <div className="glass rounded-2xl p-8 text-center">
-            <Loader2 className="w-5 h-5 animate-spin mx-auto text-primary" />
-          </div>
-        </div>
-      ) : (
-        <div className="px-5 space-y-6">
+      <div className="px-5 space-y-6">
           {/* Card de Saldo Atual de Aulas */}
           <div className="glass-strong rounded-[32px] p-6 border border-white/10 relative overflow-hidden shadow-xl">
             <div className="absolute top-0 right-0 w-36 h-36 bg-primary/10 rounded-full blur-3xl pointer-events-none" />
@@ -186,7 +186,11 @@ export default function BuyClasses() {
           </div>
 
           {/* Histórico de Aulas e Atividades */}
-          {payments.length > 0 && (
+          {loading ? (
+            <div className="glass rounded-2xl p-6 text-center">
+              <Loader2 className="w-5 h-5 animate-spin mx-auto text-primary" />
+            </div>
+          ) : payments.length > 0 ? (
             <section className="mt-6">
               <h2 className="text-sm uppercase tracking-widest text-primary/80 mb-3">Histórico de Aulas</h2>
               <div className="space-y-2">
@@ -206,9 +210,8 @@ export default function BuyClasses() {
                 ))}
               </div>
             </section>
-          )}
+          ) : null}
         </div>
-      )}
     </div>
   );
 }

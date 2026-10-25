@@ -50,7 +50,8 @@
         "NSCameraUsageDescription": "Permite tirar foto para atualizar a imagem de perfil ou enviar imagens.",
         "NSPhotoLibraryUsageDescription": "Permite escolher uma foto da galeria para o perfil ou suporte.",
         "NSPhotoLibraryAddUsageDescription": "Permite salvar fotos selecionadas em seu dispositivo.",
-        "NSMicrophoneUsageDescription": "Permite gravar vídeos ou usar a câmera para envio de mídia."
+        "NSMicrophoneUsageDescription": "Permite gravar vídeos ou usar a câmera para envio de mídia.",
+        "ITSAppUsesNonExemptEncryption": false
       }
     },
     "android": {

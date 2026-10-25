@@ -111,6 +111,62 @@ function isAppAuthCallback(rawUrl: string, appUrl: string): boolean {
   }
 }
 
+/** Same-origin https URLs must use Safari View Controller — Linking.openURL stays inside the app. */
+function toPublicWebUrl(rawUrl: string): string {
+  try {
+    const url = new URL(rawUrl);
+    if (url.hostname === "www.mandalario.app") {
+      url.hostname = "mandalario.app";
+    }
+    url.searchParams.delete("app");
+    url.searchParams.delete("ios");
+    url.searchParams.delete("webview");
+    url.searchParams.delete("is_app");
+    url.searchParams.delete("mock_platform");
+    return url.toString();
+  } catch {
+    return rawUrl;
+  }
+}
+
+function isExternalCheckoutUrl(rawUrl: string): boolean {
+  try {
+    const url = new URL(rawUrl);
+    const path = url.pathname.replace(/\/+$/, "") || "/";
+    if (path === "/packages" || path.startsWith("/packages/")) return true;
+    const next = url.searchParams.get("next") ?? "";
+    return next === "/packages" || next === "%2Fpackages";
+  } catch {
+    return false;
+  }
+}
+
+let externalBrowserLock = false;
+
+async function openExternalBrowser(rawUrl: string): Promise<void> {
+  if (!rawUrl || externalBrowserLock) return;
+  externalBrowserLock = true;
+  const url = toPublicWebUrl(rawUrl);
+  try {
+    await WebBrowser.openBrowserAsync(url, {
+      enableBarCollapsing: true,
+      dismissButtonStyle: "close",
+      controlsColor: APP_LOADING_ACCENT,
+    });
+  } catch (err) {
+    console.error("Erro ao abrir Safari View Controller:", err);
+    try {
+      await Linking.openURL(url);
+    } catch (linkErr) {
+      console.error("Erro ao abrir URL externa:", linkErr);
+    }
+  } finally {
+    setTimeout(() => {
+      externalBrowserLock = false;
+    }, 800);
+  }
+}
+
 export default function App() {
   const webViewRef = useRef<WebView>(null);
   const [canGoBack, setCanGoBack] = useState(false);
@@ -281,14 +337,7 @@ export default function App() {
           try {
             const payload = JSON.parse(event.nativeEvent.data);
             if (payload?.type === "OPEN_EXTERNAL_URL" && typeof payload.url === "string") {
-              try {
-                await Linking.openURL(payload.url);
-              } catch (err) {
-                console.error("Erro ao abrir no Safari / navegador externo:", err);
-                try {
-                  await WebBrowser.openBrowserAsync(payload.url);
-                } catch {}
-              }
+              void openExternalBrowser(payload.url);
             } else if (payload?.type === "OAUTH_URL" && typeof payload.url === "string") {
               const redirectTo =
                 typeof payload.redirectTo === "string"
@@ -305,20 +354,21 @@ export default function App() {
         onShouldStartLoadWithRequest={(request) => {
           if (!request.url) return false;
           // Intercepta qualquer tentativa de carregar pacotes ou link externo de checkout / www.mandalario.app
-          // dentro da WebView e abre diretamente no Safari externo
+          // dentro da WebView e abre diretamente no Safari externo (Safari View Controller)
           if (
+            isExternalCheckoutUrl(request.url) ||
             request.url.includes("/packages") ||
             request.url.includes("next=%2Fpackages") ||
             request.url.includes("next=/packages") ||
             request.url.includes("www.mandalario.app")
           ) {
-            Linking.openURL(request.url).catch(() => undefined);
+            void openExternalBrowser(request.url);
             return false;
           }
           if (isAllowedUrl(request.url, appUrl, allowedOrigins)) return true;
           if (isAppAuthCallback(request.url, appUrl)) return true;
           if (isOAuthProviderUrl(request.url)) return true;
-          Linking.openURL(request.url).catch(() => undefined);
+          void openExternalBrowser(request.url);
           return false;
         }}
       />

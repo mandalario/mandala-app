@@ -41,7 +41,6 @@ export function isIosApp(): boolean {
 
   if (platform === "ios") return true;
 
-  // Fallback baseado no User Agent se estiver rodando dentro do App
   const ua = window.navigator.userAgent || "";
   return /iPhone|iPad|iPod/i.test(ua);
 }
@@ -51,7 +50,8 @@ export function isIosApp(): boolean {
  * enviando mensagem para a bridge nativa da WebView ou abrindo nova aba na web.
  */
 export function openExternalUrl(url: string): void {
-  if (typeof window === "undefined") return;
+  if (typeof window === "undefined" || !url) return;
+
   const bridge = (window as any).ReactNativeWebView;
   if (bridge && typeof bridge.postMessage === "function") {
     bridge.postMessage(
@@ -60,59 +60,72 @@ export function openExternalUrl(url: string): void {
         url,
       })
     );
-  } else {
-    const w = window.open(url, "_blank", "noopener,noreferrer");
-    if (!w) {
-      window.location.href = url;
-    }
+    return;
+  }
+
+  const webkitHandlers = (window as any).webkit?.messageHandlers;
+  if (webkitHandlers?.abrirExterno && typeof webkitHandlers.abrirExterno.postMessage === "function") {
+    webkitHandlers.abrirExterno.postMessage(url);
+    return;
+  }
+  if (webkitHandlers?.openExternalUrl && typeof webkitHandlers.openExternalUrl.postMessage === "function") {
+    webkitHandlers.openExternalUrl.postMessage(url);
+    return;
+  }
+
+  // Nunca usar window.location.href dentro do app: a WebView navega e trava em loading.
+  if (isMandalarioApp()) {
+    try {
+      const w = window.open(url, "_blank");
+      if (!w) {
+        const a = document.createElement("a");
+        a.href = url;
+        a.target = "_blank";
+        a.rel = "noopener noreferrer";
+        document.body.appendChild(a);
+        a.click();
+        document.body.removeChild(a);
+      }
+    } catch {}
+    return;
+  }
+
+  const w = window.open(url, "_blank", "noopener,noreferrer");
+  if (!w) {
+    window.location.href = url;
   }
 }
 
 /**
  * Transfere a sessão atual do usuário do app móvel para o Safari/navegador externo,
- * garantindo que ele caia na página desejada JÁ LOGADO.
+ * caindo na página de compras já logado, sem travar a WebView.
  */
 export async function openWebWithCurrentAuth(nextPath = "/packages"): Promise<void> {
-  // URL canônica de produção para abertura direta no navegador externo (Safari / Chrome)
-  const baseUrl = "https://mandalario.app";
+  const checkoutUrl = `https://mandalario.app${nextPath}?checkout=1`;
+
+  let opened = false;
+  const openOnce = (url: string) => {
+    if (opened) return;
+    opened = true;
+    openExternalUrl(url);
+  };
+
+  const fallbackTimer = setTimeout(() => openOnce(checkoutUrl), 120);
 
   try {
-    let session = (await supabase.auth.getSession()).data.session;
-
-    // Se a sessão existir e estiver prestes a expirar nos próximos 2 minutos, tenta renovar rapidamente
-    if (session?.refresh_token) {
-      const now = Math.floor(Date.now() / 1000);
-      const isExpiringSoon = session.expires_at ? session.expires_at - now < 120 : false;
-      if (isExpiringSoon) {
-        try {
-          const timeoutPromise = new Promise<{ data: { session: null }; error: any }>((_, reject) =>
-            setTimeout(() => reject(new Error("timeout")), 2000)
-          );
-          const refreshed = await Promise.race([
-            supabase.auth.refreshSession(),
-            timeoutPromise,
-          ]);
-          if (refreshed?.data?.session) {
-            session = refreshed.data.session;
-          }
-        } catch (err) {
-          console.warn("[openWebWithCurrentAuth] refreshSession fallback:", err);
-        }
-      }
-    }
-
+    const { data } = await supabase.auth.getSession();
+    const session = data?.session;
     if (session?.access_token && session?.refresh_token) {
       const at = encodeURIComponent(session.access_token);
       const rt = encodeURIComponent(session.refresh_token);
-      // Abre direto na página de compras (/packages) sem passar por tela intermediária de loading
-      const directUrl = `${baseUrl}${nextPath}?access_token=${at}&refresh_token=${rt}`;
-      openExternalUrl(directUrl);
+      clearTimeout(fallbackTimer);
+      openOnce(`${checkoutUrl}#access_token=${at}&refresh_token=${rt}`);
       return;
     }
   } catch (e) {
-    console.error("[openWebWithCurrentAuth] Erro ao obter sessão:", e);
+    console.warn("[openWebWithCurrentAuth] Erro ao obter sessão:", e);
   }
-  // Se não estiver logado ou falhar token, abre a página de produção diretamente
-  openExternalUrl(`${baseUrl}${nextPath}`);
-}
 
+  clearTimeout(fallbackTimer);
+  openOnce(checkoutUrl);
+}

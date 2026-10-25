@@ -33,20 +33,18 @@ export default function Packages() {
   const billingEnabled = useBillingEnabled();
   const isAppRuntime = useIsApp();
   const isIos = isIosApp();
-  const isApp = isAppRuntime || isIos;
+  const checkoutParams = typeof window !== "undefined" ? new URLSearchParams(window.location.search) : null;
+  const isExternalCheckout = checkoutParams?.get("checkout") === "1";
+  const isApp = (isAppRuntime || isIos) && !isExternalCheckout;
 
-  if (isApp) {
-    return <Navigate to="/adquirir-aulas" replace />;
-  }
-
-  // Se a tela foi aberta passando tokens na URL, autentica imediatamente em segundo plano
   useEffect(() => {
     try {
       const params = new URLSearchParams(window.location.search);
-      const at = params.get("access_token");
-      const rt = params.get("refresh_token");
+      const hashParams = new URLSearchParams(window.location.hash.replace(/^#/, ""));
+      const at = params.get("access_token") || hashParams.get("access_token");
+      const rt = params.get("refresh_token") || hashParams.get("refresh_token");
       if (at && rt) {
-        window.history.replaceState({}, "", "/packages");
+        window.history.replaceState({}, "", "/packages?checkout=1");
         supabase.auth.setSession({ access_token: at, refresh_token: rt }).then(({ data }) => {
           if (data?.user) {
             refreshProfile(data.user);
@@ -77,6 +75,10 @@ export default function Packages() {
   };
 
   useEffect(() => { load(); }, []);
+
+  if (isApp) {
+    return <Navigate to="/adquirir-aulas" replace />;
+  }
 
   if (billingEnabled === null) {
     return (

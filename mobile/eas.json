@@ -14,6 +14,14 @@
         "EXPO_PUBLIC_WEB_URL": "https://mandalario.app"
       }
     },
+    "simulator": {
+      "ios": {
+        "simulator": true
+      },
+      "env": {
+        "EXPO_PUBLIC_WEB_URL": "https://mandalario.app"
+      }
+    },
     "production": {
       "distribution": "store",
       "env": {
