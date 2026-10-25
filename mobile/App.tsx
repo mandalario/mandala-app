@@ -198,8 +198,10 @@ export default function App() {
       // Evita interceptar URLs de compra de pacotes para não prendê-las na WebView do app
       if (
         event.url.includes("next=%2Fpackages") ||
+        event.url.includes("next=/packages") ||
         event.url.includes("/packages") ||
-        event.url.includes("/adquirir-aulas")
+        event.url.includes("/adquirir-aulas") ||
+        event.url.includes("www.mandalario.app")
       ) {
         return;
       }
@@ -280,12 +282,12 @@ export default function App() {
             const payload = JSON.parse(event.nativeEvent.data);
             if (payload?.type === "OPEN_EXTERNAL_URL" && typeof payload.url === "string") {
               try {
-                await WebBrowser.openBrowserAsync(payload.url, {
-                  presentationStyle: WebBrowser.WebBrowserPresentationStyle.AUTOMATIC,
-                  dismissButtonStyle: "done",
-                });
-              } catch {
                 await Linking.openURL(payload.url);
+              } catch (err) {
+                console.error("Erro ao abrir no Safari / navegador externo:", err);
+                try {
+                  await WebBrowser.openBrowserAsync(payload.url);
+                } catch {}
               }
             } else if (payload?.type === "OAUTH_URL" && typeof payload.url === "string") {
               const redirectTo =
@@ -302,6 +304,17 @@ export default function App() {
         }}
         onShouldStartLoadWithRequest={(request) => {
           if (!request.url) return false;
+          // Intercepta qualquer tentativa de carregar pacotes ou link externo de checkout / www.mandalario.app
+          // dentro da WebView e abre diretamente no Safari externo
+          if (
+            request.url.includes("/packages") ||
+            request.url.includes("next=%2Fpackages") ||
+            request.url.includes("next=/packages") ||
+            request.url.includes("www.mandalario.app")
+          ) {
+            Linking.openURL(request.url).catch(() => undefined);
+            return false;
+          }
           if (isAllowedUrl(request.url, appUrl, allowedOrigins)) return true;
           if (isAppAuthCallback(request.url, appUrl)) return true;
           if (isOAuthProviderUrl(request.url)) return true;

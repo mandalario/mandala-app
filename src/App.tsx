@@ -50,7 +50,7 @@ import NotFound from "./pages/NotFound.tsx";
 
 const queryClient = new QueryClient();
 
-const PUBLIC_PATHS = ["/auth", "/auth/callback", "/terms", "/privacy", "/support", "/chat"];
+const PUBLIC_PATHS = ["/auth", "/auth/callback", "/terms", "/privacy", "/support", "/chat", "/packages"];
 const AUTH_ONLY_PATHS = ["/auth", "/onboarding", "/pending", "/set-password"];
 const SUPPORT_PATHS = ["/support", "/chat"];
 
@@ -136,9 +136,10 @@ const ConditionalBottomNav = () => {
 function AppRoutes() {
   const location = useLocation();
 
-  // Intercepta qualquer entrada com tokens de sessão ou OAuth code para autenticar na hora
+  // Intercepta qualquer entrada com tokens de sessão ou OAuth code para autenticar na hora (exceto /packages que trata internamente sem tela de loading)
   if (
     location.pathname !== "/auth/callback" &&
+    location.pathname !== "/packages" &&
     (location.search.includes("access_token") ||
       location.hash.includes("access_token") ||
       location.search.includes("code="))

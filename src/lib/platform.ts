@@ -73,33 +73,40 @@ export function openExternalUrl(url: string): void {
  * garantindo que ele caia na página desejada JÁ LOGADO.
  */
 export async function openWebWithCurrentAuth(nextPath = "/packages"): Promise<void> {
-  // Usamos www.mandalario.app para garantir que o iOS não intercepte o link de volta
-  // para dentro do app via Universal Links (applinks:mandalario.app).
-  // No Safari, www.mandalario.app redireciona para mandalario.app preservando a sessão e destino.
-  const baseUrl = "https://www.mandalario.app";
+  // URL canônica de produção para abertura direta no navegador externo (Safari / Chrome)
+  const baseUrl = "https://mandalario.app";
 
   try {
     let session = (await supabase.auth.getSession()).data.session;
 
-    // Se a sessão existir, tenta renovar para garantir tokens 100% válidos
+    // Se a sessão existir e estiver prestes a expirar nos próximos 2 minutos, tenta renovar rapidamente
     if (session?.refresh_token) {
-      try {
-        const refreshed = await supabase.auth.refreshSession();
-        if (refreshed.data.session) {
-          session = refreshed.data.session;
+      const now = Math.floor(Date.now() / 1000);
+      const isExpiringSoon = session.expires_at ? session.expires_at - now < 120 : false;
+      if (isExpiringSoon) {
+        try {
+          const timeoutPromise = new Promise<{ data: { session: null }; error: any }>((_, reject) =>
+            setTimeout(() => reject(new Error("timeout")), 2000)
+          );
+          const refreshed = await Promise.race([
+            supabase.auth.refreshSession(),
+            timeoutPromise,
+          ]);
+          if (refreshed?.data?.session) {
+            session = refreshed.data.session;
+          }
+        } catch (err) {
+          console.warn("[openWebWithCurrentAuth] refreshSession fallback:", err);
         }
-      } catch (err) {
-        console.warn("[openWebWithCurrentAuth] refreshSession fallback:", err);
       }
     }
 
     if (session?.access_token && session?.refresh_token) {
       const at = encodeURIComponent(session.access_token);
       const rt = encodeURIComponent(session.refresh_token);
-      const np = encodeURIComponent(nextPath);
-      // Passa tokens tanto via query params quanto via hash fragment para compatibilidade universal
-      const authUrl = `${baseUrl}/auth/callback?next=${np}&access_token=${at}&refresh_token=${rt}#access_token=${at}&refresh_token=${rt}&type=recovery`;
-      openExternalUrl(authUrl);
+      // Abre direto na página de compras (/packages) sem passar por tela intermediária de loading
+      const directUrl = `${baseUrl}${nextPath}?access_token=${at}&refresh_token=${rt}`;
+      openExternalUrl(directUrl);
       return;
     }
   } catch (e) {

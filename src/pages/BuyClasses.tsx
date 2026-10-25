@@ -17,7 +17,8 @@ import {
   Waves,
 } from "lucide-react";
 import { useTranslation } from "@/i18n/LanguageContext";
-import { openWebWithCurrentAuth } from "@/lib/platform";
+import { openWebWithCurrentAuth, isIosApp } from "@/lib/platform";
+import { toast } from "sonner";
 
 type Pay = {
   id: string;
@@ -38,6 +39,7 @@ export default function BuyClasses() {
   const [payments, setPayments] = useState<Pay[]>([]);
   const [loading, setLoading] = useState(true);
   const [redirecting, setRedirecting] = useState(false);
+  const isIos = isIosApp();
 
   const totalCredits =
     (profile?.credits_grupo ?? 0) +
@@ -53,6 +55,9 @@ export default function BuyClasses() {
     setRedirecting(true);
     try {
       await openWebWithCurrentAuth("/packages");
+    } catch (e) {
+      console.error(e);
+      toast.error("Não foi possível abrir o navegador externo.");
     } finally {
       setTimeout(() => setRedirecting(false), 2000);
     }
@@ -164,15 +169,20 @@ export default function BuyClasses() {
               {redirecting ? (
                 <>
                   <Loader2 className="w-4 h-4 animate-spin" />
-                  Abrindo mandalario.app...
+                  {isIos ? "Abrindo no Safari..." : "Abrindo mandalario.app..."}
                 </>
               ) : (
                 <>
                   <ExternalLink className="w-4 h-4" />
-                  Acessar aulas no site oficial
+                  {isIos ? "Comprar aulas no Safari (site oficial)" : "Acessar aulas no site oficial"}
                 </>
               )}
             </Button>
+            {isIos && (
+              <p className="text-[10px] text-center text-muted-foreground/70">
+                A página de compra será aberta com segurança no navegador Safari.
+              </p>
+            )}
           </div>
 
           {/* Histórico de Aulas e Atividades */}

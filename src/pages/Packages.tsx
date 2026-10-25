@@ -28,7 +28,7 @@ type Pay = { id: string; credits: number; amount_cents: number; status: string; 
 const fmt = (c: number) => `R$ ${(c / 100).toFixed(2).replace(".", ",")}`;
 
 export default function Packages() {
-  const { profile } = useAuth();
+  const { profile, refreshProfile } = useAuth();
   const { t, language } = useTranslation();
   const billingEnabled = useBillingEnabled();
   const isAppRuntime = useIsApp();
@@ -38,6 +38,23 @@ export default function Packages() {
   if (isApp) {
     return <Navigate to="/adquirir-aulas" replace />;
   }
+
+  // Se a tela foi aberta passando tokens na URL, autentica imediatamente em segundo plano
+  useEffect(() => {
+    try {
+      const params = new URLSearchParams(window.location.search);
+      const at = params.get("access_token");
+      const rt = params.get("refresh_token");
+      if (at && rt) {
+        window.history.replaceState({}, "", "/packages");
+        supabase.auth.setSession({ access_token: at, refresh_token: rt }).then(({ data }) => {
+          if (data?.user) {
+            refreshProfile(data.user);
+          }
+        }).catch((err) => console.warn("[Packages] background setSession:", err));
+      }
+    } catch {}
+  }, [refreshProfile]);
   const localeMap: Record<string, string> = { pt: "pt-BR", en: "en-US", es: "es-ES" };
   const locale = localeMap[language] ?? "en-US";
   const [pkgs, setPkgs] = useState<Pkg[]>([]);
