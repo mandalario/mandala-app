@@ -44,26 +44,24 @@ export function isIosApp(): boolean {
 }
 
 /**
- * Checkout no host www — o binário da App Store já intercepta www.mandalario.app
- * e manda para fora da WebView. mandalario.app (sem www) é a origem do app e o iOS não sai.
+ * Checkout no host www — o binário da App Store intercepta www.mandalario.app
+ * para abrir fora da WebView (mandalario.app sem www é a origem do app).
  */
 export const WEB_CHECKOUT_URL = "https://www.mandalario.app/packages?checkout=1";
 
 /**
- * Abre uma URL no navegador externo (Safari no iOS / Chrome no Android).
- * No iOS do app da loja o clique tem que ser um <a href> em www; postMessage na mesma
- * origem trava a WebView em loading e não abre o Safari.
+ * Pede ao app nativo para abrir o Safari/Chrome via OPEN_EXTERNAL_URL.
+ * No iOS isso é obrigatório: a WebView não consegue sair sozinha para o mesmo site.
+ * Não navegar com location.href / window.open dentro do app — isso trava em loading.
  */
 export function openExternalUrl(url: string = WEB_CHECKOUT_URL): void {
   if (typeof window === "undefined" || !url) return;
 
-  if (isIosApp()) {
-    return;
-  }
+  const payload = JSON.stringify({ type: "OPEN_EXTERNAL_URL", url });
 
   const bridge = (window as any).ReactNativeWebView;
   if (bridge && typeof bridge.postMessage === "function") {
-    bridge.postMessage(JSON.stringify({ type: "OPEN_EXTERNAL_URL", url }));
+    bridge.postMessage(payload);
     return;
   }
 
@@ -74,6 +72,10 @@ export function openExternalUrl(url: string = WEB_CHECKOUT_URL): void {
   }
   if (webkitHandlers?.openExternalUrl && typeof webkitHandlers.openExternalUrl.postMessage === "function") {
     webkitHandlers.openExternalUrl.postMessage(url);
+    return;
+  }
+
+  if (isMandalarioApp()) {
     return;
   }
 

@@ -17,7 +17,7 @@ import {
   Copy,
 } from "lucide-react";
 import { useTranslation } from "@/i18n/LanguageContext";
-import { openExternalUrl, isIosApp, WEB_CHECKOUT_URL } from "@/lib/platform";
+import { openExternalUrl, isIosApp, isMandalarioApp, WEB_CHECKOUT_URL } from "@/lib/platform";
 import { toast } from "sonner";
 
 type Pay = {
@@ -52,7 +52,10 @@ export default function BuyClasses() {
       (profile?.credits_aluguel ?? 0)
       : profile?.credits ?? 0;
 
-  const handleOpenWebCheckout = () => {
+  const handleOpenWebCheckout = (event?: { preventDefault: () => void }) => {
+    if (isMandalarioApp() || isIosApp()) {
+      event?.preventDefault();
+    }
     setRedirecting(true);
     toast.message("Abrindo o site oficial...");
     openExternalUrl(WEB_CHECKOUT_URL);

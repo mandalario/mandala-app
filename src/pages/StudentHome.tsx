@@ -18,7 +18,7 @@ import { LanguageSwitcher } from "@/components/LanguageSwitcher";
 import { InstagramLink } from "@/components/InstagramLink";
 import { isConfirmedSlot } from "@/lib/slotNotes";
 import { useIsApp } from "@/hooks/useIsApp";
-import { isIosApp, WEB_CHECKOUT_URL } from "@/lib/platform";
+import { isIosApp, openExternalUrl, WEB_CHECKOUT_URL } from "@/lib/platform";
 
 type NextBooking = { id: string; status: string; class_slots: { date: string; start_time: string; location: string | null; notes: string | null } | null };
 
@@ -143,6 +143,10 @@ export default function StudentHome() {
             href={WEB_CHECKOUT_URL}
             target="_blank"
             rel="noopener noreferrer"
+            onClick={(event) => {
+              event.preventDefault();
+              openExternalUrl(WEB_CHECKOUT_URL);
+            }}
             className="glass rounded-2xl p-4 text-left hover:bg-secondary/40 transition-colors active:scale-95 block relative"
           >
             <div className="w-10 h-10 rounded-xl bg-primary/15 text-primary flex items-center justify-center mb-3 relative">
