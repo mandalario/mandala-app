@@ -1,5 +1,3 @@
-import { supabase } from "@/integrations/supabase/client";
-
 /**
  * Utilitários para detecção do aplicativo nativo (Expo/ReactNativeWebView) e plataforma.
  */
@@ -46,20 +44,26 @@ export function isIosApp(): boolean {
 }
 
 /**
- * Abre uma URL no navegador externo (Safari no iOS / Chrome no Android)
- * enviando mensagem para a bridge nativa da WebView ou abrindo nova aba na web.
+ * Checkout no host www — o binário da App Store já intercepta www.mandalario.app
+ * e manda para fora da WebView. mandalario.app (sem www) é a origem do app e o iOS não sai.
  */
-export function openExternalUrl(url: string): void {
+export const WEB_CHECKOUT_URL = "https://www.mandalario.app/packages?checkout=1";
+
+/**
+ * Abre uma URL no navegador externo (Safari no iOS / Chrome no Android).
+ * No iOS do app da loja o clique tem que ser um <a href> em www; postMessage na mesma
+ * origem trava a WebView em loading e não abre o Safari.
+ */
+export function openExternalUrl(url: string = WEB_CHECKOUT_URL): void {
   if (typeof window === "undefined" || !url) return;
+
+  if (isIosApp()) {
+    return;
+  }
 
   const bridge = (window as any).ReactNativeWebView;
   if (bridge && typeof bridge.postMessage === "function") {
-    bridge.postMessage(
-      JSON.stringify({
-        type: "OPEN_EXTERNAL_URL",
-        url,
-      })
-    );
+    bridge.postMessage(JSON.stringify({ type: "OPEN_EXTERNAL_URL", url }));
     return;
   }
 
@@ -73,59 +77,12 @@ export function openExternalUrl(url: string): void {
     return;
   }
 
-  // Nunca usar window.location.href dentro do app: a WebView navega e trava em loading.
-  if (isMandalarioApp()) {
-    try {
-      const w = window.open(url, "_blank");
-      if (!w) {
-        const a = document.createElement("a");
-        a.href = url;
-        a.target = "_blank";
-        a.rel = "noopener noreferrer";
-        document.body.appendChild(a);
-        a.click();
-        document.body.removeChild(a);
-      }
-    } catch {}
-    return;
-  }
-
-  const w = window.open(url, "_blank", "noopener,noreferrer");
-  if (!w) {
-    window.location.href = url;
-  }
+  try {
+    window.open(url, "_blank", "noopener,noreferrer");
+  } catch {}
 }
 
-/**
- * Transfere a sessão atual do usuário do app móvel para o Safari/navegador externo,
- * caindo na página de compras já logado, sem travar a WebView.
- */
-export async function openWebWithCurrentAuth(nextPath = "/packages"): Promise<void> {
-  const checkoutUrl = `https://mandalario.app${nextPath}?checkout=1`;
-
-  let opened = false;
-  const openOnce = (url: string) => {
-    if (opened) return;
-    opened = true;
-    openExternalUrl(url);
-  };
-
-  const fallbackTimer = setTimeout(() => openOnce(checkoutUrl), 120);
-
-  try {
-    const { data } = await supabase.auth.getSession();
-    const session = data?.session;
-    if (session?.access_token && session?.refresh_token) {
-      const at = encodeURIComponent(session.access_token);
-      const rt = encodeURIComponent(session.refresh_token);
-      clearTimeout(fallbackTimer);
-      openOnce(`${checkoutUrl}#access_token=${at}&refresh_token=${rt}`);
-      return;
-    }
-  } catch (e) {
-    console.warn("[openWebWithCurrentAuth] Erro ao obter sessão:", e);
-  }
-
-  clearTimeout(fallbackTimer);
-  openOnce(checkoutUrl);
+/** Abre o checkout no Safari/navegador externo. Síncrono: não espera sessão (tokens quebram o open no iOS). */
+export function openWebWithCurrentAuth(_nextPath = "/packages"): void {
+  openExternalUrl(WEB_CHECKOUT_URL);
 }

@@ -18,7 +18,7 @@ import { LanguageSwitcher } from "@/components/LanguageSwitcher";
 import { InstagramLink } from "@/components/InstagramLink";
 import { isConfirmedSlot } from "@/lib/slotNotes";
 import { useIsApp } from "@/hooks/useIsApp";
-import { isIosApp, openWebWithCurrentAuth } from "@/lib/platform";
+import { isIosApp, WEB_CHECKOUT_URL } from "@/lib/platform";
 
 type NextBooking = { id: string; status: string; class_slots: { date: string; start_time: string; location: string | null; notes: string | null } | null };
 
@@ -138,20 +138,27 @@ export default function StudentHome() {
           sub={unread > 0 ? t(unread === 1 ? "dashboard.actions.chatSubUnreadOne" : "dashboard.actions.chatSubUnreadMany", { count: unread }) : t("dashboard.actions.chatSubDefault")}
           badge={unread}
         />
-        <ActionTile
-          to={isApp ? "/adquirir-aulas" : "/packages"}
-          icon={<ShoppingBag className="w-5 h-5" />}
-          label="Adquirir Aulas"
-          sub="Aulas práticas na praia"
-          onClick={
-            isIos
-              ? (e) => {
-                  e.preventDefault();
-                  void openWebWithCurrentAuth("/packages");
-                }
-              : undefined
-          }
-        />
+        {isIos ? (
+          <a
+            href={WEB_CHECKOUT_URL}
+            target="_blank"
+            rel="noopener noreferrer"
+            className="glass rounded-2xl p-4 text-left hover:bg-secondary/40 transition-colors active:scale-95 block relative"
+          >
+            <div className="w-10 h-10 rounded-xl bg-primary/15 text-primary flex items-center justify-center mb-3 relative">
+              <ShoppingBag className="w-5 h-5" />
+            </div>
+            <div className="font-semibold text-sm flex items-center gap-1.5">Adquirir Aulas</div>
+            <div className="text-xs text-muted-foreground mt-0.5">Aulas práticas na praia</div>
+          </a>
+        ) : (
+          <ActionTile
+            to={isApp ? "/adquirir-aulas" : "/packages"}
+            icon={<ShoppingBag className="w-5 h-5" />}
+            label="Adquirir Aulas"
+            sub="Aulas práticas na praia"
+          />
+        )}
         <ActionTile
           to="/teachers"
           icon={<Star className="w-5 h-5" />}

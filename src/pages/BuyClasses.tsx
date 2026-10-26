@@ -14,9 +14,10 @@ import {
   CheckCircle2,
   Hourglass,
   XCircle,
+  Copy,
 } from "lucide-react";
 import { useTranslation } from "@/i18n/LanguageContext";
-import { openWebWithCurrentAuth, isIosApp } from "@/lib/platform";
+import { openExternalUrl, isIosApp, WEB_CHECKOUT_URL } from "@/lib/platform";
 import { toast } from "sonner";
 
 type Pay = {
@@ -38,6 +39,7 @@ export default function BuyClasses() {
   const [payments, setPayments] = useState<Pay[]>([]);
   const [loading, setLoading] = useState(true);
   const [redirecting, setRedirecting] = useState(false);
+  const [copied, setCopied] = useState(false);
   const isIos = isIosApp();
 
   const totalCredits =
@@ -53,8 +55,19 @@ export default function BuyClasses() {
   const handleOpenWebCheckout = () => {
     setRedirecting(true);
     toast.message("Abrindo o site oficial...");
-    void openWebWithCurrentAuth("/packages");
-    setTimeout(() => setRedirecting(false), 2000);
+    openExternalUrl(WEB_CHECKOUT_URL);
+    setTimeout(() => setRedirecting(false), 1500);
+  };
+
+  const handleCopyCheckoutLink = async () => {
+    try {
+      await navigator.clipboard.writeText(WEB_CHECKOUT_URL);
+      setCopied(true);
+      toast.success("Link copiado. Cole na barra do Safari.");
+      setTimeout(() => setCopied(false), 2500);
+    } catch {
+      toast.message(WEB_CHECKOUT_URL);
+    }
   };
 
   useEffect(() => {
@@ -162,26 +175,43 @@ export default function BuyClasses() {
             </p>
 
             <Button
-              onClick={handleOpenWebCheckout}
+              asChild
               disabled={redirecting}
               className="w-full h-12 rounded-2xl bg-gradient-to-r from-primary via-accent to-primary text-primary-foreground font-bold text-xs shadow-lg shadow-primary/30 hover:shadow-primary/50 flex items-center justify-center gap-2 active:scale-95 transition-all"
             >
-              {redirecting ? (
-                <>
-                  <Loader2 className="w-4 h-4 animate-spin" />
-                  {isIos ? "Abrindo no Safari..." : "Abrindo mandalario.app..."}
-                </>
-              ) : (
-                <>
-                  <ExternalLink className="w-4 h-4" />
-                  {isIos ? "Comprar aulas no Safari (site oficial)" : "Acessar aulas no site oficial"}
-                </>
-              )}
+              <a
+                href={WEB_CHECKOUT_URL}
+                target="_blank"
+                rel="noopener noreferrer"
+                onClick={handleOpenWebCheckout}
+              >
+                {redirecting ? (
+                  <>
+                    <Loader2 className="w-4 h-4 animate-spin" />
+                    {isIos ? "Abrindo no Safari..." : "Abrindo mandalario.app..."}
+                  </>
+                ) : (
+                  <>
+                    <ExternalLink className="w-4 h-4" />
+                    {isIos ? "Comprar aulas no Safari (site oficial)" : "Acessar aulas no site oficial"}
+                  </>
+                )}
+              </a>
             </Button>
             {isIos && (
-              <p className="text-[10px] text-center text-muted-foreground/70">
-                A página de compra será aberta com segurança no navegador Safari.
-              </p>
+              <>
+                <p className="text-[10px] text-center text-muted-foreground/70">
+                  Se o Safari não abrir sozinho, copie o link e cole no navegador.
+                </p>
+                <button
+                  type="button"
+                  onClick={handleCopyCheckoutLink}
+                  className="w-full text-[11px] font-semibold text-primary/90 hover:text-primary flex items-center justify-center gap-1.5 py-1"
+                >
+                  <Copy className="w-3.5 h-3.5" />
+                  {copied ? "Link copiado" : "Copiar link de compra"}
+                </button>
+              </>
             )}
           </div>
 

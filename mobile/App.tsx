@@ -2,6 +2,7 @@ import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import {
   ActivityIndicator,
   BackHandler,
+  InteractionManager,
   Linking,
   Platform,
   StyleSheet,
@@ -47,6 +48,20 @@ const INJECTED_APP_SETUP = `
       sessionStorage.setItem("app_platform", ${JSON.stringify(Platform.OS)});
       localStorage.setItem("is_mandalario_app", "true");
       localStorage.setItem("app_platform", ${JSON.stringify(Platform.OS)});
+    } catch(e) {}
+    try {
+      if (!window.webkit) { window.webkit = {}; }
+      if (!window.webkit.messageHandlers) { window.webkit.messageHandlers = {}; }
+      if (!window.webkit.messageHandlers.abrirExterno) {
+        window.webkit.messageHandlers.abrirExterno = {
+          postMessage: function(msg) {
+            var url = typeof msg === "string" ? msg : (msg && msg.url ? msg.url : String(msg));
+            if (window.ReactNativeWebView && window.ReactNativeWebView.postMessage) {
+              window.ReactNativeWebView.postMessage(JSON.stringify({ type: "OPEN_EXTERNAL_URL", url: url }));
+            }
+          }
+        };
+      }
     } catch(e) {}
   })();
   true;
@@ -111,23 +126,7 @@ function isAppAuthCallback(rawUrl: string, appUrl: string): boolean {
   }
 }
 
-/** Same-origin https URLs must use Safari View Controller — Linking.openURL stays inside the app. */
-function toPublicWebUrl(rawUrl: string): string {
-  try {
-    const url = new URL(rawUrl);
-    if (url.hostname === "www.mandalario.app") {
-      url.hostname = "mandalario.app";
-    }
-    url.searchParams.delete("app");
-    url.searchParams.delete("ios");
-    url.searchParams.delete("webview");
-    url.searchParams.delete("is_app");
-    url.searchParams.delete("mock_platform");
-    return url.toString();
-  } catch {
-    return rawUrl;
-  }
-}
+const PUBLIC_CHECKOUT_URL = "https://mandalario.app/packages?checkout=1";
 
 function isExternalCheckoutUrl(rawUrl: string): boolean {
   try {
@@ -141,30 +140,32 @@ function isExternalCheckoutUrl(rawUrl: string): boolean {
   }
 }
 
-let externalBrowserLock = false;
+let lastBrowserOpenAt = 0;
 
-async function openExternalBrowser(rawUrl: string): Promise<void> {
-  if (!rawUrl || externalBrowserLock) return;
-  externalBrowserLock = true;
-  const url = toPublicWebUrl(rawUrl);
-  try {
-    await WebBrowser.openBrowserAsync(url, {
-      enableBarCollapsing: true,
-      dismissButtonStyle: "close",
-      controlsColor: APP_LOADING_ACCENT,
-    });
-  } catch (err) {
-    console.error("Erro ao abrir Safari View Controller:", err);
-    try {
-      await Linking.openURL(url);
-    } catch (linkErr) {
-      console.error("Erro ao abrir URL externa:", linkErr);
-    }
-  } finally {
+/**
+ * Abre o Safari *depois* do callback da WebView.
+ * Chamar openBrowserAsync dentro de onShouldStartLoadWithRequest no iOS não apresenta o Safari
+ * e deixa a WebView em loading infinito.
+ */
+function queueExternalBrowser(rawUrl: string = PUBLIC_CHECKOUT_URL): void {
+  const now = Date.now();
+  if (now - lastBrowserOpenAt < 1500) return;
+  lastBrowserOpenAt = now;
+
+  const url = isExternalCheckoutUrl(rawUrl) ? PUBLIC_CHECKOUT_URL : rawUrl;
+
+  InteractionManager.runAfterInteractions(() => {
     setTimeout(() => {
-      externalBrowserLock = false;
-    }, 800);
-  }
+      WebBrowser.openBrowserAsync(url, {
+        dismissButtonStyle: "close",
+        controlsColor: APP_LOADING_ACCENT,
+        enableBarCollapsing: true,
+        presentationStyle: WebBrowser.WebBrowserPresentationStyle.AUTOMATIC,
+      }).catch(() => {
+        Linking.openURL(url).catch(() => undefined);
+      });
+    }, 80);
+  });
 }
 
 export default function App() {
@@ -251,14 +252,7 @@ export default function App() {
 
   useEffect(() => {
     const handleDeepLink = (event: { url: string }) => {
-      // Evita interceptar URLs de compra de pacotes para não prendê-las na WebView do app
-      if (
-        event.url.includes("next=%2Fpackages") ||
-        event.url.includes("next=/packages") ||
-        event.url.includes("/packages") ||
-        event.url.includes("/adquirir-aulas") ||
-        event.url.includes("www.mandalario.app")
-      ) {
+      if (isExternalCheckoutUrl(event.url) || event.url.includes("/adquirir-aulas")) {
         return;
       }
       if (isAllowedUrl(event.url, appUrl, allowedOrigins) || isAppAuthCallback(event.url, appUrl)) {
@@ -307,7 +301,7 @@ export default function App() {
         ref={webViewRef}
         style={styles.webView}
         source={{ uri: appUrl }}
-        originWhitelist={allowedOrigins}
+        originWhitelist={["https://*", "http://*"]}
         applicationNameForUserAgent="MandalarioApp/1.0"
         injectedJavaScriptBeforeContentLoaded={INJECTED_APP_SETUP}
         injectedJavaScript={INJECTED_APP_SETUP}
@@ -323,10 +317,19 @@ export default function App() {
         mediaCapturePermissionGrantType="grant"
         allowsInlineMediaPlayback={true}
         mixedContentMode="never"
-        setSupportMultipleWindows={false}
+        setSupportMultipleWindows={true}
         allowsBackForwardNavigationGestures={false}
         mediaPlaybackRequiresUserAction={false}
         allowsLinkPreview={false}
+        onOpenWindow={(event) => {
+          const targetUrl = event.nativeEvent.targetUrl;
+          webViewRef.current?.stopLoading();
+          if (targetUrl && isExternalCheckoutUrl(targetUrl)) {
+            queueExternalBrowser(PUBLIC_CHECKOUT_URL);
+            return;
+          }
+          if (targetUrl) queueExternalBrowser(targetUrl);
+        }}
         onLoadProgress={({ nativeEvent }) => {
           if (nativeEvent.progress >= 0.9) finishInitialLoad();
         }}
@@ -337,7 +340,8 @@ export default function App() {
           try {
             const payload = JSON.parse(event.nativeEvent.data);
             if (payload?.type === "OPEN_EXTERNAL_URL" && typeof payload.url === "string") {
-              void openExternalBrowser(payload.url);
+              webViewRef.current?.stopLoading();
+              queueExternalBrowser(payload.url);
             } else if (payload?.type === "OAUTH_URL" && typeof payload.url === "string") {
               const redirectTo =
                 typeof payload.redirectTo === "string"
@@ -353,22 +357,15 @@ export default function App() {
         }}
         onShouldStartLoadWithRequest={(request) => {
           if (!request.url) return false;
-          // Intercepta qualquer tentativa de carregar pacotes ou link externo de checkout / www.mandalario.app
-          // dentro da WebView e abre diretamente no Safari externo (Safari View Controller)
-          if (
-            isExternalCheckoutUrl(request.url) ||
-            request.url.includes("/packages") ||
-            request.url.includes("next=%2Fpackages") ||
-            request.url.includes("next=/packages") ||
-            request.url.includes("www.mandalario.app")
-          ) {
-            void openExternalBrowser(request.url);
+          if (isExternalCheckoutUrl(request.url)) {
+            webViewRef.current?.stopLoading();
+            queueExternalBrowser(PUBLIC_CHECKOUT_URL);
             return false;
           }
           if (isAllowedUrl(request.url, appUrl, allowedOrigins)) return true;
           if (isAppAuthCallback(request.url, appUrl)) return true;
           if (isOAuthProviderUrl(request.url)) return true;
-          void openExternalBrowser(request.url);
+          queueExternalBrowser(request.url);
           return false;
         }}
       />
