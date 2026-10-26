@@ -196,7 +196,7 @@ export default function BuyClasses() {
                 ) : (
                   <>
                     <ExternalLink className="w-4 h-4" />
-                    {isIos ? "Comprar aulas no Safari (site oficial)" : "Acessar aulas no site oficial"}
+                    {isIos ? "Acessar site da escola (Safari)" : "Acessar aulas no site oficial"}
                   </>
                 )}
               </a>
@@ -204,7 +204,7 @@ export default function BuyClasses() {
             {isIos && (
               <>
                 <p className="text-[10px] text-center text-muted-foreground/70">
-                  Se o Safari não abrir sozinho, copie o link e cole no navegador.
+                  Se o Safari não abrir automaticamente, copie o link e acesse pelo navegador.
                 </p>
                 <button
                   type="button"
