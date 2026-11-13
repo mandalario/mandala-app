@@ -40,6 +40,11 @@
     "production": {
       "android": {
         "track": "internal"
+      },
+      "ios": {
+        "appleId": "ojoaopaulogaldino@gmail.com",
+        "ascAppId": "6802065697",
+        "appleTeamId": "HUK8Y28UNP"
       }
     }
   }
