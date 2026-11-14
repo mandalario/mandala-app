@@ -10,7 +10,7 @@ Use este guia passo a passo antes de enviar o seu app iOS para a **App Store**.
 | Nome na loja | Mandalario |
 | WebView / site | `https://mandalario.app` |
 | Política de privacidade | `https://mandalario.app/privacy` |
-| EAS project ID | `e0d3b661-b855-4ca1-98d5-e65af5907953` |
+| EAS project ID | `eca6d1db-eda4-40ab-bb59-80af8f3fc564` |
 | Push notifications | APNs (configurado via EAS) |
 
 ---
