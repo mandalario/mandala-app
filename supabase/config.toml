@@ -17,3 +17,7 @@ verify_jwt = true
 
 [functions.guest-chat-start]
 verify_jwt = false
+
+# Creation validates the bearer token in the handler; redemption is public + one-time ticket.
+[functions.checkout-handoff]
+verify_jwt = false

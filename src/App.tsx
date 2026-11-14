@@ -18,6 +18,7 @@ import { Loader2 } from "lucide-react";
 import Index from "./pages/Index.tsx";
 import Auth from "./pages/Auth.tsx";
 import AuthCallback from "./pages/AuthCallback.tsx";
+import CheckoutAccess from "./pages/CheckoutAccess.tsx";
 import Onboarding from "./pages/Onboarding.tsx";
 import PendingApproval from "./pages/PendingApproval.tsx";
 import ForceSetPassword from "./pages/ForceSetPassword.tsx";
@@ -135,6 +136,10 @@ const ConditionalBottomNav = () => {
 
 function AppRoutes() {
   const location = useLocation();
+  const { loading, redirectTo } = useAccessRedirect();
+
+  // Redeem before account/profile guards: Safari may have another user's session.
+  if (location.pathname === "/auth/checkout") return <CheckoutAccess />;
 
   // Intercepta qualquer entrada com tokens de sessão ou OAuth code para autenticar na hora (exceto /packages que trata internamente sem tela de loading)
   if (
@@ -146,8 +151,6 @@ function AppRoutes() {
   ) {
     return <Navigate to={`/auth/callback${location.search}${location.hash}`} replace />;
   }
-
-  const { loading, redirectTo } = useAccessRedirect();
 
   if (loading) return <PageLoader />;
   if (redirectTo && redirectTo !== location.pathname) {

@@ -19,6 +19,9 @@ import {
 import { useTranslation } from "@/i18n/LanguageContext";
 import { openExternalUrl, isIosApp, isMandalarioApp, WEB_CHECKOUT_URL } from "@/lib/platform";
 import { toast } from "sonner";
+import { IosCheckoutLink } from "@/components/IosCheckoutLink";
+import { isIosNativeCheckout } from "@/lib/iosCheckout";
+import { useIsApp } from "@/hooks/useIsApp";
 
 type Pay = {
   id: string;
@@ -41,6 +44,8 @@ export default function BuyClasses() {
   const [redirecting, setRedirecting] = useState(false);
   const [copied, setCopied] = useState(false);
   const isIos = isIosApp();
+  const isAppRuntime = useIsApp();
+  const showIosCheckout = isAppRuntime && isIosNativeCheckout();
 
   const totalCredits =
     (profile?.credits_grupo ?? 0) +
@@ -177,6 +182,7 @@ export default function BuyClasses() {
               As aulas práticas de surf acontecem presencialmente na Praia do Arpoador, Rio de Janeiro. Para consultar a programação completa, novidades e pacotes de aulas, acesse a plataforma oficial da escola.
             </p>
 
+            {showIosCheckout ? <IosCheckoutLink /> : <>
             <Button
               asChild
               disabled={redirecting}
@@ -216,6 +222,7 @@ export default function BuyClasses() {
                 </button>
               </>
             )}
+            </>}
           </div>
 
           {/* Histórico de Aulas e Atividades */}
