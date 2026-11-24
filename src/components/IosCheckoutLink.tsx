@@ -3,6 +3,7 @@ import { Copy, ExternalLink, Loader2 } from "lucide-react";
 import { toast } from "sonner";
 import { Button } from "@/components/ui/button";
 import { createCheckoutLink } from "@/lib/checkoutHandoff";
+import { openExternalUrl } from "@/lib/platform";
 
 export function IosCheckoutLink() {
   const [preparing, setPreparing] = useState(false);
@@ -60,7 +61,15 @@ export function IosCheckoutLink() {
 
   return <>
     <Button asChild className="w-full h-12 rounded-2xl bg-gradient-to-r from-primary via-accent to-primary text-primary-foreground font-bold text-xs shadow-lg shadow-primary/30 flex items-center justify-center gap-2">
-      <a href={link.url} target="_blank" rel="noopener noreferrer">
+      <a
+        href={link.url}
+        target="_blank"
+        rel="noopener noreferrer"
+        onClick={(event) => {
+          event.preventDefault();
+          openExternalUrl(link.url);
+        }}
+      >
         <ExternalLink className="w-4 h-4" />
         Acessar site da escola (Safari)
       </a>

@@ -258,8 +258,7 @@ export default function Auth() {
             </Button>
           </form>
 
-          {/* Botão de login com Google desativado temporariamente para evitar pendências/rejeições nas lojas e builds */}
-          {false && !isApp && (
+          {isApp && (
             <>
               <div className="relative my-6">
                 <div className="absolute inset-0 flex items-center">

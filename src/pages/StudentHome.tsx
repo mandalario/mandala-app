@@ -10,7 +10,7 @@ import { HomePartners } from "@/components/HomePartners";
 import { DailyQuote } from "@/components/DailyQuote";
 import { SeaConditionCard } from "@/components/SeaConditionCard";
 import { LessonHistory } from "@/components/LessonHistory";
-import { Waves, Calendar, CreditCard, MessageCircle, Video, User as UserIcon, Star, ShoppingBag } from "lucide-react";
+import { Waves, Calendar, MessageCircle, Video, User as UserIcon, Star, ShoppingBag } from "lucide-react";
 import logoMandala from "@/assets/logo-mandala.png";
 import { useTranslation } from "@/i18n/LanguageContext";
 import { intlLocaleFor } from "@/i18n/dateLocale";
@@ -18,7 +18,6 @@ import { LanguageSwitcher } from "@/components/LanguageSwitcher";
 import { InstagramLink } from "@/components/InstagramLink";
 import { isConfirmedSlot } from "@/lib/slotNotes";
 import { useIsApp } from "@/hooks/useIsApp";
-import { isIosApp, openExternalUrl, WEB_CHECKOUT_URL } from "@/lib/platform";
 
 type NextBooking = { id: string; status: string; class_slots: { date: string; start_time: string; location: string | null; notes: string | null } | null };
 
@@ -26,7 +25,6 @@ export default function StudentHome() {
   const { user, profile } = useAuth();
   const { t, language } = useTranslation();
   const isApp = useIsApp();
-  const isIos = isIosApp();
   const intlLocale = intlLocaleFor(language);
   const [next, setNext] = useState<NextBooking[]>([]);
   const [unread, setUnread] = useState(0);
@@ -43,7 +41,7 @@ export default function StudentHome() {
         .gte("class_slots.date", today)
         .order("created_at", { ascending: false })
         .limit(3);
-      setNext((nb ?? []).filter((x: any) => x.class_slots) as NextBooking[]);
+      setNext((nb ?? []).filter((x) => x.class_slots) as NextBooking[]);
     })();
   }, [user]);
 
@@ -138,31 +136,12 @@ export default function StudentHome() {
           sub={unread > 0 ? t(unread === 1 ? "dashboard.actions.chatSubUnreadOne" : "dashboard.actions.chatSubUnreadMany", { count: unread }) : t("dashboard.actions.chatSubDefault")}
           badge={unread}
         />
-        {isIos ? (
-          <a
-            href={WEB_CHECKOUT_URL}
-            target="_blank"
-            rel="noopener noreferrer"
-            onClick={(event) => {
-              event.preventDefault();
-              openExternalUrl(WEB_CHECKOUT_URL);
-            }}
-            className="glass rounded-2xl p-4 text-left hover:bg-secondary/40 transition-colors active:scale-95 block relative"
-          >
-            <div className="w-10 h-10 rounded-xl bg-primary/15 text-primary flex items-center justify-center mb-3 relative">
-              <ShoppingBag className="w-5 h-5" />
-            </div>
-            <div className="font-semibold text-sm flex items-center gap-1.5">Adquirir Aulas</div>
-            <div className="text-xs text-muted-foreground mt-0.5">Aulas práticas na praia</div>
-          </a>
-        ) : (
-          <ActionTile
-            to={isApp ? "/adquirir-aulas" : "/packages"}
-            icon={<ShoppingBag className="w-5 h-5" />}
-            label="Adquirir Aulas"
-            sub="Aulas práticas na praia"
-          />
-        )}
+        <ActionTile
+          to={isApp ? "/adquirir-aulas" : "/packages"}
+          icon={<ShoppingBag className="w-5 h-5" />}
+          label="Adquirir Aulas"
+          sub="Aulas práticas na praia"
+        />
         <ActionTile
           to="/teachers"
           icon={<Star className="w-5 h-5" />}
