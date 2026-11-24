@@ -1,8 +1,8 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import {
   ActivityIndicator,
+  Alert,
   BackHandler,
-  InteractionManager,
   Linking,
   Platform,
   StyleSheet,
@@ -23,6 +23,8 @@ Notifications.setNotificationHandler({
     shouldShowAlert: true,
     shouldPlaySound: true,
     shouldSetBadge: false,
+    shouldShowBanner: true,
+    shouldShowList: true,
   }),
 });
 */
@@ -153,19 +155,33 @@ function queueExternalBrowser(rawUrl: string = PUBLIC_CHECKOUT_URL): void {
   lastBrowserOpenAt = now;
 
   const url = isExternalCheckoutUrl(rawUrl) ? PUBLIC_CHECKOUT_URL : rawUrl;
+  const openCheckoutInIosBrowser = Platform.OS === "ios" &&
+    (url === PUBLIC_CHECKOUT_URL || /^https:\/\/(?:www\.)?mandalario\.app\/auth\/checkout(?:[?#]|$)/i.test(url));
 
-  InteractionManager.runAfterInteractions(() => {
-    setTimeout(() => {
-      WebBrowser.openBrowserAsync(url, {
+  setTimeout(async () => {
+    try {
+      if (openCheckoutInIosBrowser) {
+        await Linking.openURL(url);
+        return;
+      }
+      await WebBrowser.openBrowserAsync(url, {
         dismissButtonStyle: "close",
         controlsColor: APP_LOADING_ACCENT,
         enableBarCollapsing: true,
         presentationStyle: WebBrowser.WebBrowserPresentationStyle.AUTOMATIC,
-      }).catch(() => {
-        Linking.openURL(url).catch(() => undefined);
       });
-    }, 80);
-  });
+    } catch {
+      try {
+        if (openCheckoutInIosBrowser) {
+          await WebBrowser.openBrowserAsync(url);
+        } else {
+          await Linking.openURL(url);
+        }
+      } catch {
+        Alert.alert("Não foi possível abrir o link", "Tente novamente.");
+      }
+    }
+  }, 0);
 }
 
 export default function App() {
