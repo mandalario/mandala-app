@@ -480,6 +480,10 @@
     "uploadError": "Upload error: ",
     "submitSuccess": "Receipt submitted! Awaiting approval.",
     "buyNow": "Buy now",
+    "catalogLoadError": "Unable to load classes. Please try again.",
+    "retryCatalog": "Try again",
+    "noPackages": "No classes are available for purchase right now.",
+    "signInToBuy": "Sign in to buy",
     "catalog": {
       "Aula Avulsa": {
         "name": "Single Class",

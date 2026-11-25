@@ -67,6 +67,8 @@ function useAccessRedirect(): { loading: boolean; redirectTo: string | null } {
   const location = useLocation();
   const path = location.pathname;
   const isPublicPath = PUBLIC_PATHS.includes(path);
+  const next = new URLSearchParams(location.search).get("next");
+  const checkoutReturnPath = path === "/auth" && next?.split(/[?#]/)[0] === "/packages" ? next : null;
 
   if (loading) return { loading: true, redirectTo: null };
 
@@ -81,7 +83,7 @@ function useAccessRedirect(): { loading: boolean; redirectTo: string | null } {
   }
 
   if (isAdmin) {
-    if (AUTH_ONLY_PATHS.includes(path)) return { loading: false, redirectTo: "/admin" };
+    if (AUTH_ONLY_PATHS.includes(path)) return { loading: false, redirectTo: checkoutReturnPath ?? "/admin" };
     return { loading: false, redirectTo: null };
   }
 
@@ -114,7 +116,7 @@ function useAccessRedirect(): { loading: boolean; redirectTo: string | null } {
   }
 
   if (AUTH_ONLY_PATHS.includes(path)) {
-    return { loading: false, redirectTo: "/" };
+    return { loading: false, redirectTo: checkoutReturnPath ?? "/" };
   }
 
   return { loading: false, redirectTo: null };

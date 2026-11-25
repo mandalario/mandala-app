@@ -30,14 +30,20 @@ no Safari. Não há garantia de abertura automática em binários antigos.
    `SUPABASE_URL`, `SUPABASE_SERVICE_ROLE_KEY` e `SUPABASE_ANON_KEY`.
 2. Publicar o frontend compartilhado para disponibilizar o fluxo da WebView e a
    rota técnica `/auth/checkout`, acessada pelo link pessoal no Safari. As páginas
-   normais do site mantêm a interface anterior. Não há migration nem alteração
-   de build mobile.
+   normais do site mantêm a interface anterior.
+   Aplicar também a migration `20261125131558_allow_public_active_class_packages.sql`
+   para que o catálogo fique visível no Safari sem uma sessão autenticada.
 3. No iPhone com o app da loja, gerar e copiar um link, abrir no Safari sem login
    e verificar a identidade e os créditos. Repetir com outra conta já aberta
    no Safari. Confirmar também rejeição de link usado e de link expirado.
-4. Testar a abertura automática separadamente; se a build antiga não abrir o
-   navegador, manter o caminho de copiar e colar. A correção desse comportamento
-   nativo exige nova build se o binário não tiver suporte.
+4. Publicar o frontend e testar a abertura automática na build atual da loja.
+   Sem bridge disponível, o botão preserva a navegação normal do link.
+   Se o binário não interceptar o checkout, distribuir uma nova build com a
+   correção em `mobile/checkoutLinks.ts`: `/auth/checkout` sai para o navegador
+   antes da lista de origens permitidas na WebView, preservando o ticket e o
+   pacote selecionado. `/auth/callback` permanece no login do aplicativo.
+   Publicar só o site não altera esse tratamento nativo já instalado.
+   Em builds antigas sem suporte, copiar e colar continua disponível.
 
 Os testes locais cobrem autenticação de criação, isolamento de conta, adulteração,
 expiração, tratamento de reuso e troca da sessão do navegador. O consumo atômico
@@ -45,3 +51,17 @@ real do OTP e o comportamento da build da loja precisam de validação integrada
 
 Referências: [generateLink](https://supabase.com/docs/reference/javascript/auth-admin-generatelink)
 e [verifyOtp](https://supabase.com/docs/reference/javascript/auth-verifyotp).
+
+## Compra pelo link público
+
+O link `/packages?checkout=1` também funciona sem o ticket pessoal. Visitantes
+podem consultar os pacotes ativos; a policy de leitura pública não permite
+alterar pacotes nem acessar pagamentos. Sem login, o botão de compra leva a
+`/auth?next=...` e preserva o pacote em `package`. Após entrar, o navegador
+retorna ao Pix desse pacote. Com uma sessão válida, a compra segue diretamente.
+
+O catálogo carrega independentemente do histórico. Falhas de consulta exibem
+uma opção de tentar novamente, e um catálogo vazio tem uma mensagem própria.
+Validar em produção após aplicar a migration: abrir o link no Safari sem login,
+conferir os pacotes ativos, selecionar uma aula, entrar e conferir o pacote no
+pagamento. Confirmar que visitantes não leem pagamentos nem pacotes inativos.

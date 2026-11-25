@@ -38,7 +38,26 @@ describe("iOS checkout button", () => {
     fireEvent.click(screen.getByRole("button", { name: "Gerar acesso ao site de compras" }));
 
     expect(await screen.findByRole("button", { name: "Gerar acesso ao site de compras" })).toBeEnabled();
-    expect(screen.queryByRole("link")).not.toBeInTheDocument();
+    expect(screen.queryByRole("link", { name: "Acessar site da escola (Safari)" })).not.toBeInTheDocument();
     expect(window.ReactNativeWebView?.postMessage).not.toHaveBeenCalled();
+  });
+
+  it.each(["missing", "throwing"])("allows link navigation with a %s bridge", async (bridge) => {
+    const url = "https://www.mandalario.app/auth/checkout#ticket=personal-ticket";
+    createLink.mockResolvedValue({ url, expiresAt: Date.now() + 300_000 });
+    if (bridge === "missing") delete window.ReactNativeWebView;
+    else window.ReactNativeWebView = { postMessage: () => { throw new Error("Bridge unavailable"); } };
+    render(<IosCheckoutLink />);
+    fireEvent.click(screen.getByRole("button", { name: "Gerar acesso ao site de compras" }));
+    const link = await screen.findByRole("link", { name: "Acessar site da escola (Safari)" });
+    let preventedByButton: boolean | undefined;
+    document.addEventListener("click", (event) => {
+      preventedByButton = event.defaultPrevented;
+      // Observe React's handling, then prevent jsdom from navigating.
+      event.preventDefault();
+    }, { once: true });
+    fireEvent.click(link);
+    expect(preventedByButton).toBe(false);
+    expect(link).toHaveAttribute("href", url);
   });
 });

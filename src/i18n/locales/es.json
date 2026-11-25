@@ -480,6 +480,10 @@
     "uploadError": "Error al subir: ",
     "submitSuccess": "¡Comprobante enviado! Espera aprobación.",
     "buyNow": "Comprar ahora",
+    "catalogLoadError": "No se pudieron cargar las clases. Inténtalo de nuevo.",
+    "retryCatalog": "Intentar de nuevo",
+    "noPackages": "No hay clases disponibles para comprar en este momento.",
+    "signInToBuy": "Entrar para comprar",
     "catalog": {
       "Aula Avulsa": {
         "name": "Clase Suelta",

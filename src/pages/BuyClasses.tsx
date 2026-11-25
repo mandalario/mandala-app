@@ -17,9 +17,10 @@ import {
   Copy,
 } from "lucide-react";
 import { useTranslation } from "@/i18n/LanguageContext";
-import { openExternalUrl, isIosApp, isMandalarioApp, WEB_CHECKOUT_URL } from "@/lib/platform";
+import { requestExternalUrl, isIosApp, WEB_CHECKOUT_URL } from "@/lib/platform";
 import { toast } from "sonner";
 import { IosCheckoutLink } from "@/components/IosCheckoutLink";
+import { WhatsAppPurchaseLink } from "@/components/WhatsAppPurchaseLink";
 import { isIosNativeCheckout } from "@/lib/iosCheckout";
 import { useIsApp } from "@/hooks/useIsApp";
 
@@ -58,12 +59,11 @@ export default function BuyClasses() {
       : profile?.credits ?? 0;
 
   const handleOpenWebCheckout = (event?: { preventDefault: () => void }) => {
-    if (isMandalarioApp() || isIosApp()) {
+    if (requestExternalUrl(WEB_CHECKOUT_URL)) {
       event?.preventDefault();
     }
     setRedirecting(true);
     toast.message("Abrindo o site oficial...");
-    openExternalUrl(WEB_CHECKOUT_URL);
     setTimeout(() => setRedirecting(false), 1500);
   };
 
@@ -222,6 +222,7 @@ export default function BuyClasses() {
                 </button>
               </>
             )}
+            <WhatsAppPurchaseLink />
             </>}
           </div>
 

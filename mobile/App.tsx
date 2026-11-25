@@ -1,8 +1,8 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import {
   ActivityIndicator,
+  Alert,
   BackHandler,
-  InteractionManager,
   Linking,
   Platform,
   StyleSheet,
@@ -16,6 +16,7 @@ import * as WebBrowser from "expo-web-browser";
 import * as Device from "expo-device";
 import Constants from "expo-constants";
 import { WebView, WebViewNavigation } from "react-native-webview";
+import { getExternalCheckoutUrl, PUBLIC_CHECKOUT_URL } from "./checkoutLinks";
 
 /*
 Notifications.setNotificationHandler({
@@ -128,20 +129,6 @@ function isAppAuthCallback(rawUrl: string, appUrl: string): boolean {
   }
 }
 
-const PUBLIC_CHECKOUT_URL = "https://mandalario.app/packages?checkout=1";
-
-function isExternalCheckoutUrl(rawUrl: string): boolean {
-  try {
-    const url = new URL(rawUrl);
-    const path = url.pathname.replace(/\/+$/, "") || "/";
-    if (path === "/packages" || path.startsWith("/packages/")) return true;
-    const next = url.searchParams.get("next") ?? "";
-    return next === "/packages" || next === "%2Fpackages";
-  } catch {
-    return false;
-  }
-}
-
 let lastBrowserOpenAt = 0;
 
 /**
@@ -154,20 +141,34 @@ function queueExternalBrowser(rawUrl: string = PUBLIC_CHECKOUT_URL): void {
   if (now - lastBrowserOpenAt < 1500) return;
   lastBrowserOpenAt = now;
 
-  const url = isExternalCheckoutUrl(rawUrl) ? PUBLIC_CHECKOUT_URL : rawUrl;
+  const checkoutUrl = getExternalCheckoutUrl(rawUrl);
+  const url = checkoutUrl ?? rawUrl;
+  const openCheckoutInIosBrowser = Platform.OS === "ios" && checkoutUrl !== null;
 
-  InteractionManager.runAfterInteractions(() => {
-    setTimeout(() => {
-      WebBrowser.openBrowserAsync(url, {
+  setTimeout(async () => {
+    try {
+      if (openCheckoutInIosBrowser) {
+        await Linking.openURL(url);
+        return;
+      }
+      await WebBrowser.openBrowserAsync(url, {
         dismissButtonStyle: "close",
         controlsColor: APP_LOADING_ACCENT,
         enableBarCollapsing: true,
         presentationStyle: WebBrowser.WebBrowserPresentationStyle.AUTOMATIC,
-      }).catch(() => {
-        Linking.openURL(url).catch(() => undefined);
       });
-    }, 80);
-  });
+    } catch {
+      try {
+        if (openCheckoutInIosBrowser) {
+          await WebBrowser.openBrowserAsync(url);
+        } else {
+          await Linking.openURL(url);
+        }
+      } catch {
+        Alert.alert("Não foi possível abrir o link", "Tente novamente.");
+      }
+    }
+  }, 0);
 }
 
 export default function App() {
@@ -254,7 +255,7 @@ export default function App() {
 
   useEffect(() => {
     const handleDeepLink = (event: { url: string }) => {
-      if (isExternalCheckoutUrl(event.url) || event.url.includes("/adquirir-aulas")) {
+      if (getExternalCheckoutUrl(event.url) || event.url.includes("/adquirir-aulas")) {
         return;
       }
       if (isAllowedUrl(event.url, appUrl, allowedOrigins) || isAppAuthCallback(event.url, appUrl)) {
@@ -326,10 +327,6 @@ export default function App() {
         onOpenWindow={(event) => {
           const targetUrl = event.nativeEvent.targetUrl;
           webViewRef.current?.stopLoading();
-          if (targetUrl && isExternalCheckoutUrl(targetUrl)) {
-            queueExternalBrowser(PUBLIC_CHECKOUT_URL);
-            return;
-          }
           if (targetUrl) queueExternalBrowser(targetUrl);
         }}
         onLoadProgress={({ nativeEvent }) => {
@@ -359,9 +356,9 @@ export default function App() {
         }}
         onShouldStartLoadWithRequest={(request) => {
           if (!request.url) return false;
-          if (isExternalCheckoutUrl(request.url)) {
+          if (getExternalCheckoutUrl(request.url)) {
             webViewRef.current?.stopLoading();
-            queueExternalBrowser(PUBLIC_CHECKOUT_URL);
+            queueExternalBrowser(request.url);
             return false;
           }
           if (isAllowedUrl(request.url, appUrl, allowedOrigins)) return true;

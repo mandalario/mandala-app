@@ -1,6 +1,6 @@
-import { useEffect, useRef, useState } from "react";
+import { useCallback, useEffect, useRef, useState } from "react";
 import QRCode from "qrcode";
-import { Link, Navigate } from "react-router-dom";
+import { Link, Navigate, useNavigate, useSearchParams } from "react-router-dom";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/hooks/useAuth";
 import { OceanBackground } from "@/components/OceanBackground";
@@ -28,13 +28,14 @@ type Pay = { id: string; credits: number; amount_cents: number; status: string; 
 const fmt = (c: number) => `R$ ${(c / 100).toFixed(2).replace(".", ",")}`;
 
 export default function Packages() {
-  const { profile, refreshProfile } = useAuth();
+  const { user, profile, refreshProfile } = useAuth();
+  const navigate = useNavigate();
+  const [searchParams, setSearchParams] = useSearchParams();
   const { t, language } = useTranslation();
   const billingEnabled = useBillingEnabled();
   const isAppRuntime = useIsApp();
   const isIos = isIosApp();
-  const checkoutParams = typeof window !== "undefined" ? new URLSearchParams(window.location.search) : null;
-  const isExternalCheckout = checkoutParams?.get("checkout") === "1";
+  const isExternalCheckout = searchParams.get("checkout") === "1";
   const isApp = (isAppRuntime || isIos) && !isExternalCheckout;
 
   useEffect(() => {
@@ -57,24 +58,66 @@ export default function Packages() {
   const locale = localeMap[language] ?? "en-US";
   const [pkgs, setPkgs] = useState<Pkg[]>([]);
   const [payments, setPayments] = useState<Pay[]>([]);
-  const [selected, setSelected] = useState<Pkg | null>(null);
   const [loading, setLoading] = useState(true);
+  const [catalogError, setCatalogError] = useState(false);
+  const selected = user ? pkgs.find((pkg) => pkg.id === searchParams.get("package")) : null;
+
+  const selectPackage = (pkg: Pkg) => {
+    const params = new URLSearchParams(searchParams);
+    params.set("checkout", "1");
+    params.set("package", pkg.id);
+    if (!user) {
+      navigate(`/auth?next=${encodeURIComponent(`/packages?${params}`)}`);
+      return;
+    }
+    setSearchParams(params);
+  };
+
+  const clearSelection = () => {
+    const params = new URLSearchParams(searchParams);
+    params.delete("package");
+    setSearchParams(params);
+  };
 
   const totalCredits = (profile?.credits_grupo ?? 0) + (profile?.credits_particular ?? 0) + (profile?.credits_aluguel ?? 0) > 0
     ? (profile?.credits_grupo ?? 0) + (profile?.credits_particular ?? 0) + (profile?.credits_aluguel ?? 0)
     : (profile?.credits ?? 0);
 
-  const load = async () => {
-    const [{ data: p }, { data: pay }] = await Promise.all([
-      supabase.from("credit_packages").select("*").eq("is_active", true).order("sort_order"),
-      supabase.from("payments").select("id, credits, amount_cents, status, created_at, admin_notes").order("created_at", { ascending: false }).limit(10),
-    ]);
-    setPkgs((p ?? []) as Pkg[]);
-    setPayments((pay ?? []) as Pay[]);
-    setLoading(false);
-  };
+  const load = useCallback(async () => {
+    setLoading(true);
+    setCatalogError(false);
+    try {
+      const { data, error } = await supabase.from("credit_packages")
+        .select("id, name, description, credits, price_cents, class_type")
+        .eq("is_active", true).order("sort_order");
+      if (error) throw error;
+      setPkgs((data ?? []) as Pkg[]);
+    } catch {
+      setCatalogError(true);
+    } finally {
+      setLoading(false);
+    }
+  }, []);
 
-  useEffect(() => { load(); }, []);
+  useEffect(() => { void load(); }, [load]);
+
+  useEffect(() => {
+    setPayments([]);
+    if (!user) return;
+    let cancelled = false;
+    const loadPayments = async () => {
+      try {
+        const { data } = await supabase.from("payments")
+          .select("id, credits, amount_cents, status, created_at, admin_notes")
+          .order("created_at", { ascending: false }).limit(10);
+        if (!cancelled) setPayments((data ?? []) as Pay[]);
+      } catch {
+        // Payment history must not prevent the catalog from loading.
+      }
+    };
+    void loadPayments();
+    return () => { cancelled = true; };
+  }, [user?.id]);
 
   if (isApp) {
     return <Navigate to="/adquirir-aulas" replace />;
@@ -106,6 +149,15 @@ export default function Packages() {
 
       {loading ? (
         <div className="px-5"><div className="glass rounded-2xl p-8 text-center"><Loader2 className="w-5 h-5 animate-spin mx-auto" /></div></div>
+      ) : catalogError ? (
+        <section className="px-5">
+          <div className="glass rounded-2xl p-6 text-center space-y-4" role="alert">
+            <p className="text-sm text-muted-foreground">{t("packages.catalogLoadError")}</p>
+            <Button onClick={() => void load()} className="rounded-xl">
+              <RefreshCw className="w-4 h-4 mr-2" />{t("packages.retryCatalog")}
+            </Button>
+          </div>
+        </section>
       ) : isApp ? (
         /* VISUALIZAÇÃO ADAPTADA PARA APP MÓVEL (COMPRA DE CRÉDITOS OCULTA PARA COMPLIANCE) */
         <div className="px-5 space-y-6">
@@ -186,11 +238,19 @@ export default function Packages() {
           )}
         </div>
       ) : selected ? (
-        <PixCheckout pkg={selected} onBack={() => { setSelected(null); load(); }} t={t} />
+        <PixCheckout key={selected.id} pkg={selected} onBack={() => { clearSelection(); void load(); }} t={t} />
       ) : (
         /* VISUALIZAÇÃO COMPLETA DE COMPRAS (Web & Android) */
         <>
           <section className="px-5">
+            {pkgs.length === 0 && (
+              <div className="glass rounded-2xl p-6 text-center space-y-4">
+                <p className="text-sm text-muted-foreground">{t("packages.noPackages")}</p>
+                {!user && <Button asChild className="rounded-xl">
+                  <Link to="/auth?next=%2Fpackages%3Fcheckout%3D1">{t("packages.signInToBuy")}</Link>
+                </Button>}
+              </div>
+            )}
             <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
               {pkgs.map((p) => {
                 const dn = packageCatalogText(p.name, "name", t, p.name);
@@ -220,7 +280,7 @@ export default function Packages() {
                         </div>
                       </div>
                       <Button
-                        onClick={() => setSelected(p)}
+                        onClick={() => selectPackage(p)}
                         className="w-full h-11 rounded-2xl bg-gradient-to-r from-primary to-accent text-primary-foreground font-bold text-xs shadow-lg shadow-primary/20 hover:shadow-primary/40"
                       >
                         {t("packages.buyNow")}
@@ -232,7 +292,7 @@ export default function Packages() {
             </div>
           </section>
 
-          <section className="px-5 mt-8">
+          {user && <section className="px-5 mt-8">
             <h2 className="text-sm uppercase tracking-widest text-primary/80 mb-3">{t("packages.history")}</h2>
             {payments.length === 0 ? (
               <div className="glass rounded-2xl p-6 text-center text-sm text-muted-foreground">{t("packages.noPayments")}</div>
@@ -250,7 +310,7 @@ export default function Packages() {
                 ))}
               </div>
             )}
-          </section>
+          </section>}
         </>
       )}
     </div>

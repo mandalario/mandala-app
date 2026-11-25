@@ -54,30 +54,33 @@ export const WEB_CHECKOUT_URL = "https://www.mandalario.app/packages?checkout=1"
  * No iOS isso é obrigatório: a WebView não consegue sair sozinha para o mesmo site.
  * Não navegar com location.href / window.open dentro do app — isso trava em loading.
  */
-export function openExternalUrl(url: string = WEB_CHECKOUT_URL): void {
-  if (typeof window === "undefined" || !url) return;
+export function requestExternalUrl(url: string): boolean {
+  if (typeof window === "undefined" || !url) return false;
 
   const payload = JSON.stringify({ type: "OPEN_EXTERNAL_URL", url });
 
   const bridge = (window as any).ReactNativeWebView;
   if (bridge && typeof bridge.postMessage === "function") {
-    bridge.postMessage(payload);
-    return;
+    try {
+      bridge.postMessage(payload);
+      return true;
+    } catch { /* Allow another handler or the link's default navigation. */ }
   }
 
   const webkitHandlers = (window as any).webkit?.messageHandlers;
-  if (webkitHandlers?.abrirExterno && typeof webkitHandlers.abrirExterno.postMessage === "function") {
-    webkitHandlers.abrirExterno.postMessage(url);
-    return;
+  for (const handler of [webkitHandlers?.abrirExterno, webkitHandlers?.openExternalUrl]) {
+    if (typeof handler?.postMessage !== "function") continue;
+    try {
+      handler.postMessage(url);
+      return true;
+    } catch { /* Try the next available handler. */ }
   }
-  if (webkitHandlers?.openExternalUrl && typeof webkitHandlers.openExternalUrl.postMessage === "function") {
-    webkitHandlers.openExternalUrl.postMessage(url);
-    return;
-  }
+  return false;
+}
 
-  if (isMandalarioApp()) {
-    return;
-  }
+export function openExternalUrl(url: string = WEB_CHECKOUT_URL): void {
+  if (typeof window === "undefined" || !url) return;
+  if (requestExternalUrl(url) || isMandalarioApp()) return;
 
   try {
     window.open(url, "_blank", "noopener,noreferrer");

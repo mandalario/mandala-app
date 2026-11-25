@@ -3,7 +3,8 @@ import { Copy, ExternalLink, Loader2 } from "lucide-react";
 import { toast } from "sonner";
 import { Button } from "@/components/ui/button";
 import { createCheckoutLink } from "@/lib/checkoutHandoff";
-import { openExternalUrl } from "@/lib/platform";
+import { requestExternalUrl } from "@/lib/platform";
+import { WhatsAppPurchaseLink } from "@/components/WhatsAppPurchaseLink";
 
 export function IosCheckoutLink() {
   const [preparing, setPreparing] = useState(false);
@@ -52,12 +53,13 @@ export function IosCheckoutLink() {
     return () => clearTimeout(timeout);
   }, [link]);
 
-  if (!link) return (
+  if (!link) return (<>
     <Button onClick={prepare} disabled={preparing} className="w-full h-12 rounded-2xl bg-gradient-to-r from-primary to-accent text-primary-foreground font-bold text-xs">
       {preparing && <Loader2 className="w-4 h-4 animate-spin mr-2" />}
       {preparing ? "Preparando seu acesso..." : "Gerar acesso ao site de compras"}
     </Button>
-  );
+    <WhatsAppPurchaseLink />
+  </>);
 
   return <>
     <Button asChild className="w-full h-12 rounded-2xl bg-gradient-to-r from-primary via-accent to-primary text-primary-foreground font-bold text-xs shadow-lg shadow-primary/30 flex items-center justify-center gap-2">
@@ -66,8 +68,7 @@ export function IosCheckoutLink() {
         target="_blank"
         rel="noopener noreferrer"
         onClick={(event) => {
-          event.preventDefault();
-          openExternalUrl(link.url);
+          if (requestExternalUrl(link.url)) event.preventDefault();
         }}
       >
         <ExternalLink className="w-4 h-4" />
@@ -81,6 +82,7 @@ export function IosCheckoutLink() {
       <Copy className="w-3.5 h-3.5" />
       {copied ? "Link copiado" : "Copiar link de compra"}
     </button>
+    <WhatsAppPurchaseLink />
     <p className="text-[10px] text-center text-muted-foreground/70">
       Link pessoal válido por 5 minutos e para um único acesso. Não compartilhe.
     </p>
